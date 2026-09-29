@@ -12,6 +12,7 @@ Demo interactivo y **completamente funcional** (HTML, CSS y JavaScript, sin back
 - **Inicio de sesión con usuarios y roles**, PIN opcional y matriz de permisos editable (17 permisos). Equipo del demo: **Daniel** (Desarrollador, acceso total y herramientas de datos), **Angelica** (Propietario/a, todo el negocio) y **Anderson** (Empleado/a de tienda: vende, cobra cuotas, trade-in, clientes y taller; sin costos ni reportes).
 - **Inventario** de 70+ productos: iPhone, iPad, Mac, Apple Watch, AirPods y accesorios, en 5 condiciones (nuevo, exhibición, reacondicionado, pre-owned y usado), con costo, precio, garantía y línea de tiempo por producto.
 - **Ingreso de productos** con verificación de IMEI (simulada), edición, ajuste de stock, exportar CSV.
+- **Escáner con cámara** (📷): lee el IMEI y el serial de los códigos de barras de la caja, y con “Leer texto” (OCR) el modelo, capacidad, color, batería y serial de la pantalla *Ajustes → General → Información*. Llena el formulario solo. También sirve en Venta (agrega el equipo al carrito), Trade-in y Recibir lote (varios códigos seguidos). También acepta foto. Todo se procesa en el dispositivo.
 - **Ventas (POS)** con carrito, descuentos con límite por rol, contado, cuotas y apartados.
 - **Comprobantes de diseño profesional** para cada venta, apartado y pago de cuota: logo, IMEI/serial, garantía, valor en letras, plan de pagos y firmas. Se imprimen o se guardan como PDF.
 - **Devoluciones, cuotas con recordatorios, garantías con reclamos, clientes.**
@@ -40,12 +41,14 @@ sw.js               Service worker (modo sin conexión)
 404.html            Página de error que devuelve al demo
 assets/app.css      Estilos (incluye diseño del comprobante e impresión)
 assets/icons/       Íconos de la app
+assets/vendor/      Librerías del escáner (ZXing y Tesseract.js, ver LICENSES.md)
 js/data.js          Catálogo, datos de ejemplo y persistencia
 js/core.js          Permisos, ayudantes, alertas, logo y verificación de IMEI
 js/views-ops.js     Dashboard, inventario, ingreso, trade-in, taller
 js/views-sales.js   POS, ventas, cuotas, garantías, clientes
 js/receipts.js      Factura, recibo de apartado y recibo de pago
 js/views-admin.js   Compras, sedes, automatizaciones, reportes, usuarios, configuración
+js/scanner.js       Escáner con cámara: códigos de barras y lectura de texto
 js/app.js           Navegación, sesión y arranque
 docs/               Propuesta comercial
 ```

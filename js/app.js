@@ -108,6 +108,7 @@ document.addEventListener('change',e=>{
   else if(t.classList&&t.classList.contains('perm')){const r=DB.roles[t.dataset.r],p=t.dataset.p;if(!r||r.locked)return;
     r.perms=t.checked?[...new Set([...r.perms,p])]:r.perms.filter(x=>x!==p);saveDB();paintNav();toast('Permiso actualizado')}
   else if(id==='logo-file'){const f=t.files&&t.files[0];t.value='';if(f)setLogoFile(f)}
+  else if(id==='scan-file'){const f=t.files&&t.files[0];t.value='';if(f)scanFromFile(f)}
   else if(id==='json-file'){const f=t.files&&t.files[0];t.value='';if(f)importJsonFile(f)}
   else{
     const map={'ti-model':'model','ti-gb':'gb','ti-scr':'scr','ti-body':'body'};

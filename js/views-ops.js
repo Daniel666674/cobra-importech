@@ -223,13 +223,13 @@ VIEWS.ingreso={html(){
   return `<div class="page-h"><div><h1>Ingresar producto</h1><p>Registra equipos y accesorios. Para iPhone, el IMEI se verifica automáticamente antes de guardar.</p></div></div>
   <div class="card"><div class="cats">${CATS.map(c=>`<button class="cat ${cat===c?'on':''}" data-a="addCat" data-c="${c}">${CAT_IC[c]} ${c}</button>`).join('')}</div>
   <div class="card-p">${cat==='iPhone'?`<div class="grid g21"><div class="f"><label>IMEI del equipo (15 dígitos)</label>
-     <div style="display:flex;gap:8px"><input class="imei-in" id="imei" inputmode="numeric" maxlength="15" placeholder="000000000000000" autocomplete="off"><button class="btn primary" data-a="verify" style="height:46px">Verificar</button></div>
+     <div style="display:flex;gap:8px"><input class="imei-in" id="imei" inputmode="numeric" maxlength="15" placeholder="000000000000000" autocomplete="off"><button class="btn primary" data-a="verify" style="height:46px">Verificar</button><button class="btn" data-a="scanAdd" style="height:46px" title="Leer IMEI, serial y modelo con la cámara">📷 Escanear</button></div>
      <div class="tests"><span style="font-size:12px;color:var(--t3);align-self:center">Probar con:</span>
       <button class="btn sm" data-a="fill" data-k="clean">✅ Limpio</button><button class="btn sm" data-a="fill" data-k="hurto">⛔ Hurtado</button><button class="btn sm" data-a="fill" data-k="extravio">⛔ Extraviado</button><button class="btn sm" data-a="fill" data-k="icloud">⚠️ iCloud activo</button><button class="btn sm" data-a="fill" data-k="operador">⚠️ Operador</button><button class="btn sm" data-a="fill" data-k="dup">♻️ Duplicado</button><button class="btn sm" data-a="fill" data-k="bad">✕ Inválido</button></div>
      <div id="vpanel"></div>
      <div class="note">Demo: los resultados de hurto, iCloud y operador están <b>simulados</b> con los IMEI de prueba de arriba. En el sistema real se consulta la base negativa oficial y un servicio de verificación de bloqueo.</div></div>
     <div class="card card-p" style="box-shadow:none;background:var(--ws-bg)"><h3>Qué se verifica</h3><ol style="margin:10px 0 0 18px;font-size:13px;color:var(--t2);display:flex;flex-direction:column;gap:7px"><li>Validación matemática del IMEI.</li><li>Modelo real según el TAC.</li><li>Que no esté ya en tu inventario.</li><li>Base negativa de hurto y extravío.</li><li>Bloqueo de iCloud y de operador.</li><li><b>Si está reportado no se puede guardar</b> y el dueño recibe una alerta.</li></ol></div></div>`
-   :`<h3 style="margin-bottom:12px">Nuevo ${c(cat)}</h3>${itemForm(null,cat)}<button class="btn primary" data-a="saveNew">Guardar en inventario</button>`}</div></div>`;
+   :`<div class="scan-banner"><div>📷 <b>Llena el formulario con la cámara</b><span>Lee el serial de la caja y, en la pantalla “Información”, el modelo, capacidad y batería.</span></div><button class="btn primary" data-a="scanAdd">Escanear</button></div><h3 style="margin-bottom:12px">Nuevo ${c(cat)}</h3>${itemForm(null,cat)}<button class="btn primary" data-a="saveNew">Guardar en inventario</button>`}</div></div>`;
   function c(x){return x==='Accesorios'?'accesorio':x==='AirPods'?'AirPods':x==='Apple Watch'?'Apple Watch':x}
 },after(){S.v=null;const i=$('#imei');if(i){i.addEventListener('input',()=>{i.value=i.value.replace(/\D/g,'').slice(0,15)});i.addEventListener('keydown',e=>{if(e.key==='Enter')doVerify()})}else itemMgHint()}};
 ACT.addCat=d=>{S.addCat=d.c;render()};
@@ -282,7 +282,7 @@ El equipo NO fue ingresado.<small>${ftime(Date.now())}</small></div></div>`;
       <button class="btn primary" data-a="saveVerified" ${v==='review'?'id="i-save" disabled':''}>Guardar en inventario</button></div>`;
   }
   el.innerHTML=out;
-  if(done&&res.verdict!=='blocked'){const sr=$('#i-serial');if(sr){sr.value=S.v.imei;sr.readOnly=true}itemAutofill(true)}
+  if(done&&res.verdict!=='blocked'){const sr=$('#i-serial');if(sr){sr.value=S.v.imei;sr.readOnly=true}itemAutofill(true);applyScanFill()}
 }
 ACT.saveVerified=()=>{if(!need('inv_edit'))return;const r=readItemForm(null,'iPhone');if(r.err){toast(r.err);$('#'+r.f)&&$('#'+r.f).focus();return}
   if(S.v.res.verdict==='review'&&!$('#i-ok').checked)return;r.o.serial=S.v.imei;createItem('iPhone',r.o,{verify:S.v.res})};
@@ -322,7 +322,7 @@ VIEWS.tradein={html(){
   <div class="grid g2"><div class="card card-p f"><h3 style="margin-bottom:12px">Revisión del equipo</h3>
    <div class="row"><div><label>Modelo</label>${sel('ti-model',CATALOG.filter(c=>c.cat==='iPhone').map(m=>[m.name,m.name]),T.model)}</div><div><label>Capacidad</label>${sel('ti-gb',[[128,'128 GB'],[256,'256 GB'],[512,'512 GB'],[1024,'1 TB']],T.gb)}</div></div>
    <div class="row"><div><label>IMEI</label><input id="ti-imei" class="mono" inputmode="numeric" maxlength="15" placeholder="15 dígitos" value="${T.imei}"></div><div><label>Batería (%)</label><input id="ti-batt" type="number" min="50" max="100" value="${T.batt}"></div></div>
-   <div class="tests" style="margin:-4px 0 12px"><span style="font-size:12px;color:var(--t3);align-self:center">Probar IMEI:</span><button class="btn sm" data-a="tiFill" data-k="clean">✅ Limpio</button><button class="btn sm" data-a="tiFill" data-k="hurto">⛔ Hurtado</button><button class="btn sm" data-a="tiFill" data-k="icloud">⚠️ iCloud</button></div>
+   <div class="tests" style="margin:-4px 0 12px"><span style="font-size:12px;color:var(--t3);align-self:center">Probar IMEI:</span><button class="btn sm" data-a="tiFill" data-k="clean">✅ Limpio</button><button class="btn sm" data-a="tiFill" data-k="hurto">⛔ Hurtado</button><button class="btn sm" data-a="tiFill" data-k="icloud">⚠️ iCloud</button><button class="btn sm primary" data-a="scanTi">📷 Escanear</button></div>
    <div class="row"><div><label>Pantalla</label>${sel('ti-scr',[[0,'Perfecta'],[1,'Rayones leves'],[2,'Rota']],T.scr)}</div><div><label>Carcasa</label>${sel('ti-body',[[0,'Sin marcas'],[1,'Marcas leves'],[2,'Golpes']],T.body)}</div></div>
    <label class="chk"><input type="checkbox" id="ti-fid" ${T.fid?'checked':''}> Face ID funciona</label><label class="chk"><input type="checkbox" id="ti-cam" ${T.cam?'checked':''}> Cámaras funcionan</label>
    <label class="chk"><input type="checkbox" id="ti-btn" ${T.btn?'checked':''}> Botones y puertos funcionan</label><label class="chk"><input type="checkbox" id="ti-icl" ${T.icl?'checked':''}> <b>El cliente cerró sesión de iCloud frente a mí</b></label></div>

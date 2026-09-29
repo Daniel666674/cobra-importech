@@ -61,7 +61,7 @@ function posCart(){
 }
 VIEWS.pos={html(){posInit();
   return `<div class="page-h"><div><h1>Nueva venta</h1><p>Busca productos, arma el carrito, elige el cliente y la forma de pago.</p></div></div>
-  <div class="grid pos-grid"><div class="card"><div class="filters"><input id="pos-q" placeholder="Buscar producto, serial/IMEI o SKU…" value="${esc(S.pos.q)}" autocomplete="off"></div><div id="pos-list" class="pos-scroll">${posList()}</div></div>
+  <div class="grid pos-grid"><div class="card"><div class="filters"><input id="pos-q" placeholder="Buscar producto, serial/IMEI o SKU…" value="${esc(S.pos.q)}" autocomplete="off"><button class="btn" data-a="scanPos" title="Escanear el código de barras del equipo">📷 Escanear</button></div><div id="pos-list" class="pos-scroll">${posList()}</div></div>
   <div class="card card-p" id="pos-cart">${posCart()}</div></div>`;
 }};
 function posPaint(){const c=$('#pos-cart');if(c)c.innerHTML=posCart();const l=$('#pos-list');if(l)l.innerHTML=posList()}

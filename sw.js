@@ -5,10 +5,11 @@
 const BUILD = '__BUILD__';
 const SHELL_CACHE = 'importech-shell-' + BUILD;
 const FONT_CACHE = 'importech-fonts-v1';
+const VENDOR_CACHE = 'importech-vendor-v1';   /* lector de texto (~7 MB): se descarga una vez y se conserva entre versiones */
 const SHELL = [
   './', 'index.html', '404.html', 'manifest.webmanifest',
   'assets/app.css',
-  'js/data.js', 'js/core.js', 'js/views-ops.js', 'js/views-sales.js', 'js/receipts.js', 'js/views-admin.js', 'js/app.js',
+  'js/data.js', 'js/core.js', 'js/views-ops.js', 'js/views-sales.js', 'js/receipts.js', 'js/views-admin.js', 'js/scanner.js', 'js/app.js', 'assets/vendor/zxing.min.js',
   'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/favicon-32.png', 'assets/brand/logo.png'
 ];
 
@@ -22,7 +23,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith('importech-') && k !== SHELL_CACHE && k !== FONT_CACHE).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith('importech-') && k !== SHELL_CACHE && k !== FONT_CACHE && k !== VENDOR_CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -46,6 +47,18 @@ self.addEventListener('fetch', e => {
   }
 
   if (url.origin !== location.origin) return;
+
+  if (url.pathname.includes('/assets/vendor/tesseract/')) {
+    e.respondWith((async () => {
+      const cache = await caches.open(VENDOR_CACHE);
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const r = await fetch(req);
+      if (r && r.ok) cache.put(req, r.clone());
+      return r;
+    })());
+    return;
+  }
 
   /* Documentos y archivos de la app: primero lo guardado (rápido y sin internet) */
   e.respondWith((async () => {
