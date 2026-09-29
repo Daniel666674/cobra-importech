@@ -256,4 +256,4 @@ ACT.scanLot=()=>openScanner({mode:'multi',cat:$('#rc-cat')?$('#rc-cat').value:'i
 ACT.scanPos=()=>openScanner({mode:'pick',onDone:code=>{
   const it=DB.items.find(i=>isAvail(i)&&(i.serial===code||i.sku===code));
   if(!it){toast('No encontré «'+esc(code)+'» entre los productos disponibles');return}
-  posInit();if(!S.pos.lines.some(l=>l.item===it.id))S.pos.lines.push({item:it.id,qty:1});posPaint();toast('✅ '+esc(uname(it))+' agregado a la venta')}});
+  posAddItem(it.id);posPaint();toast('✅ '+esc(uname(it))+' agregado a la venta')}});

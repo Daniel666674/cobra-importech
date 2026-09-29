@@ -22,7 +22,6 @@ const userById=id=>DB.users.find(u=>u.id===id);
 const clientById=id=>DB.clients.find(c=>c.id===id);
 const itemById=id=>DB.items.find(i=>i.id===id);
 const saleById=id=>DB.sales.find(s=>s.id===id);
-const planById=id=>DB.plans.find(p=>p.id===id);
 const roleOf=u=>DB.roles[u.role]||{name:u.role,perms:[]};
 function can(p){if(!ME)return false;const r=DB.roles[ME.role];if(!r)return false;return r.locked||r.perms.includes(p)}
 function nextId(key,prefix,pad){DB.seq[key]=(DB.seq[key]||0)+1;return prefix+String(DB.seq[key]).padStart(pad||3,'0')}
@@ -36,7 +35,7 @@ const inStock=it=>stockQty(it)>0;
 const isAvail=it=>isQty(it)?it.qty>0:it.status==='En vitrina';
 const daysIn=it=>daysAgo(it.acq);
 const itemState=it=>isQty(it)?(it.qty<=0?'Agotado':'En vitrina'):it.status;
-const stChip=s=>({'En vitrina':'ok','Apartado':'info','Vendido':'gray','En taller':'warn','En revisión':'pur','En tránsito':'info','Agotado':'bad'}[s]||'gray');
+const stChip=s=>({'En vitrina':'ok','Apartado':'info','Vendido':'gray','En taller':'warn','En revisión':'pur','Agotado':'bad'}[s]||'gray');
 const chip=(t,c)=>`<span class="chip ${c}">${t}</span>`;
 const condChip=c=>chip(c,COND_CHIP[c]||'gray');
 const margin=it=>it.price-it.cost-(it.repairs||0);
@@ -58,14 +57,12 @@ const saleMargin=s=>saleNet(s)-saleCost(s);
 const saleVoid=s=>s.lines.every(l=>lineNet(l)<=0);
 const warrEnd=(s,l)=>s.t+l.warr*30.4*DAY;
 const warrLeft=(s,l)=>Math.ceil((warrEnd(s,l)-Date.now())/DAY);
-function planInfo(p){
-  const cov=Math.min(p.n,Math.floor(p.paidAmt/p.cuota+1e-9)),bal=Math.max(0,p.total-p.abono-p.paidAmt);
-  const next=p.start+(Math.min(cov+1,p.n))*30*DAY;
-  let st='aldia';
-  if(bal<=0)st='pagado';else if(next<Date.now())st='mora';else if(next-Date.now()<=5*DAY)st='porvencer';
-  return{cov,bal,next,st,moraDays:st==='mora'?Math.floor((Date.now()-next)/DAY):0,nextAmt:Math.max(0,Math.min(bal,p.cuota*(cov+1)-p.paidAmt))};
-}
-const PLAN_ST={pagado:['Pagado','ok'],mora:['En mora','bad'],porvencer:['Vence pronto','warn'],aldia:['Al día','ok']};
+/* ---------- Apartados ---------- */
+const holdPaid=it=>it.hold?it.hold.abono:0;
+const holdBal=it=>Math.max(0,it.price-holdPaid(it));
+const holdLeft=it=>Math.ceil((it.hold.expires-Date.now())/DAY);
+const holdMin=it=>Math.round(it.price*(DB.settings.apartadoMinPct||20)/100/1000)*1000;
+function holdClose(it,outcome){DB.holdHist.unshift({t:Date.now(),item:uname(it),client:(it.hold&&clientById(it.hold.client)||{name:'—'}).name,abono:holdPaid(it),outcome});if(DB.holdHist.length>60)DB.holdHist.length=60}
 
 /* ---------- UI: toast, modal, drawer ---------- */
 function toast(m){const t=document.createElement('div');t.className='toast';t.innerHTML=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),4200)}
@@ -155,18 +152,12 @@ function computeAlerts(){
   if(agedI.length)A.push({type:'aged',ic:'⏳',sev:'warn',n:agedI.length,title:'Productos con más de '+aged+' días en inventario',detail:agedI.slice(0,3).map(i=>uname(i)+' ('+daysIn(i)+' d)').join(', '),view:'inventario',go:{inv:{q:'',cat:'',cond:'',br:'',st:'age'}},items:agedI});
   const low=DB.items.filter(i=>isQty(i)&&i.min>0&&i.qty<=i.min);
   if(low.length)A.push({type:'reorder',ic:'📈',sev:'warn',n:low.length,title:'Productos con stock bajo',detail:low.slice(0,3).map(i=>i.name+' ('+i.qty+')').join(', '),view:'inventario',go:{inv:{q:'',cat:'',cond:'',br:'',st:'low'}},items:low});
-  const pl=DB.plans.map(p=>({p,i:planInfo(p)}));
-  const mora=pl.filter(x=>x.i.st==='mora'),pv=pl.filter(x=>x.i.st==='porvencer');
-  if(mora.length)A.push({type:'cuotas',ic:'💳',sev:'bad',n:mora.length,title:'Planes de cuotas en mora',detail:mora.map(x=>clientById(x.p.client).name.split(' ')[0]+' ('+x.i.moraDays+' d)').join(', '),view:'cuotas'});
-  if(pv.length)A.push({type:'cuotas',ic:'💬',sev:'warn',n:pv.length,title:'Cuotas que vencen en 5 días o menos',detail:pv.map(x=>clientById(x.p.client).name.split(' ')[0]).join(', '),view:'cuotas'});
   const ws=[];DB.sales.forEach(s=>s.lines.forEach((l,i)=>{if(lineNet(l)>0&&l.warr>0){const d=warrLeft(s,l);if(d>0&&d<=30)ws.push({s,l,d})}}));
   if(ws.length)A.push({type:'post',ic:'🛡️',sev:'warn',n:ws.length,title:'Garantías que vencen en 30 días',detail:ws.slice(0,3).map(x=>x.l.name+' ('+x.d+' d)').join(', '),view:'garantias'});
   const cl=DB.claims.filter(c=>c.status==='Abierto');
   if(cl.length)A.push({type:'owner',ic:'🛠️',sev:'warn',n:cl.length,title:'Reclamos de garantía abiertos',detail:'Pendientes de revisión técnica',view:'garantias'});
   const holds=DB.items.filter(i=>i.status==='Apartado'&&i.hold&&i.hold.expires-now<=2*DAY);
-  if(holds.length)A.push({type:'apartado',ic:'🔒',sev:'warn',n:holds.length,title:'Apartados que vencen en 2 días',detail:holds.map(i=>uname(i)).join(', '),view:'cuotas'});
-  const tr=DB.transfers.filter(t=>t.st==='En tránsito');
-  if(tr.length)A.push({type:'owner',ic:'🚚',sev:'info',n:tr.length,title:'Transferencias en tránsito',detail:tr.map(t=>t.id+' → '+t.to).join(', '),view:'sedes'});
+  if(holds.length)A.push({type:'apartado',ic:'🔒',sev:'warn',n:holds.length,title:'Apartados que vencen en 2 días',detail:holds.map(i=>uname(i)).join(', '),view:'apartados'});
   const ready=DB.orders.filter(o=>o.st==='Listo');
   if(ready.length)A.push({type:'owner',ic:'🔧',sev:'info',n:ready.length,title:'Reparaciones listas para volver a vitrina',detail:ready.map(o=>uname(itemById(o.item))).join(', '),view:'taller'});
   const lowMg=DB.items.filter(i=>inStock(i)&&i.price&&marginPct(i)<DB.settings.minMargin);
@@ -178,12 +169,16 @@ function runEngine(force){
   let changed=false;const now=Date.now();
   if(DB.autos.apartado){
     DB.items.filter(i=>i.status==='Apartado'&&i.hold&&i.hold.expires<now).forEach(i=>{
-      const c=clientById(i.hold.client);i.status='En vitrina';addEv(i,'Apartado vencido · liberado automáticamente','El cliente no completó el pago a tiempo','warn');
+      const c=clientById(i.hold.client);holdClose(i,'Vencido · abono a favor del cliente');
+      i.status='En vitrina';addEv(i,'Apartado vencido · liberado automáticamente','El cliente no completó el pago a tiempo. Abono de '+fmt(holdPaid(i))+' queda a favor del cliente.','warn');
       logAct('apartado','🔒','Apartado vencido de <b>'+esc(c?c.name:'cliente')+'</b>: <b>'+esc(uname(i))+'</b> volvió a vitrina');i.hold=null;changed=true});
+    DB.items.filter(i=>i.status==='Apartado'&&i.hold&&!i.hold.reminded&&i.hold.expires-now<=2*DAY).forEach(i=>{
+      const c=clientById(i.hold.client);i.hold.reminded=true;
+      logAct('apartado','💬','Recordatorio de saldo enviado a <b>'+esc(c?c.name:'cliente')+'</b>: '+esc(uname(i))+' (saldo '+fmt(holdBal(i))+')');changed=true});
   }
   const day=new Date().toISOString().slice(0,10);
   if(force||DB.engineDay!==day){
-    computeAlerts().forEach(a=>{if(DB.autos[a.type]&&['aged','reorder','cuotas','reprice','post'].includes(a.type))logAct(a.type,a.ic,'<b>'+a.n+'</b> · '+esc(a.title));});
+    computeAlerts().forEach(a=>{if(DB.autos[a.type]&&['aged','reorder','reprice','post'].includes(a.type))logAct(a.type,a.ic,'<b>'+a.n+'</b> · '+esc(a.title));});
     DB.engineDay=day;changed=true;
   }
   if(changed)saveDB();

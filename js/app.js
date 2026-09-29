@@ -5,9 +5,9 @@ const NAV=[
  {g:'Operación'},{id:'dashboard',ic:'📊',l:'Dashboard'},{id:'pos',ic:'🛒',l:'Nueva venta',p:'sell'},{id:'ventas',ic:'🧾',l:'Ventas',p:'sell'},
  {id:'inventario',ic:'📱',l:'Inventario',p:'inv_view'},{id:'ingreso',ic:'➕',l:'Ingresar producto',p:'inv_edit',b:'IMEI'},
  {id:'tradein',ic:'🔁',l:'Trade-in',p:'tradein'},{id:'taller',ic:'🔧',l:'Taller',p:'workshop'},
- {g:'Clientes',p:['sell','credit','clients']},{id:'cuotas',ic:'💳',l:'Apartados y cuotas',p:'credit',bd:()=>DB.plans.filter(p=>planInfo(p).st==='mora').length},
+ {g:'Clientes',p:['sell','credit','clients']},{id:'apartados',ic:'🔒',l:'Apartados',p:['credit','sell'],bd:()=>DB.items.filter(i=>i.status==='Apartado'&&i.hold&&holdLeft(i)<=2).length,bc:''},
  {id:'garantias',ic:'🛡️',l:'Garantías',p:['sell','workshop']},{id:'clientes',ic:'👥',l:'Clientes',p:'clients'},
- {g:'Abastecimiento',p:['purchase','transfer','inv_view']},{id:'compras',ic:'🌎',l:'Compras e importación',p:'purchase'},{id:'sedes',ic:'🏬',l:'Sedes y transferencias',p:['transfer','inv_view']},
+ {g:'Abastecimiento',p:['purchase']},{id:'compras',ic:'🌎',l:'Compras e importación',p:'purchase'},
  {g:'Control',p:['reports','users','settings']},{id:'auto',ic:'⚡',l:'Alertas y automatizaciones',p:'reports',bd:()=>computeAlerts().filter(a=>a.sev!=='info').length,bc:'b'},{id:'reportes',ic:'📈',l:'Reportes',p:'reports'},
  {id:'usuarios',ic:'👤',l:'Usuarios y permisos',p:'users'},{id:'config',ic:'⚙️',l:'Configuración',p:'settings'}];
 const allowed=n=>!n.p||(Array.isArray(n.p)?n.p.some(can):can(n.p));
@@ -34,6 +34,7 @@ function paintBrand(){
 }
 function go(v){S.view=v;$('#sb').classList.remove('open');paintNav();render();$('#main').scrollTop=0}
 function render(){
+  const tp=$('#tip');if(tp)tp.classList.remove('on');
   const n=NAV.find(x=>x.id===S.view);if(n&&!allowed(n)){S.view='dashboard'}
   const f=VIEWS[S.view];$('#main').innerHTML=f.html();f.after&&f.after();
 }
@@ -82,7 +83,7 @@ document.addEventListener('input',e=>{
   else if(id==='gsearch'){if(!ME)return;if(t.value.length>=2){S.inv={q:t.value,cat:'',cond:'',br:'',st:'stock'};if(S.view!=='inventario')go('inventario');else{$('#inv-t').innerHTML=invTable();const q=$('#f-q');if(q)q.value=t.value}}}
   else if(id==='sv-q'){S.sales.q=t.value;render();keepFocus('sv-q')}
   else if(id==='cl-q'){S.cliQ=t.value;render();keepFocus('cl-q')}
-  else if(id==='pos-q'){S.pos.q=t.value;$('#pos-list').innerHTML=posList()}
+  else if(t.closest&&t.closest('.pos-wrap')){posInput(t)}
   else if(t.dataset&&t.dataset.lc){LC[t.dataset.lc]=+t.value||0;$('#lc-out').innerHTML=calcOut()}
   else if(['po-usd','po-qty','po-trm','po-fr','po-ar','po-iva'].includes(id))poPreview();
   else if(['i-cost','i-price'].includes(id)){t.dataset.touched=1;itemMgHint()}
@@ -102,7 +103,7 @@ document.addEventListener('change',e=>{
   else if(id==='wr-f'){S.warrF=t.value;render()}
   else if(id==='rep-d'){S.rep.days=+t.value;render()}
   else if(id==='feed-f'){S.feedType=t.value;render()}
-  else if(['pos-cli','pos-mode','pos-method','pos-disc','pos-nn','pos-np','pos-abono'].includes(id)){posReadInputs();posPaint()}
+  else if(t.closest&&t.closest('.pos-wrap')){posChange(t)}
   else if(id==='tr-from'){$('#tr-list').innerHTML=trListHtml()}
   else if(id==='i-ok'){$('#i-save').disabled=!t.checked}
   else if(t.classList&&t.classList.contains('perm')){const r=DB.roles[t.dataset.r],p=t.dataset.p;if(!r||r.locked)return;
@@ -126,7 +127,14 @@ const tip=$('#tip');
 document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-tip]');if(t){tip.textContent=t.dataset.tip;tip.classList.add('on')}});
 document.addEventListener('mousemove',e=>{if(tip.classList.contains('on')){tip.style.left=Math.min(e.clientX+14,innerWidth-270)+'px';tip.style.top=(e.clientY+16)+'px'}});
 document.addEventListener('mouseout',e=>{if(e.target.closest('[data-tip]'))tip.classList.remove('on')});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeAll();return}
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||''));
+  if(S.view==='pos'&&ME){
+    if(e.key==='/'&&!typing){e.preventDefault();const q=$('#pos-q');if(q)q.focus()}
+    if(e.key==='Enter'&&e.target.id==='pos-q'){e.preventDefault();posEnter()}
+  }
+});
 
 
 /* ---------- PWA: instalación, actualización y modo sin conexión ---------- */

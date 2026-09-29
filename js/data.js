@@ -1,7 +1,7 @@
 /* =====================================================
    DATA · constantes, catálogo, datos de ejemplo y persistencia
    ===================================================== */
-const DB_KEY='importech_demo_v4', SESSION_KEY='importech_session_v4', DB_VER=5;
+const DB_KEY='importech_demo_v4', SESSION_KEY='importech_session_v4', DB_VER=6;
 const DAY=864e5;
 
 const CATS=['iPhone','iPad','Mac','Apple Watch','AirPods','Accesorios'];
@@ -16,7 +16,7 @@ const COND_INFO={
   'Usado':'Grado B, marcas visibles de uso'};
 const COND_CHIP={'Nuevo':'ok','Exhibición':'info','Reacondicionado':'pur','Pre-owned':'warn','Usado':'gray'};
 const COND_F={'Nuevo':1,'Exhibición':.92,'Reacondicionado':.82,'Pre-owned':.74,'Usado':.62};
-const STATUSES=['En vitrina','Apartado','En taller','En revisión','En tránsito','Vendido'];
+const STATUSES=['En vitrina','Apartado','En taller','En revisión','Vendido'];
 const METHODS=['Efectivo','Transferencia','Tarjeta','Nequi','Daviplata','Enlace Bold'];
 const STOR={128:-400000,256:0,512:1000000,1024:2000000};
 
@@ -61,8 +61,8 @@ REG[TEST_IMEI.operador]={carrier:'Bloqueado a operador Movistar'};
 const PERMS=[
  ['inv_view','Ver inventario'],['inv_edit','Crear y editar productos'],['inv_delete','Eliminar productos'],['cost_view','Ver costos y márgenes'],
  ['sell','Registrar ventas'],['discount','Dar descuentos sobre el límite'],['refund','Hacer devoluciones'],
- ['credit','Gestionar cuotas y apartados'],['tradein','Recibir trade-in'],['workshop','Gestionar taller'],
- ['transfer','Hacer transferencias entre sedes'],['purchase','Gestionar compras'],['clients','Gestionar clientes'],
+ ['credit','Gestionar apartados y abonos'],['tradein','Recibir trade-in'],['workshop','Gestionar taller'],
+ ['purchase','Gestionar compras'],['clients','Gestionar clientes'],
  ['reports','Ver reportes'],['users','Gestionar usuarios y permisos'],['settings','Cambiar configuración y logo'],
  ['dev','Herramientas de desarrollador (restaurar y restablecer datos)']];
 const ALL_PERMS=PERMS.map(p=>p[0]);
@@ -73,13 +73,12 @@ const DEFAULT_ROLES={
 
 /* ---------- Automatizaciones ---------- */
 const AUTOS=[
- {id:'cuotas',ic:'💳',n:'Cuotas y plan separe',imp:'Alto',d:'Recordatorio por WhatsApp antes del vencimiento, aviso de mora, llamada con IA a los 4 días y gestor humano a los 10.'},
  {id:'reprice',ic:'🏷️',n:'Repricing por TRM y mercado',imp:'Alto',d:'Cuando cambia el dólar o la competencia, recalcula precios y protege el margen mínimo.'},
  {id:'aged',ic:'⏳',n:'Alerta de inventario envejecido',imp:'Alto',d:'Detecta equipos que llevan demasiados días en vitrina y propone rebaja o traslado de sede.'},
  {id:'wa',ic:'💬',n:'Venta por WhatsApp',imp:'Alto',d:'Responde disponibilidad, precio y foto, y aparta el equipo con abono. Atiende 24/7.'},
  {id:'reorder',ic:'📈',n:'Reposición sugerida',imp:'Alto',d:'Detecta accesorios y modelos con stock bajo y arma la orden de compra al proveedor.'},
  {id:'owner',ic:'🚨',n:'Alertas al dueño',imp:'Alto',d:'Descuentos fuera de rango, ventas bajo costo, IMEI duplicado o reportado, devoluciones.'},
- {id:'apartado',ic:'🔒',n:'Apartado con abono',imp:'Medio',d:'Bloquea el equipo por X días con abono. Si no completan el pago, lo libera solo.'},
+ {id:'apartado',ic:'🔒',n:'Apartados con abonos',imp:'Alto',d:'Bloquea el equipo con abono, avisa por WhatsApp el saldo antes de que venza y lo libera solo si no completan el pago.'},
  {id:'post',ic:'⭐',n:'Postventa automática',imp:'Medio',d:'Día 7 reseña, día 30 accesorios, y aviso antes de que venza la garantía.'},
  {id:'recompra',ic:'🔁',n:'Recompra y trade-in',imp:'Medio',d:'A los 12–18 meses ofrece recibir el equipo del cliente por uno nuevo.'},
  {id:'fe',ic:'🧾',n:'Comprobantes de venta',imp:'Medio',d:'Cada venta genera su comprobante con IMEI/serial y garantía. (La factura electrónica DIAN se integra con el sistema real.)'},
@@ -91,12 +90,12 @@ const AUTOS=[
    ===================================================== */
 function buildSeed(){
   const now=Date.now(),ago=d=>now-d*DAY,hrs=h=>now-h*36e5;
-  const D={ver:DB_VER,seedAt:now,seq:{item:0,sale:0,client:0,plan:0,order:0,tr:0,po:0,claim:0,user:0,feed:0,role:0},
+  const D={ver:DB_VER,seedAt:now,seq:{item:0,sale:0,client:0,order:0,po:0,claim:0,user:0,feed:0,role:0},
     settings:{name:'Importech',legal:'Importech S.A.S.',nit:'900.000.000-0',address:'Calle 10 # 5-20, Medellín',phone:'300 000 0000',email:'ventas@importech.demo',
       footer:'Gracias por tu compra. Conserva este comprobante para hacer válida tu garantía.',brand:'#1F2937',logo:'assets/brand/logo.png',
-      branches:['Sede Centro','Sede Norte','Bodega'],warr:{'Nuevo':12,'Exhibición':9,'Reacondicionado':6,'Pre-owned':3,'Usado':1},
-      maxDisc:5,minMargin:12,trm:4050,agedDays:45,holdDays:5},
-    roles:JSON.parse(JSON.stringify(DEFAULT_ROLES)),users:[],clients:[],items:[],sales:[],plans:[],orders:[],transfers:[],purchases:[],claims:[],feed:[],autos:{}};
+      branches:['Tienda principal'],warr:{'Nuevo':12,'Exhibición':9,'Reacondicionado':6,'Pre-owned':3,'Usado':1},
+      maxDisc:5,minMargin:12,trm:4050,agedDays:45,holdDays:5,apartadoMinPct:20},
+    roles:JSON.parse(JSON.stringify(DEFAULT_ROLES)),users:[],clients:[],items:[],sales:[],orders:[],purchases:[],holdHist:[],claims:[],feed:[],autos:{}};
   AUTOS.forEach(a=>D.autos[a.id]=true);
 
   /* Usuarios */
@@ -115,7 +114,7 @@ function buildSeed(){
   const C=D.clients;
 
   /* Productos */
-  const B=D.settings.branches,W=D.settings.warr;
+  const B=[D.settings.branches[0],D.settings.branches[0],D.settings.branches[0]],W=D.settings.warr;   // una sola tienda
   function mk(o){
     const n=++D.seq.item;
     const it=Object.assign({id:'I-'+String(n).padStart(4,'0'),sku:'',cat:'iPhone',name:'',spec:'',color:'',cond:'Nuevo',serial:'',qty:1,cost:0,price:0,warr:12,
@@ -125,6 +124,7 @@ function buildSeed(){
     if(it.track==='unit'&&!it.serial)it.serial=it.cat==='iPhone'?mkImei((CAT_BY_NAME[it.name]||{tac:'35000000'}).tac,1000+n*137):mkSerial(n);
     D.items.push(it);return it;
   }
+  const fmt0=n=>'$'+Math.round(n).toLocaleString('es-CO');
   const ev=(it,t,title,detail,tone,by)=>it.tl.push({t,title,detail:detail||'',tone:tone||'',by:by||''});
   const staff=['Anderson','Angelica'];
   const soldDefs=[];
@@ -134,14 +134,17 @@ function buildSeed(){
     const it=mk({cat,name,spec,color,cond,cost,price,branch,status,acq:ago(acq),src,warr:x.warr!=null?x.warr:W[cond],batt:x.batt||null,qty:x.qty!=null?x.qty:1,min:x.min||0,notes:x.notes||''});
     const t0=ago(acq),tr=/Trade-in/.test(src);
     ev(it,t0,tr?'Trade-in recibido':(/Consig/.test(src)?'Ingreso en consignación':'Compra'),src,'',staff[it.id.length%2]);
-    if(status==='En tránsito')ev(it,t0+2*36e5,'Despachado desde Miami','Guía SVD-88231 · llegada estimada en 2 días','warn','Anderson');
-    else{
+    {
       if(it.track==='unit'&&cat==='iPhone')ev(it,t0+2*36e5,'Recepción · IMEI verificado','Base negativa: limpio · iCloud: libre · Operador: libre','ok','Anderson');
       else ev(it,t0+2*36e5,'Recepción',it.track==='qty'?it.qty+' unidades ingresadas':'Equipo recibido y revisado','ok','Anderson');
       if(status!=='En revisión')ev(it,t0+DAY*.8,'En vitrina',branch,'','Anderson');
     }
     if(status==='En taller')ev(it,ago(4),'Entró a taller','Orden de reparación abierta','warn','Anderson');
-    if(status==='Apartado'){it.hold={client:C[9].id,abono:500000,expires:now+4*DAY,t:ago(3),by:'u3'};ev(it,ago(3),'Apartado','Carlos Ramírez · abono $500.000 · vence en 4 días','warn','Anderson')}
+    if(status==='Apartado'){const h=x.hold||{c:9,pays:[[3,500000,'Efectivo']],exp:4};
+      const pays=h.pays.map(([d,a,m],k)=>({t:ago(d),amount:a,method:m,by:'u3',no:'RB-'+(900+D.seq.item*3+k)}));
+      it.hold={client:C[h.c].id,abono:pays.reduce((a,y)=>a+y.amount,0),expires:now+h.exp*DAY,t:pays[0].t,by:'u3',no:'RA-'+(900+D.seq.item),pays};
+      ev(it,pays[0].t,'Apartado',C[h.c].name+' · abono '+fmt0(pays[0].amount)+' · vence en '+h.exp+' días','warn','Anderson');
+      pays.slice(1).forEach(y=>ev(it,y.t,'Abono recibido',fmt0(y.amount)+' · '+y.method,'ok','Anderson'))}
     if(x.sale)soldDefs.push([it,x.sale]);
     return it;
   };
@@ -149,9 +152,8 @@ function buildSeed(){
   /* ---- iPhone ---- */
   r('iPhone','iPhone 17 Pro Max','256 GB','Titanio naranja','Nuevo',5750000,6899000,B[0],'En vitrina',12,'Importación L-52',{batt:100});
   r('iPhone','iPhone 17 Pro Max','512 GB','Titanio negro','Nuevo',6650000,7899000,B[0],'En vitrina',12,'Importación L-52',{batt:100});
-  r('iPhone','iPhone 17 Pro Max','256 GB','Titanio plata','Nuevo',5750000,6899000,B[2],'En tránsito',1,'Importación L-53',{batt:100});
   r('iPhone','iPhone 17 Pro','256 GB','Azul profundo','Nuevo',4950000,5899000,B[1],'En vitrina',12,'Importación L-52',{batt:100});
-  r('iPhone','iPhone 17 Pro','256 GB','Plata','Nuevo',4950000,5899000,B[1],'Apartado',12,'Importación L-52',{batt:100});
+  r('iPhone','iPhone 17 Pro','256 GB','Plata','Nuevo',4950000,5899000,B[1],'Apartado',12,'Importación L-52',{batt:100,hold:{c:9,pays:[[6,300000,'Efectivo'],[2,300000,'Transferencia']],exp:5}});
   r('iPhone','iPhone 17 Pro','512 GB','Naranja','Exhibición',5300000,6299000,B[0],'En vitrina',20,'Importación L-49',{batt:100,notes:'Equipo de exhibición sin uso real'});
   r('iPhone','iPhone 17','256 GB','Negro','Nuevo',3550000,4199000,B[0],'En vitrina',12,'Importación L-52',{batt:100});
   r('iPhone','iPhone 17','128 GB','Blanco','Nuevo',3250000,3899000,B[1],'En vitrina',5,'Importación L-53',{batt:100});
@@ -183,7 +185,7 @@ function buildSeed(){
   r('iPad','iPad Air 11" M3 128 GB','','Azul','Pre-owned',2100000,2599000,B[1],'En vitrina',25,'Trade-in',{batt:93});
   /* ---- Mac ---- */
   r('Mac','MacBook Air 13" M4 16/256','','Azul cielo','Nuevo',3850000,4699000,B[0],'En vitrina',14,'Importación L-52');
-  r('Mac','MacBook Air 15" M4 16/512','','Medianoche','Nuevo',5250000,6299000,B[0],'En vitrina',14,'Importación L-52');
+  r('Mac','MacBook Air 15" M4 16/512','','Medianoche','Nuevo',5250000,6299000,B[0],'Apartado',14,'Importación L-52',{hold:{c:8,pays:[[9,1200000,'Tarjeta']],exp:1}});
   r('Mac','MacBook Air 13" M3 8/256','','Gris espacial','Nuevo',3450000,4199000,B[1],'En vitrina',52,'Importación L-45');
   r('Mac','MacBook Pro 14" M4 16/512','','Negro espacial','Nuevo',6200000,7499000,B[0],'En vitrina',20,'Importación L-49');
   r('Mac','MacBook Pro 14" M4 Pro 24/512','','Plata','Exhibición',7600000,8699000,B[0],'En vitrina',44,'Importación L-46',{notes:'Exhibición, 0 ciclos de batería'});
@@ -230,17 +232,17 @@ function buildSeed(){
   /* ---- Vendidos (historial de ventas) ---- */
   const S=(cat,name,spec,color,cond,cost,price,branch,acqD,src,sale,x)=>r(cat,name,spec,color,cond,cost,price,branch,'Vendido',acqD,src,Object.assign({sale},x||{}));
   S('iPhone','iPhone 17 Pro Max','256 GB','Titanio negro','Nuevo',5750000,6799000,B[0],36,'Importación L-50',{d:6,c:0,u:2,m:'Tarjeta',mode:'contado',acc:[['Funda de silicona iPhone 17 Pro',1],['Vidrio templado iPhone 17',1]]},{batt:100});
-  S('iPhone','iPhone 17 Pro','256 GB','Plata','Nuevo',4950000,5799000,B[1],34,'Importación L-50',{d:4,c:1,u:2,m:'Transferencia',mode:'cuotas:6',paid:0},{batt:100});
+  S('iPhone','iPhone 17 Pro','256 GB','Plata','Nuevo',4950000,5799000,B[1],34,'Importación L-50',{d:4,c:1,u:2,m:'Transferencia',mode:'contado'},{batt:100});
   S('iPhone','iPhone 16','128 GB','Negro','Nuevo',2900000,3399000,B[0],46,'Importación L-47',{d:14,c:2,u:1,m:'Efectivo',mode:'contado',acc:[['Cargador MagSafe 15 W',1]]},{batt:100});
-  S('iPhone','iPhone 15 Pro','256 GB','Titanio natural','Pre-owned',2650000,3199000,B[1],50,'Trade-in',{d:27,c:3,u:2,m:'Nequi',mode:'cuotas:3',paid:0},{batt:90});
+  S('iPhone','iPhone 15 Pro','256 GB','Titanio natural','Pre-owned',2650000,3199000,B[1],50,'Trade-in',{d:27,c:3,u:2,m:'Nequi',mode:'contado'},{batt:90});
   S('iPhone','iPhone 14','128 GB','Rojo','Pre-owned',1350000,1749000,B[0],41,'Trade-in',{d:9,c:4,u:2,m:'Daviplata',mode:'contado'},{batt:85});
-  S('iPhone','iPhone 17','256 GB','Verde','Nuevo',3550000,4199000,B[1],66,'Importación L-46',{d:33,c:5,u:2,m:'Tarjeta',mode:'cuotas:6',paid:0},{batt:100});
+  S('iPhone','iPhone 17','256 GB','Verde','Nuevo',3550000,4199000,B[1],66,'Importación L-46',{d:33,c:5,u:2,m:'Tarjeta',mode:'contado'},{batt:100});
   S('iPhone','iPhone 13','128 GB','Rosado','Usado',900000,1249000,B[0],56,'Trade-in',{d:26,c:6,u:1,m:'Efectivo',mode:'contado'},{batt:80});
   S('iPhone','iPhone 16 Pro','256 GB','Titanio natural','Nuevo',4050000,4749000,B[1],81,'Importación L-45',{d:52,c:7,u:2,m:'Transferencia',mode:'contado'},{batt:100});
   S('iPhone','iPhone 15 Pro','256 GB','Titanio blanco','Nuevo',3300000,3999000,B[0],370,'Importación L-12',{d:340,c:8,u:1,m:'Tarjeta',mode:'contado'},{batt:100});
   S('iPad','iPad 10.ª gen 64 GB Wi-Fi','','Rosa','Nuevo',1450000,1749000,B[0],40,'Importación L-47',{d:11,c:2,u:1,m:'Tarjeta',mode:'contado',acc:[['Apple Pencil (USB-C)',1]]});
   S('Mac','MacBook Air 13" M3 8/256','','Medianoche','Nuevo',3450000,4099000,B[0],44,'Importación L-46',{d:19,c:10,u:1,m:'Transferencia',mode:'contado',acc:[['Adaptador multipuerto USB-C',2],['Magic Mouse',2]]});
-  S('Mac','MacBook Pro 14" M4 16/512','','Plata','Nuevo',6200000,7399000,B[0],100,'Importación L-46',{d:75,c:9,u:0,m:'Tarjeta',mode:'cuotas:12',paid:2});
+  S('Mac','MacBook Pro 14" M4 16/512','','Plata','Nuevo',6200000,7399000,B[0],100,'Importación L-46',{d:75,c:9,u:0,m:'Tarjeta',mode:'contado'});
   S('Apple Watch','Apple Watch Series 10 46 mm','GPS','Plata','Nuevo',1850000,2249000,B[0],38,'Importación L-47',{d:8,c:4,u:2,m:'Nequi',mode:'contado'});
   S('Apple Watch','Apple Watch SE (2.ª gen) 44 mm','GPS','Estelar','Nuevo',1100000,1349000,B[1],41,'Importación L-47',{d:3,c:6,u:2,m:'Efectivo',mode:'contado'});
   S('iPhone','iPhone 16 Pro Max','256 GB','Titanio negro','Nuevo',4650000,5399000,B[0],12,'Importación L-52',{d:2,c:0,u:1,m:'Tarjeta',mode:'contado',acc:[['Estuche AirPods Pro 2',1],['Cable USB-C a USB-C 1 m',2]]},{batt:100});
@@ -256,16 +258,9 @@ function buildSeed(){
     (s.acc||[]).forEach(([nm,q])=>{const a=D.items.find(x=>x.name===nm&&x.track==='qty'&&x.cat==='Accesorios');if(a){a.qty+=q;lines.push({item:a.id,name:a.name,color:'',cond:a.cond,serial:'',qty:q,price:a.price,cost:a.cost,warr:a.warr,ret:0});a.qty-=q;
       ev(a,t,'Vendido ×'+q,C[s.c].name,'ok','Anderson')}});
     const total=lines.reduce((a,l)=>a+l.price*l.qty,0);
-    const sale={id:'S-'+String(++D.seq.sale).padStart(4,'0'),no:'FV-'+String(1000+D.seq.sale),t,client:C[s.c].id,by:SU[s.u].id,method:s.m,mode:s.mode,lines,disc:0,total,abono:0,prepaid:0,plan:null,notes:''};
-    if(s.mode.startsWith('cuotas')){
-      const n=+s.mode.split(':')[1],abono=Math.round(total*.3/1000)*1000,fin=total-abono,cuota=Math.round(fin/n/1000)*1000;
-      const pl={id:'P-'+String(++D.seq.plan).padStart(3,'0'),sale:sale.id,client:C[s.c].id,total,abono,n,cuota,start:t,paidAmt:0,pays:[]};
-      let paidC=s.paid!=null?s.paid:Math.min(n-1,Math.floor(s.d/30));
-      for(let k=0;k<paidC;k++){pl.pays.push({t:t+(k+1)*30*DAY,amount:cuota,method:s.m,by:SU[s.u].id});pl.paidAmt+=cuota}
-      sale.abono=abono;sale.plan=pl.id;D.plans.push(pl);
-    }
+    const sale={id:'S-'+String(++D.seq.sale).padStart(4,'0'),no:'FV-'+String(1000+D.seq.sale),t,client:C[s.c].id,by:SU[s.u].id,method:s.m,mode:'contado',payments:[{method:s.m,amount:total}],lines,disc:0,total,prepaid:0,notes:''};
     D.sales.push(sale);
-    ev(it,t,'Vendido',C[s.c].name+' · '+(s.mode==='contado'?'contado · '+s.m:'plan de '+s.mode.split(':')[1]+' cuotas')+' · '+sale.no,'ok',SU[s.u].name.split(' ')[0]);
+    ev(it,t,'Vendido',C[s.c].name+' · '+'contado · '+s.m+' · '+sale.no,'ok',SU[s.u].name.split(' ')[0]);
     ev(it,t+6e4,'Comprobante de venta',sale.no+' emitido con serial/IMEI y garantía');
     ev(it,t+12e4,'Garantía activada',it.warr+' meses','ok');
   });
@@ -285,12 +280,6 @@ function buildSeed(){
    {id:'T-032',item:D.items.find(x=>x.status==='En revisión').id,job:'Diagnóstico Face ID',st:'Diagnóstico',cost:0,tech:'Anderson',t:ago(1)});
   D.seq.order=32;
 
-  /* Transferencias */
-  D.transfers.push(
-   {id:'TR-118',from:B[2],to:B[0],lines:D.items.filter(x=>x.status==='En tránsito').map(x=>({item:x.id,qty:1})),guia:'SVD-88231',st:'En tránsito',t:ago(1),by:'u3'},
-   {id:'TR-117',from:B[2],to:B[1],lines:[{item:D.items.find(x=>x.name==='iPhone 16 Pro'&&x.spec==='128 GB').id,qty:1}],guia:'INT-2207',st:'Recibido',t:ago(15),by:'u3'});
-  D.seq.tr=118;
-
   /* Compras */
   D.purchases.push(
    {id:'L-053',sup:'Miami Tech',desc:'Lote iPhone 17 Pro Max / Pro',qty:12,usd:820,trm:4050,freight:1.5,arancel:0,iva:19,st:'En tránsito',t:ago(1)},
@@ -300,7 +289,7 @@ function buildSeed(){
 
   /* Historial de automatizaciones */
   const F=(h,type,ic,x)=>D.feed.push({id:++D.seq.feed,t:hrs(h),type,ic,x,by:'Sistema'});
-  F(.4,'cuotas','💬','Recordatorio de cuota enviado a <b>Andrés Felipe Mejía</b> (vence en 3 días)');
+  F(.4,'apartado','💬','Recordatorio de saldo enviado a <b>Isabela Duarte</b>: su apartado vence mañana');
   F(2,'reprice','🏷️','Repricing: <b>9 precios</b> ajustados por TRM $4.050 → $4.110');
   F(4,'aged','⏳','Alerta al dueño: <b>iPhone 14 · Usado</b> lleva 72 días en inventario');
   F(6,'fe','🧾','Comprobante <b>FV-1016</b> emitido y enviado al cliente');
@@ -312,7 +301,7 @@ function buildSeed(){
   F(48,'post','⭐','Solicitud de reseña enviada a <b>Camila Rojas</b> (día 7)');
   F(50,'recompra','🔁','Oferta de recompra enviada a <b>Isabela Duarte</b>');
   F(52,'apartado','🔒','Apartado de <b>Carlos Ramírez</b> recibió abono de $500.000');
-  F(70,'cuotas','💬','Aviso de mora enviado a <b>Sebastián Cárdenas</b>');
+  F(70,'apartado','💬','Recordatorio de saldo enviado a <b>Carlos Ramírez</b> (vence en 3 días)');
   F(72,'fe','🧾','Comprobante <b>FV-1015</b> emitido y enviado al cliente');
   F(96,'wa','💬','Consulta por <b>AirPods Pro 3</b> respondida automáticamente');
   F(100,'aged','⏳','Rebaja sugerida del 5% para <b>iPhone 16 · Rosado</b>');
@@ -343,6 +332,19 @@ function migrateDB(d){
     (d.items||[]).forEach(i=>{if(i.hold)i.hold.by=m(i.hold.by);(i.tl||[]).forEach(e=>{if(ren[e.by])e.by=ren[e.by]})});
     (d.orders||[]).forEach(o=>{if(ren[o.tech])o.tech=ren[o.tech]});
     d.ver=5;
+  }
+  /* v5 → v6: una sola tienda, sin transferencias ni ventas a cuotas; los apartados guardan sus abonos */
+  if(d.ver===5){
+    const main=(d.settings.branches&&d.settings.branches[0])?'Tienda principal':'Tienda principal';
+    d.settings.branches=[main];d.settings.apartadoMinPct=d.settings.apartadoMinPct||20;
+    (d.items||[]).forEach(i=>{i.branch=main;if(i.status==='En tránsito'){i.status='En vitrina';(i.tl||(i.tl=[])).push({t:Date.now(),title:'Recibido',detail:'Ingreso desde compra',tone:'ok',by:'Sistema'})}
+      if(i.hold&&!i.hold.pays)i.hold.pays=[{t:i.hold.t||Date.now(),amount:i.hold.abono||0,method:'Efectivo',by:i.hold.by,no:i.hold.no||'RB-1'}]});
+    (d.sales||[]).forEach(s=>{if(s.plan||/^cuotas/.test(s.mode||'')){s.plan=null;s.mode='contado'}if(!s.payments)s.payments=[{method:s.method||'Efectivo',amount:s.total}];delete s.branch});
+    delete d.plans;delete d.transfers;d.holdHist=d.holdHist||[];
+    if(d.autos)delete d.autos.cuotas;
+    (d.feed||[]).forEach(f=>{if(f.type==='cuotas')f.type='apartado'});
+    Object.values(d.roles||{}).forEach(r=>{if(r.perms)r.perms=r.perms.filter(p=>p!=='transfer')});
+    d.ver=6;
   }
   return d.ver===DB_VER?d:null;
 }

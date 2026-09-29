@@ -27,8 +27,8 @@ const alertRow=(a,i)=>`<div class="alert-li" data-a="alert" data-i="${i}"><span 
 VIEWS.dashboard={html(){
   const cv=can('cost_view'),now=Date.now();
   const s30=DB.sales.filter(s=>now-s.t<=30*DAY),rev=s30.reduce((a,s)=>a+saleNet(s),0),mg=s30.reduce((a,s)=>a+saleMargin(s),0);
-  const cartera=DB.plans.reduce((a,p)=>a+planInfo(p).bal,0),mora=DB.plans.filter(p=>planInfo(p).st==='mora').length;
-  const agedN=DB.items.filter(i=>inStock(i)&&i.status!=='En tránsito'&&daysIn(i)>DB.settings.agedDays);
+  const holds=DB.items.filter(i=>i.status==='Apartado'&&i.hold),holdSum=holds.reduce((a,i)=>a+holdPaid(i),0);
+  const agedN=DB.items.filter(i=>inStock(i)&&daysIn(i)>DB.settings.agedDays);
   ALERTS=computeAlerts();
   const hr=new Date().getHours(),greet=hr<12?'Buenos días':hr<19?'Buenas tardes':'Buenas noches';
   const cats=CATS.map(c=>{const it=DB.items.filter(i=>i.cat===c&&inStock(i));return{c,n:it.reduce((a,i)=>a+stockQty(i),0),v:it.reduce((a,i)=>a+(cv?i.cost:i.price)*stockQty(i),0)}}),mx=Math.max(...cats.map(x=>x.v),1);
@@ -39,8 +39,8 @@ VIEWS.dashboard={html(){
   <div class="grid g4">
     <div class="card kpi"><div class="l">${cv?'Valor del inventario (costo)':'Valor del inventario (precio)'}</div><div class="v">${fmtM(cv?stockValue('cost'):stockValue('price'))}</div><div class="d">${DB.items.filter(inStock).reduce((a,i)=>a+stockQty(i),0)} unidades · ${DB.items.filter(inStock).length} referencias</div></div>
     <div class="card kpi"><div class="l">Ventas últimos 30 días</div><div class="v">${fmtM(rev)}</div><div class="d">${s30.length} ventas</div></div>
-    <div class="card kpi">${cv?`<div class="l">Margen últimos 30 días</div><div class="v">${fmtM(mg)}</div><div class="d">${rev?Math.round(mg/rev*100):0}% sobre ventas`:`<div class="l">Cartera por cobrar</div><div class="v">${fmtM(cartera)}</div><div class="d">${mora} en mora`}</div></div>
-    <div class="card kpi ${agedN.length?'warn':''}"><div class="l">Más de ${DB.settings.agedDays} días en inventario</div><div class="v">${agedN.length} ref.</div><div class="d">${cv?fmtM(agedN.reduce((a,i)=>a+i.cost*stockQty(i),0))+' inmovilizados':'Requieren rebaja o traslado'}</div></div>
+    <div class="card kpi">${cv?`<div class="l">Margen últimos 30 días</div><div class="v">${fmtM(mg)}</div><div class="d">${rev?Math.round(mg/rev*100):0}% sobre ventas`:`<div class="l">Apartados vigentes</div><div class="v">${holds.length}</div><div class="d">${fmtM(holdSum)} en abonos`}</div></div>
+    <div class="card kpi ${agedN.length?'warn':''}"><div class="l">Más de ${DB.settings.agedDays} días en inventario</div><div class="v">${agedN.length} ref.</div><div class="d">${cv?fmtM(agedN.reduce((a,i)=>a+i.cost*stockQty(i),0))+' inmovilizados':'Requieren rebaja o promoción'}</div></div>
   </div>
   <div class="grid g21 mt">
     <div class="card"><div class="card-h"><div><h3>Ventas por semana</h3><div class="sub">Millones de pesos · últimas 8 semanas</div></div></div><div class="card-p chart">${weekChart()}</div></div>
@@ -65,10 +65,10 @@ function invRows(){
   const f=S.inv,q=f.q.toLowerCase(),aged=DB.settings.agedDays;
   return DB.items.filter(it=>{
     if(q&&!(it.name+' '+it.spec+' '+it.color+' '+it.serial+' '+it.sku+' '+it.id).toLowerCase().includes(q))return false;
-    if(f.cat&&it.cat!==f.cat)return false;if(f.cond&&it.cond!==f.cond)return false;if(f.br&&it.branch!==f.br)return false;
+    if(f.cat&&it.cat!==f.cat)return false;if(f.cond&&it.cond!==f.cond)return false;
     const st=f.st||'stock';
     if(st==='stock')return inStock(it);if(st==='all')return true;
-    if(st==='age')return inStock(it)&&it.status!=='En tránsito'&&daysIn(it)>aged;
+    if(st==='age')return inStock(it)&&daysIn(it)>aged;
     if(st==='low')return isQty(it)&&it.min>0&&it.qty<=it.min;
     if(st==='lowmg')return inStock(it)&&it.price&&marginPct(it)<DB.settings.minMargin;
     return itemState(it)===st;
@@ -78,12 +78,12 @@ function invTable(){
   const r=invRows(),cv=can('cost_view');
   if(!r.length)return '<div class="empty">Ningún producto coincide con los filtros.</div>';
   const tq=r.reduce((a,i)=>a+stockQty(i),0),tc=r.reduce((a,i)=>a+i.cost*stockQty(i),0),tp=r.reduce((a,i)=>a+i.price*stockQty(i),0);
-  return `<div class="tbl-wrap"><table><thead><tr><th>Producto</th><th>Serial / SKU</th><th>Condición</th><th>Sede</th><th class="num">Stock</th><th>Estado</th><th class="num">Días</th>${cv?'<th class="num">Costo</th>':''}<th class="num">Precio</th>${cv?'<th class="num">Margen</th>':''}<th class="num">Garantía</th></tr></thead><tbody>
+  return `<div class="tbl-wrap"><table><thead><tr><th>Producto</th><th>Serial / SKU</th><th>Condición</th><th class="num">Stock</th><th>Estado</th><th class="num">Días</th>${cv?'<th class="num">Costo</th>':''}<th class="num">Precio</th>${cv?'<th class="num">Margen</th>':''}<th class="num">Garantía</th></tr></thead><tbody>
   ${r.map(it=>{const mg=marginPct(it),stt=itemState(it);return `<tr class="click" data-a="item" data-id="${it.id}">
    <td><div class="m">${CAT_IC[it.cat]} ${esc(it.name)}</div><div class="s">${esc([it.spec,it.color].filter(Boolean).join(' · '))}</div></td>
-   <td class="mono">${it.serial?'•••'+esc(it.serial.slice(-6)):esc(it.sku)}</td><td>${condChip(it.cond)}</td><td>${esc(it.branch)}</td>
+   <td class="mono">${it.serial?'•••'+esc(it.serial.slice(-6)):esc(it.sku)}</td><td>${condChip(it.cond)}</td>
    <td class="num">${isQty(it)?`<b style="${it.min&&it.qty<=it.min?'color:var(--red-t)':''}">${it.qty}</b>`:stockQty(it)}</td><td>${chip(stt,stChip(stt))}</td>
-   <td class="num">${inStock(it)&&it.status!=='En tránsito'?(daysIn(it)>DB.settings.agedDays+15?chip('⏳ '+daysIn(it)+' d','bad'):daysIn(it)>DB.settings.agedDays?chip('⏳ '+daysIn(it)+' d','warn'):`<span style="color:var(--t3)">${daysIn(it)} d</span>`):'—'}</td>
+   <td class="num">${inStock(it)?(daysIn(it)>DB.settings.agedDays+15?chip('⏳ '+daysIn(it)+' d','bad'):daysIn(it)>DB.settings.agedDays?chip('⏳ '+daysIn(it)+' d','warn'):`<span style="color:var(--t3)">${daysIn(it)} d</span>`):'—'}</td>
    ${cv?`<td class="num">${fmt(it.cost+(it.repairs||0))}</td>`:''}<td class="num">${fmt(it.price)}</td>${cv?`<td class="num" style="font-weight:600;color:${mg<DB.settings.minMargin?'var(--amber-t)':'var(--green-t)'}">${mg}%</td>`:''}<td class="num">${it.warr} m</td></tr>`}).join('')}
   </tbody></table></div>
   <div style="padding:12px 16px;font-size:13px;color:var(--t2);border-top:1px solid var(--border);display:flex;gap:18px;flex-wrap:wrap"><span><b>${r.length}</b> referencias</span><span><b>${tq}</b> unidades</span>${cv?`<span>Valor a costo <b>${fmt(tc)}</b></span>`:''}<span>Valor a precio <b>${fmt(tp)}</b></span></div>`;
@@ -95,14 +95,13 @@ VIEWS.inventario={html(){
   <div class="card"><div class="cats"><button class="cat ${!f.cat?'on':''}" data-a="invCat" data-c="">Todo</button>${CATS.map(c=>`<button class="cat ${f.cat===c?'on':''}" data-a="invCat" data-c="${c}">${CAT_IC[c]} ${c}</button>`).join('')}</div>
   <div class="filters"><input id="f-q" placeholder="Buscar por nombre, serial/IMEI, SKU o color…" value="${esc(f.q)}">
     <select id="f-cd"><option value="">Toda condición</option>${CONDS.map(c=>`<option ${f.cond===c?'selected':''}>${c}</option>`).join('')}</select>
-    <select id="f-br"><option value="">Todas las sedes</option>${DB.settings.branches.map(b=>`<option ${f.br===b?'selected':''}>${esc(b)}</option>`).join('')}</select>
     <select id="f-st">${sts.map(([v,l])=>`<option value="${v}" ${(f.st||'stock')===v?'selected':''}>${l}</option>`).join('')}</select></div>
   <div id="inv-t">${invTable()}</div></div>`;
 }};
 ACT.invCat=d=>{S.inv.cat=d.c;render()};
 ACT.exportInv=()=>{const cv=can('cost_view');downloadCSV('inventario-'+new Date().toISOString().slice(0,10)+'.csv',
-  [['ID','SKU','Categoría','Producto','Especificación','Color','Condición','Serial/IMEI','Cantidad','Sede','Estado','Días en inventario',...(cv?['Costo']:[]),'Precio','Garantía (meses)'],
-   ...invRows().map(i=>[i.id,i.sku,i.cat,i.name,i.spec,i.color,i.cond,i.serial,stockQty(i),i.branch,itemState(i),daysIn(i),...(cv?[i.cost]:[]),i.price,i.warr])]);toast('Inventario exportado')};
+  [['ID','SKU','Categoría','Producto','Especificación','Color','Condición','Serial/IMEI','Cantidad','Estado','Días en inventario',...(cv?['Costo']:[]),'Precio','Garantía (meses)'],
+   ...invRows().map(i=>[i.id,i.sku,i.cat,i.name,i.spec,i.color,i.cond,i.serial,stockQty(i),itemState(i),daysIn(i),...(cv?[i.cost]:[]),i.price,i.warr])]);toast('Inventario exportado')};
 
 /* ---------- Ficha del producto ---------- */
 function openItem(id){
@@ -112,7 +111,7 @@ function openItem(id){
   $('#drawer').innerHTML=`
   <div class="drawer-h"><div><h2>${CAT_IC[it.cat]} ${esc(it.name)}</h2><div style="color:var(--t3);font-size:13px">${esc([it.spec,it.color].filter(Boolean).join(' · '))}</div></div><button class="x" data-a="closeDrawer" aria-label="Cerrar">×</button></div>
   <div class="drawer-b">
-   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip(stt,stChip(stt))}${condChip(it.cond)}${chip(it.branch,'gray')}${inStock(it)&&it.status!=='En tránsito'?chip('⏳ '+daysIn(it)+' días en inventario',daysIn(it)>DB.settings.agedDays+15?'bad':daysIn(it)>DB.settings.agedDays?'warn':'gray'):''}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip(stt,stChip(stt))}${condChip(it.cond)}${inStock(it)?chip('⏳ '+daysIn(it)+' días en inventario',daysIn(it)>DB.settings.agedDays+15?'bad':daysIn(it)>DB.settings.agedDays?'warn':'gray'):''}</div>
    <div class="note" style="margin-top:10px">${COND_INFO[it.cond]}</div>
    <div class="kv">
      <div><span>${it.serial&&it.cat==='iPhone'?'IMEI':'Serial'}</span><b class="mono">${it.serial?esc(it.serial):'—'}</b></div><div><span>SKU · ID</span><b>${it.sku} · ${it.id}</b></div>
@@ -130,7 +129,6 @@ function openItem(id){
     ${can('sell')&&it.status==='Apartado'?`<button class="btn primary" data-a="finishHold" data-id="${it.id}">✅ Completar venta</button><button class="btn" data-a="releaseHold" data-id="${it.id}">Liberar apartado</button>`:''}
     ${can('inv_edit')&&!sold?`<button class="btn" data-a="editItem" data-id="${it.id}">✏️ Editar</button>`:''}
     ${can('inv_edit')&&isQty(it)?`<button class="btn" data-a="adjust" data-id="${it.id}">± Ajustar stock</button>`:''}
-    ${can('transfer')&&isAvail(it)?`<button class="btn" data-a="transferItem" data-id="${it.id}">🚚 Transferir</button>`:''}
     ${can('workshop')&&!isQty(it)&&['En vitrina','En revisión'].includes(it.status)?`<button class="btn" data-a="toWorkshop" data-id="${it.id}">🔧 Enviar a taller</button>`:''}
     ${!isQty(it)&&it.cat==='iPhone'&&!sold?`<button class="btn" data-a="reverify" data-id="${it.id}">🛡️ Re-verificar IMEI</button>`:''}
     ${can('inv_delete')?`<button class="btn danger" data-a="delItem" data-id="${it.id}">🗑️ Eliminar</button>`:''}
@@ -144,8 +142,6 @@ function openItem(id){
 ACT.item=d=>{closeModal();openItem(d.id)};
 ACT.sellItem=d=>{closeDrawer();posStart(d.id)};
 ACT.finishHold=d=>{closeDrawer();posStart(d.id,true)};
-ACT.releaseHold=d=>{const it=itemById(d.id);confirmBox('Liberar apartado','El equipo volverá a vitrina. El abono de <b>'+fmt(it.hold.abono)+'</b> debe devolverse o aplicarse según tu política.','Liberar',()=>{
-  addEv(it,'Apartado liberado','Abono de '+fmt(it.hold.abono)+' pendiente de devolución','warn');it.status='En vitrina';it.hold=null;logAct('apartado','🔒','Apartado liberado: <b>'+esc(uname(it))+'</b>');saveDB();closeModal();openItem(it.id);render();toast('Apartado liberado')})};
 ACT.reverify=d=>{const it=itemById(d.id),r=verifyImei(it.serial,it.id);addEv(it,'Re-verificación de IMEI',r.verdict==='clean'?'Sin cambios: limpio en base negativa, iCloud y operador':r.steps.filter(s=>s.s!=='ok').map(s=>s.d).join(' | '),r.verdict==='clean'?'ok':'bad');saveDB();openItem(it.id);toast(r.verdict==='clean'?'✅ IMEI sigue limpio (simulado)':'⚠️ Se encontraron novedades')};
 ACT.delItem=d=>{if(!need('inv_delete'))return;const it=itemById(d.id);
   if(DB.sales.some(s=>s.lines.some(l=>l.item===it.id))){toast('No se puede eliminar: tiene ventas asociadas. Ponle stock 0 si ya no lo vendes.');return}
@@ -157,13 +153,6 @@ ACT.adjust=d=>{const it=itemById(d.id);openModal(`${modalHead('Ajustar stock · 
 ACT.doAdjust=d=>{const it=itemById(d.id),q=Math.max(0,Math.round(num('adj-q')));const old=it.qty;it.qty=q;addEv(it,'Ajuste de stock',old+' → '+q+' · '+$('#adj-r').value,q<old?'warn':'ok');
   if(q<old)logAct('owner','🚨','Ajuste de stock <b>'+esc(it.name)+'</b>: '+old+' → '+q+' ('+esc($('#adj-r').value)+')');saveDB();closeModal();openItem(it.id);render();toast('Stock actualizado')};
 ACT.toWorkshop=d=>{closeDrawer();workshopModal(d.id)};
-ACT.transferItem=d=>{const it=itemById(d.id);
-  openModal(`${modalHead('Transferir · '+esc(uname(it)))}<div class="modal-b f"><div class="row"><div><label>Desde</label><input value="${esc(it.branch)}" disabled></div><div><label>Hacia</label><select id="tr-to">${DB.settings.branches.filter(b=>b!==it.branch).map(b=>`<option>${esc(b)}</option>`).join('')}</select></div>
-   ${isQty(it)?`<div><label>Cantidad (máx. ${it.qty})</label><input id="tr-q" type="number" min="1" max="${it.qty}" value="1"></div>`:''}</div></div>
-   <div class="modal-f"><button class="btn" data-a="closeModal">Cancelar</button><button class="btn primary" data-a="doTransfer" data-id="${it.id}">Crear transferencia</button></div>`)};
-ACT.doTransfer=d=>{if(!need('transfer'))return;const it=itemById(d.id),to=$('#tr-to').value,q=isQty(it)?Math.max(1,Math.min(it.qty,Math.round(num('tr-q')))):1;
-  createTransfer(it.branch,to,[{item:it.id,qty:q}]);closeModal();closeDrawer();toast('🚚 Transferencia creada');go('sedes')};
-
 /* ---------- Formulario de producto (crear/editar) ---------- */
 const SRCS=['Importación','Trade-in','Consignación','Compra directa','Proveedor local'];
 function itemForm(it,cat){
@@ -178,7 +167,7 @@ function itemForm(it,cat){
      ${ph?`<div><label>Batería / salud %</label><input id="i-batt" type="number" min="1" max="100" value="${v.batt||''}"></div>`:''}</div>
    <div class="row">${!q?`<div style="grid-column:span 2"><label>${c==='iPhone'?'IMEI':'Número de serie'} *</label><input id="i-serial" class="mono" value="${esc(v.serial)}" ${it&&c==='iPhone'?'':''} placeholder="${c==='iPhone'?'15 dígitos':'Serial del equipo'}"></div>`
        :`<div><label>Cantidad *</label><input id="i-qty" type="number" min="0" value="${v.qty}"></div><div><label>Stock mínimo (alerta)</label><input id="i-min" type="number" min="0" value="${v.min||0}"></div>`}
-     <div><label>Sede *</label><select id="i-br">${DB.settings.branches.map(b=>`<option ${v.branch===b?'selected':''}>${esc(b)}</option>`).join('')}</select></div></div>
+</div>
    <div class="row">${can('cost_view')?`<div><label>Costo real (COP) *</label><input id="i-cost" type="number" step="1000" min="0" value="${v.cost||''}"></div>`:''}
      <div><label>Precio al cliente (COP) *</label><input id="i-price" type="number" step="1000" min="0" value="${v.price||''}"></div>
      <div><label>Garantía (meses)</label><input id="i-warr" type="number" min="0" max="36" value="${v.warr}"></div></div>
@@ -197,7 +186,7 @@ function itemAutofill(force){
 }
 function readItemForm(it,cat){
   const c=it?it.cat:cat,q=c==='AirPods'||c==='Accesorios';
-  const o={name:val('i-name'),spec:val('i-spec'),color:val('i-color'),cond:val('i-cond'),branch:val('i-br'),cost:can('cost_view')?num('i-cost'):(it?it.cost:0),price:num('i-price'),warr:Math.max(0,Math.round(num('i-warr'))),src:val('i-src'),notes:val('i-notes')};
+  const o={name:val('i-name'),spec:val('i-spec'),color:val('i-color'),cond:val('i-cond'),cost:can('cost_view')?num('i-cost'):(it?it.cost:0),price:num('i-price'),warr:Math.max(0,Math.round(num('i-warr'))),src:val('i-src'),notes:val('i-notes')};
   if(!o.name)return{err:'Escribe el nombre del producto',f:'i-name'};
   if(!o.price)return{err:'Escribe el precio al cliente',f:'i-price'};
   if(can('cost_view')&&!o.cost&&!it)return{err:'Escribe el costo real',f:'i-cost'};
@@ -211,7 +200,7 @@ function readItemForm(it,cat){
 ACT.editItem=d=>{if(!need('inv_edit'))return;const it=itemById(d.id);closeDrawer();
   openModal(`${modalHead('Editar · '+esc(uname(it)))}<div class="modal-b">${itemForm(it)}</div><div class="modal-f"><button class="btn" data-a="closeModal">Cancelar</button><button class="btn primary" data-a="saveEdit" data-id="${it.id}">Guardar cambios</button></div>`,true);['i-cost','i-price','i-warr'].forEach(id=>{const e=$('#'+id);if(e)e.dataset.touched=1});itemMgHint()};
 ACT.saveEdit=d=>{const it=itemById(d.id),r=readItemForm(it);if(r.err){toast(r.err);$('#'+r.f)&&$('#'+r.f).focus();return}
-  const ch=[];['cost','price','warr','branch','cond'].forEach(k=>{if(it[k]!==r.o[k])ch.push(k+': '+it[k]+' → '+r.o[k])});
+  const ch=[];['cost','price','warr','cond'].forEach(k=>{if(it[k]!==r.o[k])ch.push(k+': '+it[k]+' → '+r.o[k])});
   const priceOld=it.price;Object.assign(it,r.o);
   addEv(it,'Producto editado',ch.join(' · ')||'Sin cambios relevantes',ch.length?'warn':'');
   if(priceOld!==it.price)logAct('reprice','🏷️','Precio de <b>'+esc(uname(it))+'</b>: '+fmt(priceOld)+' → '+fmt(it.price)+' por '+esc(ME.name));
@@ -330,7 +319,7 @@ VIEWS.tradein={html(){
 }};
 ACT.tiFill=d=>{S.ti.imei=TEST_IMEI[d.k];$('#ti-imei').value=S.ti.imei;$('#ti-out').innerHTML=tiOut()};
 ACT.acceptTi=()=>{if(!need('tradein'))return;const q=tradeQuote();if(q.block)return;const T=S.ti,cl=$('#ti-cli')?$('#ti-cli').value:'';
-  const it=createItemQuiet('iPhone',{name:T.model,spec:T.gb>=1024?'1 TB':T.gb+' GB',color:'Por definir',cond:q.cond,serial:T.imei,cost:q.q,price:q.resale,warr:DB.settings.warr[q.cond],branch:DB.settings.branches[DB.settings.branches.length-1],
+  const it=createItemQuiet('iPhone',{name:T.model,spec:T.gb>=1024?'1 TB':T.gb+' GB',color:'Por definir',cond:q.cond,serial:T.imei,cost:q.q,price:q.resale,warr:DB.settings.warr[q.cond],branch:DB.settings.branches[0],
     status:'En revisión',src:'Trade-in',batt:T.batt,notes:cl?'Recibido de '+clientById(cl).name:''});
   addEv(it,'IMEI verificado','Base negativa: limpio · cliente cerró iCloud frente al empleado','ok');
   addEv(it,'Revisión de ingreso','Batería '+T.batt+'% · '+(q.d.map(x=>x[0]).join(', ')||'sin novedades'));

@@ -1,5 +1,5 @@
 /* =====================================================
-   VISTAS · administración: compras, sedes, automatizaciones, reportes, usuarios, configuración
+   VISTAS · administración: compras, automatizaciones, reportes, usuarios, configuración
    ===================================================== */
 
 /* ---------- Compras e importación ---------- */
@@ -40,64 +40,29 @@ ACT.receiveModal=d=>{const p=DB.purchases.find(x=>x.id===d.id),L=landed(p);
    <p style="font-size:13px;color:var(--t2);margin-bottom:10px">Costo real por unidad: <b>${fmt(L.unit)}</b>. Pega un IMEI/serial por línea: en iPhone <b>cada IMEI se verifica automáticamente</b> y los reportados no se ingresan.</p>
    <div class="row"><div><label>Categoría</label><select id="rc-cat">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div><div style="grid-column:span 2"><label>Producto *</label><input id="rc-name" list="dl-names" placeholder="Ej. iPhone 17 Pro"></div></div>
    <div class="row"><div><label>Capacidad / detalle</label><input id="rc-spec" placeholder="256 GB"></div><div><label>Color</label><input id="rc-color"></div><div><label>Condición</label><select id="rc-cond">${CONDS.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
-   <div class="row"><div><label>Sede</label><select id="rc-br">${DB.settings.branches.map(b=>`<option>${esc(b)}</option>`).join('')}</select></div><div><label>Cantidad (accesorios / AirPods)</label><input id="rc-qty" type="number" min="1" value="${p.qty}"></div><div><label>Precio al cliente</label><input id="rc-price" type="number" step="1000"></div></div>
+   <div class="row"><div><label>Cantidad (accesorios / AirPods)</label><input id="rc-qty" type="number" min="1" value="${p.qty}"></div><div><label>Precio al cliente</label><input id="rc-price" type="number" step="1000"></div></div>
    <label style="display:flex;justify-content:space-between;align-items:center">IMEI / seriales (uno por línea)<button class="btn sm" type="button" data-a="scanLot" style="margin-left:8px">📷 Escanear varios</button></label><textarea id="rc-ser" rows="4" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="Solo para equipos con serial (iPhone, iPad, Mac, Watch)"></textarea>
    <div id="rc-res"></div></div><div class="modal-f"><button class="btn" data-a="closeModal">Cancelar</button><button class="btn primary" data-a="doReceive" data-id="${p.id}">Recibir e ingresar</button></div>`,true)};
 ACT.doReceive=d=>{if(!need('inv_edit'))return;const p=DB.purchases.find(x=>x.id===d.id),L=landed(p),cat=val('rc-cat'),name=val('rc-name');if(!name){toast('Escribe el producto');return}
-  const spec=val('rc-spec'),color=val('rc-color'),cond=val('rc-cond'),br=val('rc-br'),price=num('rc-price')||listPrice(name,spec,cond)||Math.round(L.unit*1.2/1000)*1000;
+  const spec=val('rc-spec'),color=val('rc-color'),cond=val('rc-cond'),br=DB.settings.branches[0],price=num('rc-price')||listPrice(name,spec,cond)||Math.round(L.unit*1.2/1000)*1000;
   const qtyTrack=cat==='AirPods'||cat==='Accesorios',ok=[],bad=[];
   if(qtyTrack){
-    const q=Math.max(1,Math.round(num('rc-qty'))),ex=DB.items.find(i=>isQty(i)&&i.name===name&&i.spec===spec&&i.cond===cond&&i.branch===br);
+    const q=Math.max(1,Math.round(num('rc-qty'))),ex=DB.items.find(i=>isQty(i)&&i.name===name&&i.spec===spec&&i.cond===cond&&true);
     if(ex){ex.cost=Math.round((ex.cost*ex.qty+L.unit*q)/(ex.qty+q));ex.qty+=q;addEv(ex,'Ingreso ×'+q,p.id+' · costo promedio actualizado','ok');ok.push(ex.id)}
-    else{const it=createItemQuiet(cat,{name,spec,color,cond,cost:Math.round(L.unit),price,qty:q,min:3,warr:DB.settings.warr[cond],branch:br,src:'Importación '+p.id});it.tl=[];addEv(it,'Ingreso ×'+q,p.id,'ok');addEv(it,'En vitrina',br);ok.push(it.id)}
+    else{const it=createItemQuiet(cat,{name,spec,color,cond,cost:Math.round(L.unit),price,qty:q,min:3,warr:DB.settings.warr[cond],src:'Importación '+p.id});it.tl=[];addEv(it,'Ingreso ×'+q,p.id,'ok');addEv(it,'En vitrina',br);ok.push(it.id)}
   }else{
     const sers=[...new Set(($('#rc-ser').value||'').split(/[\s,;]+/).map(x=>x.trim().toUpperCase()).filter(Boolean))];
     if(!sers.length){toast('Pega al menos un IMEI o serial');return}
     sers.forEach(sr=>{
       if(DB.items.some(x=>x.serial===sr)){bad.push([sr,'Ya existe en el inventario']);return}
       if(cat==='iPhone'){const v=verifyImei(sr);if(v.verdict==='blocked'){bad.push([sr,v.steps.find(s=>s.s==='fail').d]);if(v.reason==='neg')logAct('owner','🚨','Alerta al dueño: IMEI <b>••'+sr.slice(-6)+'</b> reportado en lote '+p.id);return}}
-      const it=createItemQuiet(cat,{name,spec,color,cond,serial:sr,cost:Math.round(L.unit),price,warr:DB.settings.warr[cond],branch:br,src:'Importación '+p.id,batt:cond==='Nuevo'?100:null});
+      const it=createItemQuiet(cat,{name,spec,color,cond,serial:sr,cost:Math.round(L.unit),price,warr:DB.settings.warr[cond],src:'Importación '+p.id,batt:cond==='Nuevo'?100:null});
       it.tl=[];addEv(it,'Ingreso por compra',p.id+' · costo real '+fmt(L.unit));if(cat==='iPhone')addEv(it,'IMEI verificado','Base negativa: limpio · iCloud: libre · Operador: libre','ok');addEv(it,'En vitrina',br);ok.push(it.id)});
   }
   if(!ok.length){$('#rc-res').innerHTML='<div class="note" style="background:var(--red-bg);color:var(--red-t)">⛔ No se ingresó ningún equipo.<br>'+bad.map(b=>'••'+esc(b[0].slice(-6))+': '+esc(b[1])).join('<br>')+'</div>';return}
   p.st='Recibido';logAct('owner','📦','Lote <b>'+p.id+'</b> recibido: '+ok.length+' referencia(s) ingresadas'+(bad.length?' · '+bad.length+' bloqueadas':''));saveDB();paintNav();
   if(bad.length){$('#rc-res').innerHTML='<div class="note" style="background:var(--amber-bg);color:var(--amber-t)">✅ '+ok.length+' ingresados. ⛔ '+bad.length+' bloqueados:<br>'+bad.map(b=>'••'+esc(b[0].slice(-6))+': '+esc(b[1])).join('<br>')+'</div>';render();toast('Lote recibido con '+bad.length+' equipo(s) bloqueado(s)')}
   else{closeModal();render();toast('✅ Lote recibido · '+ok.length+' ingresados')}};
-
-/* ---------- Sedes y transferencias ---------- */
-function createTransfer(from,to,lines){
-  const t={id:nextId('tr','TR-',3),from,to,lines,guia:'INT-'+(2200+DB.seq.tr),st:'En tránsito',t:Date.now(),by:ME.id};
-  lines.forEach(l=>{const it=itemById(l.item);if(isQty(it)){it.qty-=l.qty;addEv(it,'Salió ×'+l.qty+' hacia '+to,t.id,'warn')}else{it.status='En tránsito';addEv(it,'En tránsito hacia '+to,t.id,'warn')}});
-  DB.transfers.unshift(t);logAct('owner','🚚','Transferencia <b>'+t.id+'</b> creada: '+from+' → '+to+' ('+lines.length+' producto(s))');saveDB();paintNav();return t;
-}
-VIEWS.sedes={html(){
-  const B=DB.settings.branches;
-  return `<div class="page-h"><div><h1>Sedes y transferencias</h1><p>Stock por sede y movimientos entre bodega y vitrinas.</p></div>${can('transfer')?'<button class="btn primary" data-a="trForm">➕ Nueva transferencia</button>':''}</div>
-  <div class="card"><div class="card-h"><h3>Unidades disponibles por categoría</h3></div><div class="tbl-wrap" style="padding-top:8px"><table><thead><tr><th>Categoría</th>${B.map(b=>`<th class="num">${esc(b)}</th>`).join('')}<th class="num">Total</th></tr></thead><tbody>
-   ${CATS.map(c=>{const n=B.map(b=>DB.items.filter(i=>i.cat===c&&i.branch===b&&['En vitrina','Apartado'].includes(itemState(i))).reduce((a,i)=>a+stockQty(i),0));return `<tr><td class="m">${CAT_IC[c]} ${c}</td>${n.map(x=>`<td class="num" style="${x===0?'color:var(--t4)':''}">${x}</td>`).join('')}<td class="num"><b>${n.reduce((a,b)=>a+b,0)}</b></td></tr>`}).join('')}</tbody></table></div></div>
-  <div class="card mt"><div class="card-h"><h3>Transferencias</h3></div><div class="tbl-wrap" style="padding-top:8px"><table><thead><tr><th>Guía</th><th>Ruta</th><th>Productos</th><th>Estado</th><th></th></tr></thead><tbody>
-   ${DB.transfers.map(t=>`<tr><td class="m">${t.id}<div class="s">${t.guia} · ${fdate(t.t)}</div></td><td>${esc(t.from)} → ${esc(t.to)}</td><td>${t.lines.map(l=>{const i=itemById(l.item);return i?esc(uname(i))+(l.qty>1?' ×'+l.qty:''):'—'}).join(', ')}</td><td>${chip(t.st,t.st==='Recibido'?'ok':'info')}</td>
-    <td>${t.st!=='Recibido'&&can('transfer')?`<button class="btn sm primary" data-a="receive" data-id="${t.id}">Confirmar recibido</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Sin transferencias.</td></tr>'}</tbody></table></div></div>`;
-}};
-ACT.receive=d=>{if(!need('transfer'))return;const t=DB.transfers.find(x=>x.id===d.id);
-  t.lines.forEach(l=>{const it=itemById(l.item);if(!it)return;
-    if(isQty(it)){const ex=DB.items.find(x=>isQty(x)&&x.id!==it.id&&x.name===it.name&&x.spec===it.spec&&x.cond===it.cond&&x.color===it.color&&x.branch===t.to);
-      if(ex){ex.qty+=l.qty;addEv(ex,'Recibido ×'+l.qty+' desde '+t.from,t.id,'ok')}
-      else if(it.branch===t.to){it.qty+=l.qty}
-      else{const n=(DB.seq.item=(DB.seq.item||0)+1);const c=JSON.parse(JSON.stringify(it));c.id='I-'+String(n).padStart(4,'0');c.sku=CAT_SKU[c.cat]+'-'+String(n).padStart(4,'0');c.branch=t.to;c.qty=l.qty;c.tl=[];addEv(c,'Recibido ×'+l.qty+' desde '+t.from,t.id,'ok');DB.items.unshift(c)}}
-    else{it.status='En vitrina';it.branch=t.to;addEv(it,'Recibido en '+t.to,'Guía '+t.guia+' · confirmado','ok');addEv(it,'En vitrina',t.to)}});
-  t.st='Recibido';logAct('owner','🚚','Transferencia <b>'+t.id+'</b> recibida en '+esc(t.to));saveDB();paintNav();render();toast('✅ Transferencia recibida en '+t.to)};
-function trItems(from,q){return DB.items.filter(i=>i.branch===from&&isAvail(i)&&(!q||(i.name+' '+i.spec+' '+i.color+' '+i.serial).toLowerCase().includes(q.toLowerCase()))).slice(0,40)}
-function trListHtml(from,q){from=from||$('#tr-from').value;q=q==null?val('tr-q'):q;
-  return trItems(from,q).map(i=>`<div class="pos-row"><label style="display:flex;gap:10px;align-items:center;flex:1;min-width:0;cursor:pointer"><input type="checkbox" class="tr-ck" data-id="${i.id}"><span style="min-width:0"><b style="font-size:13px">${esc(i.name)}</b><br><span style="font-size:12px;color:var(--t3)">${esc([i.spec,i.color].filter(Boolean).join(' · '))}${i.serial?' · •••'+esc(i.serial.slice(-5)):''}</span></span></label>
-   ${isQty(i)?`<input class="tr-q" data-id="${i.id}" type="number" min="1" max="${i.qty}" value="1" style="width:66px;height:30px;border:1px solid var(--border);border-radius:6px;padding:0 6px" title="Máx. ${i.qty}">`:''}</div>`).join('')||'<div class="empty" style="padding:20px">No hay productos disponibles en esa sede.</div>'}
-ACT.trForm=()=>{if(!need('transfer'))return;const B=DB.settings.branches;
-  openModal(`${modalHead('Nueva transferencia')}<div class="modal-b f"><div class="row"><div><label>Desde</label><select id="tr-from">${B.map(b=>`<option>${esc(b)}</option>`).join('')}</select></div><div><label>Hacia</label><select id="tr-to">${B.map((b,i)=>`<option ${i===1?'selected':''}>${esc(b)}</option>`).join('')}</select></div></div>
-   <input id="tr-q" placeholder="Filtrar productos…" style="width:100%;height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px;margin-bottom:8px"><div id="tr-list" class="pos-scroll" style="max-height:300px;border:1px solid var(--border);border-radius:10px">${trListHtml(B[0],'')}</div></div>
-   <div class="modal-f"><button class="btn" data-a="closeModal">Cancelar</button><button class="btn primary" data-a="doTrForm">Crear transferencia</button></div>`,true)};
-ACT.doTrForm=()=>{const from=$('#tr-from').value,to=$('#tr-to').value;if(from===to){toast('Elige sedes distintas');return}
-  const lines=$$('.tr-ck:checked').map(c=>{const it=itemById(c.dataset.id),qe=document.querySelector('.tr-q[data-id="'+it.id+'"]');return{item:it.id,qty:isQty(it)?Math.max(1,Math.min(it.qty,+qe.value||1)):1}});
-  if(!lines.length){toast('Selecciona al menos un producto');return}createTransfer(from,to,lines);closeModal();render();toast('🚚 Transferencia creada')};
 
 /* ---------- Automatizaciones y alertas ---------- */
 VIEWS.auto={html(){
@@ -119,13 +84,11 @@ function autoExample(id){
   const none='<div class="note">Todavía no hay datos para mostrar este ejemplo.</div>';
   const av=DB.items.filter(i=>isAvail(i)&&i.cat==='iPhone'&&i.cond==='Nuevo').sort((a,b)=>b.acq-a.acq)[0];
   switch(id){
-   case 'cuotas':{const x=DB.plans.map(p=>({p,i:planInfo(p)})).find(x=>x.i.st==='porvencer'||x.i.st==='mora');if(!x)return none;const c=clientById(x.p.client),s=saleById(x.p.sale);
-     return `<div class="wa-box">${bub(`Hola ${c.name.split(' ')[0]} 👋 Te recordamos que tu cuota ${x.i.cov+1} de ${x.p.n} de ${s.lines[0].name} por *${fmt(x.i.nextAmt)}* ${x.i.st==='mora'?'está vencida hace '+x.i.moraDays+' días':'vence el *'+fdate(x.i.next)+'*'}.\nPaga fácil aquí: [enlace de pago Bold]`)}</div><div class="note">Se envía 3 días antes. Si hay mora, el mensaje escala solo hasta llamada con IA y gestor humano.</div>`}
    case 'reprice':{const rows=DB.items.filter(i=>i.cat==='iPhone'&&i.cond==='Nuevo'&&inStock(i)).slice(0,4),trm=DB.settings.trm,nt=Math.round(trm*1.015);
      return `<div class="cost"><div class="r"><span>Simulación: TRM</span><span>$${trm.toLocaleString('es-CO')} → <b>$${nt.toLocaleString('es-CO')}</b> (+1,5%)</span></div>${rows.map(i=>`<div class="r"><span>${esc(uname(i))}</span><span>${fmt(i.price)} → <b>${fmt(Math.round(i.price*1.015/1000)*1000)}</b></span></div>`).join('')}</div><div class="note">Nunca baja del margen mínimo (${DB.settings.minMargin}%). El dueño aprueba con un clic o lo deja en automático.</div>`}
-   case 'aged':{const r=DB.items.filter(i=>inStock(i)&&i.status!=='En tránsito'&&daysIn(i)>DB.settings.agedDays).sort((a,b)=>daysIn(b)-daysIn(a)).slice(0,4);if(!r.length)return '<div class="note">✅ No hay productos envejecidos ahora mismo.</div>';
+   case 'aged':{const r=DB.items.filter(i=>inStock(i)&&daysIn(i)>DB.settings.agedDays).sort((a,b)=>daysIn(b)-daysIn(a)).slice(0,4);if(!r.length)return '<div class="note">✅ No hay productos envejecidos ahora mismo.</div>';
      return `<div class="cost">${r.map(i=>{const pct=daysIn(i)>DB.settings.agedDays+15?8:5,np=Math.round(i.price*(1-pct/100)/1000)*1000;return `<div class="r"><span>${esc(uname(i))} (${daysIn(i)} d)</span><span><b>Rebajar ${pct}%</b> → ${fmt(np)}</span></div>`}).join('')}</div><div class="note">Propone rebaja o traslado de sede, con el margen que quedaría.</div>`}
-   case 'wa':if(!av)return none;return `<div class="wa-box">${bub('Hola, ¿tienen '+av.name+'?','in')}${bub(`¡Hola! 👋 Sí, tenemos disponible en *${av.branch}*:\n📱 ${uname(av)} · ${av.color} · ${av.cond}\n💰 ${fmt(av.price)} (o 6 cuotas de ~${fmt(Math.round(av.price*.7/6/1000)*1000)})\n¿Te lo aparto con un abono? 🔒`)}${bub('Sí, apártalo','in')}${bub('Listo ✅ Aquí tu enlace de pago del abono: [Bold]. Lo reservamos por '+DB.settings.holdDays+' días.')}</div>`;
+   case 'wa':if(!av)return none;return `<div class="wa-box">${bub('Hola, ¿tienen '+av.name+'?','in')}${bub(`¡Hola! 👋 Sí, tenemos disponible en tienda:\n📱 ${uname(av)} · ${av.color} · ${av.cond}\n💰 ${fmt(av.price)} (o 6 cuotas de ~${fmt(Math.round(av.price*.7/6/1000)*1000)})\n¿Te lo aparto con un abono? 🔒`)}${bub('Sí, apártalo','in')}${bub('Listo ✅ Aquí tu enlace de pago del abono: [Bold]. Lo reservamos por '+DB.settings.holdDays+' días.')}</div>`;
    case 'reorder':{const r=DB.items.filter(i=>isQty(i)&&i.min>0&&i.qty<=i.min).slice(0,5);if(!r.length)return '<div class="note">✅ Ningún accesorio bajo su stock mínimo.</div>';
      return `<div class="cost">${r.map(i=>`<div class="r"><span>${esc(i.name)} (hay ${i.qty}, mínimo ${i.min})</span><span><b>Comprar ${Math.max(1,i.min*2-i.qty)}</b></span></div>`).join('')}</div><div class="note">Arma la orden de compra al proveedor. Tú solo la apruebas.</div>`}
    case 'owner':{const r=DB.feed.filter(f=>f.type==='owner').slice(0,3);return `<div class="wa-box">${r.length?r.map(f=>bub(f.x.replace(/<[^>]+>/g,''))).join(''):bub('🚨 Alerta Importech: descuento fuera de rango en una venta.')}</div>`}
@@ -133,8 +96,8 @@ function autoExample(id){
    case 'post':{const s=[...DB.sales].sort((a,b)=>b.t-a.t)[0];if(!s)return none;return `<ol class="tl"><li><time>Día 7</time><b>Reseña</b><br><span>“¿Cómo te está yendo con tu ${esc(s.lines[0].name)}? Cuéntanos en 1 minuto ⭐”</span></li><li><time>Día 30</time><b>Accesorios</b><br><span>Oferta de funda y vidrio para su modelo.</span></li><li><time>30 días antes de vencer</time><b>Fin de garantía</b><br><span>Aviso de vencimiento y opción de extender.</span></li></ol>`}
    case 'recompra':{const x=DB.sales.find(s=>Date.now()-s.t>330*DAY&&s.client);if(!x)return none;const c=clientById(x.client);return `<div class="wa-box">${bub(`Hola ${c.name.split(' ')[0]} 👋 Hace casi un año compraste tu ${x.lines[0].name} con nosotros.\nHoy te lo recibimos como parte de pago y estrenas uno nuevo pagando solo la diferencia. ¿Te cotizo? 🔁`)}</div>`}
    case 'fe':{const s=[...DB.sales].sort((a,b)=>b.t-a.t)[0];if(!s)return none;return `<div class="cost"><div class="r"><span>Comprobante</span><b>${s.no}</b></div><div class="r"><span>Detalle</span><span>${esc(s.lines[0].name)} · ${esc(s.lines[0].serial||'')}</span></div><div class="r"><span>Total</span><span>${fmt(saleNet(s))}</span></div><div class="r"><span>Enviado a</span><span>cliente por WhatsApp y correo</span></div></div><div class="note">Con el sistema real, aquí se emite la factura electrónica ante la DIAN.</div>`}
-   case 'caja':{const t=DB.sales.filter(s=>Date.now()-s.t<DAY),by={};t.forEach(s=>by[s.method]=(by[s.method]||0)+saleNet(s));const r=Object.entries(by);return `<div class="cost">${r.length?r.map(([m,v])=>`<div class="r"><span>${m}</span><b>${fmt(v)}</b></div>`).join(''):'<div class="r"><span>Sin ventas en las últimas 24 horas</span><span>—</span></div>'}<div class="r t"><span>Total del día</span><span>${fmt(t.reduce((a,s)=>a+saleNet(s),0))}</span></div></div><div class="note">Si hay diferencia con el efectivo contado, avisa al dueño con el detalle.</div>`}
-   case 'pub':if(!av)return none;return `<div class="wa-box">${bub(`📱 *${uname(av)}*\n${av.color} · ${av.cond} · ${av.warr} meses de garantía\n💰 ${fmt(av.price)}\n📍 ${av.branch}`)}</div><div class="note">Se publica solo en catálogo de WhatsApp Business y Marketplace cuando el equipo entra a vitrina.</div>`;
+   case 'caja':{const t=DB.sales.filter(s=>Date.now()-s.t<DAY),by={};t.forEach(s=>(s.payments&&s.payments.length?s.payments:[{method:s.method,amount:saleNet(s)}]).forEach(p=>by[p.method]=(by[p.method]||0)+p.amount));const r=Object.entries(by);return `<div class="cost">${r.length?r.map(([m,v])=>`<div class="r"><span>${m}</span><b>${fmt(v)}</b></div>`).join(''):'<div class="r"><span>Sin ventas en las últimas 24 horas</span><span>—</span></div>'}<div class="r t"><span>Total del día</span><span>${fmt(t.reduce((a,s)=>a+saleNet(s),0))}</span></div></div><div class="note">Si hay diferencia con el efectivo contado, avisa al dueño con el detalle.</div>`}
+   case 'pub':if(!av)return none;return `<div class="wa-box">${bub(`📱 *${uname(av)}*\n${av.color} · ${av.cond} · ${av.warr} meses de garantía\n💰 ${fmt(av.price)}`)}</div><div class="note">Se publica solo en catálogo de WhatsApp Business y Marketplace cuando el equipo entra a vitrina.</div>`;
   }
   return none;
 }
@@ -149,8 +112,7 @@ VIEWS.reportes={html(){
       byProd[l.name]=byProd[l.name]||{n:0,r:0,m:0};byProd[l.name].n+=net;byProd[l.name].r+=r;byProd[l.name].m+=m});
     const u=(userById(s.by)||{name:'—'}).name;bySeller[u]=bySeller[u]||{n:0,r:0,m:0};bySeller[u].n++;bySeller[u].r+=saleNet(s);bySeller[u].m+=saleMargin(s)});
   const bars=(obj,key,fmtf)=>{const rows=Object.entries(obj).sort((a,b)=>b[1][key]-a[1][key]),mx=Math.max(...rows.map(r=>r[1][key]),1);return rows.map(([k,v])=>`<div class="hbar" data-tip="${esc(k)}: ${v.n} · ${fmt(v.r)}${cv?' · margen '+fmt(v.m):''}"><span>${esc(k)}</span><div class="tr"><i style="width:${v[key]/mx*100}%"></i></div><b>${fmtf(v[key])}</b></div>`).join('')||'<div class="empty" style="padding:16px">Sin ventas en el período.</div>'};
-  const stock=DB.items.filter(i=>inStock(i)&&i.status!=='En tránsito'),bk=[['0–15 d',0,15],['16–30 d',16,30],['31–45 d',31,45],['46–60 d',46,60],['+60 d',61,9999]].map(([l,a,b])=>{const it=stock.filter(i=>daysIn(i)>=a&&daysIn(i)<=b);return{l,n:it.length,v:it.reduce((s,i)=>s+i.cost*stockQty(i),0)}}),mb=Math.max(...bk.map(b=>b.n),1);
-  const B=DB.settings.branches;
+  const stock=DB.items.filter(i=>inStock(i)),bk=[['0–15 d',0,15],['16–30 d',16,30],['31–45 d',31,45],['46–60 d',46,60],['+60 d',61,9999]].map(([l,a,b])=>{const it=stock.filter(i=>daysIn(i)>=a&&daysIn(i)<=b);return{l,n:it.length,v:it.reduce((s,i)=>s+i.cost*stockQty(i),0)}}),mb=Math.max(...bk.map(b=>b.n),1);
   return `<div class="page-h"><div><h1>Reportes</h1><p>Rentabilidad y rotación con costos reales, no estimados.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="rep-d" style="height:34px;border:1px solid var(--border);border-radius:8px;padding:0 10px">${[7,30,90,365].map(d=>`<option value="${d}" ${days===d?'selected':''}>Últimos ${d} días</option>`).join('')}</select><button class="btn" data-a="exportSales">⬇️ Ventas CSV</button><button class="btn" data-a="exportInv">⬇️ Inventario CSV</button></div></div>
   <div class="grid g4"><div class="card kpi"><div class="l">Ventas</div><div class="v">${fmtM(rev)}</div><div class="d">${ss.length} ventas</div></div>${cv?`<div class="card kpi"><div class="l">Margen</div><div class="v">${fmtM(mg)}</div><div class="d">${rev?Math.round(mg/rev*100):0}% sobre ventas</div></div>`:''}
    <div class="card kpi"><div class="l">Ticket promedio</div><div class="v">${fmtM(ss.length?rev/ss.length:0)}</div></div><div class="card kpi"><div class="l">Unidades vendidas</div><div class="v">${ss.reduce((a,s)=>a+s.lines.reduce((x,l)=>x+lineNet(l),0),0)}</div></div></div>
@@ -159,7 +121,7 @@ VIEWS.reportes={html(){
   <div class="grid g2 mt"><div class="card"><div class="card-h"><div><h3>Productos más vendidos</h3><div class="sub">Por ingresos</div></div></div><div class="card-p">${bars(Object.fromEntries(Object.entries(byProd).sort((a,b)=>b[1].r-a[1].r).slice(0,6)),'r',fmtM)}</div></div>
    <div class="card"><div class="card-h"><div><h3>Ventas por persona</h3></div></div><div class="card-p">${bars(bySeller,'r',fmtM)}</div></div></div>
   <div class="grid g2 mt"><div class="card"><div class="card-h"><div><h3>Antigüedad del inventario</h3><div class="sub">Referencias por días en inventario</div></div></div><div class="card-p">${bk.map(b=>`<div class="hbar" data-tip="${b.l}: ${b.n} referencias${cv?' · '+fmtM(b.v)+' en costo':''}"><span>${b.l}</span><div class="tr"><i style="width:${b.n/mb*100}%"></i></div><b>${b.n}</b></div>`).join('')}<div class="note">Cada día extra en vitrina es dinero inmovilizado.</div></div></div>
-   <div class="card"><div class="card-h"><h3>Valor del inventario por sede</h3></div><div class="tbl-wrap" style="padding-top:8px"><table><thead><tr><th>Sede</th><th class="num">Unidades</th>${cv?'<th class="num">A costo</th>':''}<th class="num">A precio</th></tr></thead><tbody>${B.map(b=>{const it=DB.items.filter(i=>i.branch===b&&inStock(i));return `<tr><td class="m">${esc(b)}</td><td class="num">${it.reduce((a,i)=>a+stockQty(i),0)}</td>${cv?`<td class="num">${fmt(it.reduce((a,i)=>a+i.cost*stockQty(i),0))}</td>`:''}<td class="num">${fmt(it.reduce((a,i)=>a+i.price*stockQty(i),0))}</td></tr>`}).join('')}</tbody></table></div></div></div>`;
+   <div class="card"><div class="card-h"><h3>Valor del inventario por categoría</h3></div><div class="tbl-wrap" style="padding-top:8px"><table><thead><tr><th>Categoría</th><th class="num">Unidades</th>${cv?'<th class="num">A costo</th>':''}<th class="num">A precio</th></tr></thead><tbody>${CATS.map(c=>{const it=DB.items.filter(i=>i.cat===c&&inStock(i));return `<tr><td class="m">${CAT_IC[c]} ${c}</td><td class="num">${it.reduce((a,i)=>a+stockQty(i),0)}</td>${cv?`<td class="num">${fmt(it.reduce((a,i)=>a+i.cost*stockQty(i),0))}</td>`:''}<td class="num">${fmt(it.reduce((a,i)=>a+i.price*stockQty(i),0))}</td></tr>`}).join('')}</tbody></table></div></div></div>`;
 }};
 
 /* ---------- Usuarios y permisos ---------- */
@@ -202,7 +164,7 @@ ACT.delRole=d=>{delete DB.roles[d.id];saveDB();render()};
 /* ---------- Configuración ---------- */
 VIEWS.config={html(){
   const s=DB.settings,tab=S.cfgTab;
-  const head=`<div class="page-h"><div><h1>Configuración</h1><p>Datos del negocio, logo, sedes, reglas y datos del demo.</p></div></div><div class="tabs">${[['negocio','Negocio y logo'],['reglas','Sedes y reglas'],['datos','Datos']].map(([k,l])=>`<button class="tab ${tab===k?'on':''}" data-a="cfgTab" data-t="${k}">${l}</button>`).join('')}</div>`;
+  const head=`<div class="page-h"><div><h1>Configuración</h1><p>Datos del negocio, logo, reglas y datos del demo.</p></div></div><div class="tabs">${[['negocio','Negocio y logo'],['reglas','Reglas del negocio'],['datos','Datos']].map(([k,l])=>`<button class="tab ${tab===k?'on':''}" data-a="cfgTab" data-t="${k}">${l}</button>`).join('')}</div>`;
   if(tab==='negocio')return head+`<div class="grid g2"><div class="card card-p f"><h3 style="margin-bottom:12px">Datos del negocio</h3>
    <div class="row"><div style="grid-column:span 2"><label>Nombre comercial *</label><input id="s-name" value="${esc(s.name)}"></div></div><div class="row"><div><label>Razón social</label><input id="s-legal" value="${esc(s.legal)}"></div><div><label>NIT</label><input id="s-nit" value="${esc(s.nit)}"></div></div>
    <div class="row"><div style="grid-column:span 2"><label>Dirección</label><input id="s-addr" value="${esc(s.address)}"></div></div><div class="row"><div><label>Teléfono</label><input id="s-phone" value="${esc(s.phone)}"></div><div><label>Correo</label><input id="s-email" value="${esc(s.email)}"></div></div>
@@ -212,11 +174,9 @@ VIEWS.config={html(){
     <div class="dropzone" id="logo-drop" data-a="pickLogo">${s.logo?`<img src="${s.logo}" alt="Logo actual" style="max-width:200px;max-height:110px">`:`<div class="logo-mark" style="width:64px;height:64px;font-size:26px;margin:0 auto">${esc(initials(s.name)||'I')}</div><div style="margin-top:8px;font-size:13px;color:var(--t2)">Aún no hay logo</div>`}<div style="margin-top:10px;font-size:12.5px;color:var(--t3)">Arrastra un archivo aquí o haz clic para elegirlo</div></div>
     <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" hidden>
     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn primary" data-a="pickLogo">📁 Elegir archivo</button>${s.logo?'<button class="btn danger" data-a="rmLogo">Quitar logo</button>':''}</div></div></div>`;
-  if(tab==='reglas')return head+`<div class="grid g2"><div class="card card-p f"><h3 style="margin-bottom:12px">Sedes</h3>${s.branches.map((b,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><input class="br-in" data-i="${i}" value="${esc(b)}" style="flex:1"><button class="btn sm danger" data-a="delBranch" data-i="${i}" title="Eliminar sede">🗑</button></div>`).join('')}
-    <button class="btn" data-a="addBranch" style="margin-top:4px">➕ Agregar sede</button><div class="note">Al renombrar una sede, todos sus productos se actualizan. No se puede eliminar una sede con productos.</div></div>
-   <div class="card card-p f"><h3 style="margin-bottom:12px">Reglas del negocio</h3><label>Garantía por condición (meses)</label><div class="row">${CONDS.map(c=>`<div><label style="font-weight:500;color:var(--t3)">${c}</label><input type="number" min="0" max="36" data-w="${c}" value="${s.warr[c]}"></div>`).join('')}</div>
+  if(tab==='reglas')return head+`<div class="grid g2">   <div class="card card-p f"><h3 style="margin-bottom:12px">Reglas del negocio</h3><label>Garantía por condición (meses)</label><div class="row">${CONDS.map(c=>`<div><label style="font-weight:500;color:var(--t3)">${c}</label><input type="number" min="0" max="36" data-w="${c}" value="${s.warr[c]}"></div>`).join('')}</div>
     <div class="row"><div><label>Descuento máximo sin autorización (%)</label><input id="s-disc" type="number" min="0" max="30" value="${s.maxDisc}"></div><div><label>Margen mínimo (%)</label><input id="s-mg" type="number" min="0" max="80" value="${s.minMargin}"></div></div>
-    <div class="row"><div><label>Días para considerar envejecido</label><input id="s-aged" type="number" min="7" value="${s.agedDays}"></div><div><label>Días de apartado</label><input id="s-hold" type="number" min="1" max="30" value="${s.holdDays}"></div><div><label>TRM de referencia</label><input id="s-trm" type="number" value="${s.trm}"></div></div>
+    <div class="row"><div><label>Días para considerar envejecido</label><input id="s-aged" type="number" min="7" value="${s.agedDays}"></div><div><label>Días de apartado</label><input id="s-hold" type="number" min="1" max="30" value="${s.holdDays}"></div><div><label>Abono mínimo de apartado (%)</label><input id="s-apm" type="number" min="5" max="90" value="${s.apartadoMinPct||20}"></div><div><label>TRM de referencia</label><input id="s-trm" type="number" value="${s.trm}"></div></div>
     <button class="btn primary" data-a="saveRules">Guardar reglas</button></div></div>`;
   return head+`<div class="grid g2"><div class="card card-p"><h3>Copia de seguridad</h3><p style="font-size:13px;color:var(--t3);margin:4px 0 12px">Todo lo que haces queda guardado en este navegador. Descarga una copia para llevarla a otro equipo o para recuperarla.</p>
    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-a="exportJson">⬇️ Descargar copia (JSON)</button>${can('dev')?'<button class="btn" data-a="importJson">⬆️ Restaurar copia</button>':''}</div><input type="file" id="json-file" accept="application/json,.json" hidden>
@@ -236,14 +196,9 @@ async function setLogoFile(file){
   catch(e){toast('⚠️ '+esc(e.message))}
 }
 ACT.rmLogo=()=>{DB.settings.logo=null;saveDB();applyBrand();paintBrand();render();toast('Logo eliminado')};
-ACT.addBranch=()=>{DB.settings.branches.push('Nueva sede '+(DB.settings.branches.length+1));saveDB();render()};
-ACT.delBranch=d=>{const b=DB.settings.branches[+d.i];if(DB.settings.branches.length<=1){toast('Debe existir al menos una sede');return}
-  if(DB.items.some(i=>i.branch===b&&(inStock(i)||i.status==='Vendido'))){toast('No se puede eliminar: la sede tiene productos o historial');return}DB.settings.branches.splice(+d.i,1);saveDB();render()};
-ACT.saveRules=()=>{if(!need('settings'))return;const s=DB.settings,names=$$('.br-in').map(x=>x.value.trim());
-  if(names.some(n=>!n)||new Set(names).size!==names.length){toast('Los nombres de sede no pueden estar vacíos ni repetidos');return}
-  names.forEach((n,i)=>{const old=s.branches[i];if(old!==n){DB.items.forEach(it=>{if(it.branch===old)it.branch=n});DB.transfers.forEach(t=>{if(t.from===old)t.from=n;if(t.to===old)t.to=n})}});s.branches=names;
+ACT.saveRules=()=>{if(!need('settings'))return;const s=DB.settings;
   $$('[data-w]').forEach(e=>s.warr[e.dataset.w]=Math.max(0,Math.round(+e.value||0)));
-  s.maxDisc=Math.max(0,Math.min(30,num('s-disc')));s.minMargin=Math.max(0,num('s-mg'));s.agedDays=Math.max(7,Math.round(num('s-aged'))||45);s.holdDays=Math.max(1,Math.round(num('s-hold'))||5);s.trm=num('s-trm')||s.trm;
+  s.maxDisc=Math.max(0,Math.min(30,num('s-disc')));s.minMargin=Math.max(0,num('s-mg'));s.agedDays=Math.max(7,Math.round(num('s-aged'))||45);s.holdDays=Math.max(1,Math.round(num('s-hold'))||5);s.apartadoMinPct=Math.max(5,Math.min(90,Math.round(num('s-apm'))||20));s.trm=num('s-trm')||s.trm;
   saveDB();render();toast('✅ Reglas guardadas')};
 ACT.exportJson=()=>{download('importech-demo-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(DB),'application/json');toast('Copia descargada')};
 ACT.importJson=()=>{if(need('dev','Solo el Desarrollador puede restaurar copias'))$('#json-file').click()};
