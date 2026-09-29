@@ -9,7 +9,7 @@ const SHELL = [
   './', 'index.html', '404.html', 'manifest.webmanifest',
   'assets/app.css',
   'js/data.js', 'js/core.js', 'js/views-ops.js', 'js/views-sales.js', 'js/receipts.js', 'js/views-admin.js', 'js/app.js',
-  'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/favicon-32.png'
+  'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/favicon-32.png', 'assets/brand/logo.png'
 ];
 
 self.addEventListener('install', e => {

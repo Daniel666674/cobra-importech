@@ -309,3 +309,6 @@ textarea{font:inherit}
 #upd[hidden],#install-btn[hidden],.net-pill[hidden]{display:none!important}
 @media (display-mode: standalone){body{overscroll-behavior-y:none}}
 @media(max-width:900px){.topbar{padding-top:env(safe-area-inset-top)}}
+.hbar .tr i{background:var(--brand)}
+.logo-img{border-radius:50%;background:none;padding:0}
+.login-box .logo-img{border-radius:50%}

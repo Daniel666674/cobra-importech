@@ -1,7 +1,7 @@
 /* =====================================================
    DATA · constantes, catálogo, datos de ejemplo y persistencia
    ===================================================== */
-const DB_KEY='importech_demo_v3', SESSION_KEY='importech_session_v3', DB_VER=3;
+const DB_KEY='importech_demo_v4', SESSION_KEY='importech_session_v4', DB_VER=4;
 const DAY=864e5;
 
 const CATS=['iPhone','iPad','Mac','Apple Watch','AirPods','Accesorios'];
@@ -94,7 +94,7 @@ function buildSeed(){
   const now=Date.now(),ago=d=>now-d*DAY,hrs=h=>now-h*36e5;
   const D={ver:DB_VER,seedAt:now,seq:{item:0,sale:0,client:0,plan:0,order:0,tr:0,po:0,claim:0,user:0,feed:0,role:0},
     settings:{name:'Importech',legal:'Importech S.A.S.',nit:'900.000.000-0',address:'Calle 10 # 5-20, Medellín',phone:'300 000 0000',email:'ventas@importech.demo',
-      footer:'Gracias por tu compra. Conserva este comprobante para hacer válida tu garantía.',brand:'#4F46E5',logo:null,
+      footer:'Gracias por tu compra. Conserva este comprobante para hacer válida tu garantía.',brand:'#1F2937',logo:'assets/brand/logo.png',
       branches:['Sede Centro','Sede Norte','Bodega'],warr:{'Nuevo':12,'Exhibición':9,'Reacondicionado':6,'Pre-owned':3,'Usado':1},
       maxDisc:5,minMargin:12,trm:4050,agedDays:45,holdDays:5},
     roles:JSON.parse(JSON.stringify(DEFAULT_ROLES)),users:[],clients:[],items:[],sales:[],plans:[],orders:[],transfers:[],purchases:[],claims:[],feed:[],autos:{}};
