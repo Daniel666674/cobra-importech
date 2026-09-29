@@ -127,10 +127,41 @@ document.addEventListener('mousemove',e=>{if(tip.classList.contains('on')){tip.s
 document.addEventListener('mouseout',e=>{if(e.target.closest('[data-tip]'))tip.classList.remove('on')});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 
+
+/* ---------- PWA: instalación, actualización y modo sin conexión ---------- */
+const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let deferredInstall=null,swReg=null;
+function paintInstall(){const b=$('#install-btn');if(!b)return;b.hidden=isStandalone()||!(deferredInstall||isIOS())}
+function paintNet(){const n=$('#net-pill');if(n)n.hidden=navigator.onLine}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;paintInstall()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;paintInstall();toast('✅ App instalada. Ábrela desde tu pantalla de inicio.')});
+window.addEventListener('online',()=>{paintNet();toast('🌐 Conexión restablecida')});
+window.addEventListener('offline',()=>{paintNet();toast('📴 Sin conexión: el demo sigue funcionando y guarda tus cambios')});
+ACT.install=async()=>{
+  if(deferredInstall){deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;paintInstall();return}
+  openModal(`${modalHead('Instalar '+esc(DB.settings.name))}<div class="modal-b"><p style="font-size:13.5px;color:var(--t2);margin-bottom:10px">${isIOS()?'En iPhone y iPad se instala desde Safari:':'Para instalarla:'}</p>
+   <ol style="margin:0 0 0 18px;font-size:13.5px;color:var(--t2);display:flex;flex-direction:column;gap:8px">${isIOS()?'<li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elige <b>Agregar a pantalla de inicio</b>.</li><li>Toca <b>Agregar</b>. Se abrirá como una app, sin barra del navegador.</li>':'<li>En Chrome o Edge, abre el menú del navegador (⋮).</li><li>Elige <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</li>'}</ol>
+   <div class="note">Una vez instalada abre sin internet y guarda tus datos en este dispositivo.</div></div><div class="modal-f"><button class="btn primary" data-a="closeModal">Entendido</button></div>`)};
+ACT.applyUpdate=()=>{if(swReg&&swReg.waiting)swReg.waiting.postMessage('SKIP_WAITING');else location.reload()};
+function showUpdate(){const u=$('#upd');if(u)u.hidden=false}
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  const hadController=!!navigator.serviceWorker.controller;let reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadController||reloading)return;reloading=true;location.reload()});
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      swReg=reg;if(reg.waiting&&navigator.serviceWorker.controller)showUpdate();
+      reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)showUpdate()})});
+      setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+    }).catch(()=>{});
+  });
+}
+paintInstall();paintNet();
+
 /* ---------- Arranque ---------- */
 (function boot(){
   initDB();applyBrand();
   let sid=null;try{sid=localStorage.getItem(SESSION_KEY)}catch(e){}
   ME=DB.users.find(u=>u.id===sid&&u.active)||null;
-  if(ME)startApp();else showLogin();
+  if(ME){startApp();const g=new URLSearchParams(location.search).get('go');const n=NAV.find(x=>x.id===g);if(n&&VIEWS[g]&&allowed(n))go(g)}else showLogin();
 })();

@@ -1,0 +1,24 @@
+{
+  "name": "Importech · Control de inventario",
+  "short_name": "Importech",
+  "description": "Inventario, ventas, cuotas, garantías y comprobantes para tiendas de tecnología Apple.",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B0E1C",
+  "theme_color": "#4F46E5",
+  "lang": "es",
+  "categories": ["business", "productivity", "shopping"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nueva venta", "short_name": "Venta", "url": "./?go=pos", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Inventario", "short_name": "Inventario", "url": "./?go=inventario", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ingresar producto", "short_name": "Ingresar", "url": "./?go=ingreso", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

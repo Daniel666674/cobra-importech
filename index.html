@@ -6,6 +6,14 @@
 <title>Importech · Control de inventario</title>
 <meta name="description" content="Demo interactivo de inventario, ventas, cuotas y garantías para tiendas de tecnología Apple.">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#4F46E5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Importech">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
 <link rel="stylesheet" href="assets/app.css">
 </head>
 <body>
@@ -21,7 +29,7 @@
     <header class="topbar">
       <button class="burger" data-a="menu" aria-label="Menú">☰</button>
       <div class="search"><span>🔍</span><input id="gsearch" placeholder="Buscar producto, IMEI o serial…" autocomplete="off"></div>
-      <div class="top-right"><span class="demo-pill">Demo · verificación de IMEI simulada</span><div class="avatar" id="top-av">·</div></div>
+      <div class="top-right"><span class="net-pill" id="net-pill" hidden>Sin conexión</span><button class="btn sm primary" id="install-btn" data-a="install" hidden>⬇ Instalar app</button><span class="demo-pill">Demo · verificación de IMEI simulada</span><div class="avatar" id="top-av">·</div></div>
     </header>
     <main id="main"></main>
   </div>
@@ -32,6 +40,7 @@
 <div id="tip"></div>
 <div id="toast"></div>
 <div id="print"></div>
+<div id="upd" hidden><span>Hay una versión nueva disponible.</span><button class="btn sm primary" data-a="applyUpdate">Actualizar</button></div>
 <script src="js/data.js"></script>
 <script src="js/core.js"></script>
 <script src="js/views-ops.js"></script>

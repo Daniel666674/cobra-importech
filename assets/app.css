@@ -301,3 +301,11 @@ textarea{font:inherit}
 
 .rc-tw{overflow-x:auto}.rc-t{min-width:560px}.rc-biz{min-width:0;overflow-wrap:anywhere}.rc-brand{flex-wrap:wrap}
 @media print{.rc-lower,.rc-plan,.rc-sign,.rc-parties,.rc-t tr{break-inside:avoid;page-break-inside:avoid}.rc-t thead{display:table-header-group}}
+
+/* PWA */
+.net-pill{font-size:11px;font-weight:700;color:var(--red-t);background:var(--red-bg);padding:4px 10px;border-radius:99px;white-space:nowrap}
+#install-btn{white-space:nowrap}
+#upd{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:96;background:#0D1527;color:#fff;padding:10px 12px 10px 16px;border-radius:12px;display:flex;gap:14px;align-items:center;font-size:13.5px;box-shadow:var(--sh-lg);max-width:92vw}
+#upd[hidden],#install-btn[hidden],.net-pill[hidden]{display:none!important}
+@media (display-mode: standalone){body{overscroll-behavior-y:none}}
+@media(max-width:900px){.topbar{padding-top:env(safe-area-inset-top)}}

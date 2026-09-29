@@ -19,6 +19,10 @@ Demo interactivo y **completamente funcional** (HTML, CSS y JavaScript, sin back
 - **Alertas y automatizaciones** calculadas con los datos reales, y **reportes** con exportación.
 - **Configuración:** nombre y datos del negocio, **logo subido desde un archivo**, color de marca, sedes, reglas de garantía y descuentos, copia de seguridad y restablecer.
 
+## App instalable (PWA)
+
+Se puede **instalar** en el celular o el computador y **abre sin internet**. Botón *Instalar app* en la barra superior; en iPhone: Compartir → *Agregar a pantalla de inicio*. Detalles y guía para la app real en [`docs/PWA.md`](docs/PWA.md).
+
 ## Datos y límites del demo
 
 - Todo se guarda en el navegador (`localStorage`). Si borras los datos del sitio, vuelve a los datos de ejemplo. En *Configuración → Datos* puedes descargar y restaurar una copia.
@@ -31,7 +35,11 @@ Demo interactivo y **completamente funcional** (HTML, CSS y JavaScript, sin back
 
 ```
 index.html          Página principal
+manifest.webmanifest Datos de la app instalable
+sw.js               Service worker (modo sin conexión)
+404.html            Página de error que devuelve al demo
 assets/app.css      Estilos (incluye diseño del comprobante e impresión)
+assets/icons/       Íconos de la app
 js/data.js          Catálogo, datos de ejemplo y persistencia
 js/core.js          Permisos, ayudantes, alertas, logo y verificación de IMEI
 js/views-ops.js     Dashboard, inventario, ingreso, trade-in, taller
