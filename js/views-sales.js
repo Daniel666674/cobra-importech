@@ -54,7 +54,7 @@ function posCart(){
     <div class="r t"><span>Total</span><span style="font-size:17px">${fmt(T.total)}</span></div>
     ${isCuotas?`<div class="r"><span>Abono inicial (30%)${P.prepaid?' · ya pagado '+fmt(Math.min(P.prepaid,abono)):''}</span><span>${fmt(abono)}</span></div><div class="r"><span>${n} cuotas de</span><b>${fmt(cuota)}</b></div>`:''}
     ${cv&&T.lines.length?`<div class="r"><span>Margen de la venta</span><span style="color:${T.total<T.cost?'var(--red-t)':'var(--green-t)'}">${fmt(T.total-T.cost)} · ${T.total?Math.round((T.total-T.cost)/T.total*100):0}%</span></div>`:''}</div>
-  ${overDisc?`<div class="note" style="background:var(--amber-bg);color:var(--amber-t)">⚠️ El descuento supera el límite del ${DB.settings.maxDisc}%. ${can('discount')?'Tu rol puede autorizarlo y se avisará al dueño.':'Tu rol no puede darlo: pide autorización a un gerente.'}</div>`:''}
+  ${overDisc?`<div class="note" style="background:var(--amber-bg);color:var(--amber-t)">⚠️ El descuento supera el límite del ${DB.settings.maxDisc}%. ${can('discount')?'Tu rol puede autorizarlo y se avisará al dueño.':'Tu rol no puede darlo: pide autorización al propietario/a.'}</div>`:''}
   ${belowCost?`<div class="note" style="background:var(--red-bg);color:var(--red-t)">⛔ El total queda por debajo del costo.</div>`:''}
   <button class="btn primary" style="width:100%;height:42px;margin-top:12px;justify-content:center" data-a="posConfirm" ${T.lines.length?'':'disabled'}>${isHold?'🔒 Crear apartado':'✅ Confirmar venta'}</button>
   ${T.lines.length?'<button class="btn sm" style="margin-top:8px" data-a="posClear">Vaciar carrito</button>':''}`;
@@ -78,8 +78,8 @@ ACT.posConfirm=()=>{
   const isCuotas=P.mode.startsWith('cuotas'),isHold=P.mode==='apartado';
   if((isCuotas||isHold)&&!P.client){toast('Elige o crea el cliente para vender a cuotas o apartar');return}
   if(P.client==='new'&&!P.newName.trim()){toast('Escribe el nombre del cliente nuevo');$('#pos-nn')&&$('#pos-nn').focus();return}
-  if(T.disc>DB.settings.maxDisc&&!can('discount')){toast('🔒 El descuento supera el límite del '+DB.settings.maxDisc+'%. Pide autorización a un gerente.');return}
-  if(T.total<T.cost&&!can('discount')){toast('🔒 No puedes vender por debajo del costo. Pide autorización a un gerente.');return}
+  if(T.disc>DB.settings.maxDisc&&!can('discount')){toast('🔒 El descuento supera el límite del '+DB.settings.maxDisc+'%. Pide autorización al propietario/a.');return}
+  if(T.total<T.cost&&!can('discount')){toast('🔒 No puedes vender por debajo del costo. Pide autorización al propietario/a.');return}
   if(isHold){
     if(T.lines.length!==1||isQty(T.lines[0].it)){toast('El apartado es para un solo equipo (no accesorios por cantidad)');return}
     if(P.abono<=0){toast('Escribe el valor del abono');$('#pos-abono')&&$('#pos-abono').focus();return}
@@ -115,7 +115,7 @@ ACT.posConfirm=()=>{
 
 /* ---------- Comprobantes: ver js/receipts.js ---------- */
 ACT.refundModal=d=>{const s=saleById(d.id);
-  if(s.plan&&planInfo(planById(s.plan)).st!=='pagado'){toast('Esta venta tiene un plan de cuotas activo. Resuélvelo con el gerente antes de devolver.');return}
+  if(s.plan&&planInfo(planById(s.plan)).st!=='pagado'){toast('Esta venta tiene un plan de cuotas activo. Resuélvelo con el propietario/a antes de devolver.');return}
   openModal(`${modalHead('Devolución · '+s.no)}<div class="modal-b f"><p style="font-size:13px;color:var(--t2);margin-bottom:10px">Elige lo que el cliente devuelve. El producto vuelve al inventario.</p>
    ${s.lines.map((l,i)=>lineNet(l)>0?`<div class="row" style="align-items:end"><div style="grid-column:span 2"><label>${esc(l.name)}</label><div style="font-size:12px;color:var(--t3)">Vendido ×${l.qty} · ${fmt(l.price)}</div></div><div><label>Devolver</label><input id="rf-${i}" type="number" min="0" max="${lineNet(l)}" value="0"></div></div>`:'').join('')}
    <div class="row"><div><label>Motivo</label><select id="rf-r"><option>Falla del producto</option><option>Cliente se arrepintió</option><option>Error de facturación</option><option>Otro</option></select></div></div></div>
@@ -135,7 +135,7 @@ VIEWS.ventas={html(){
   return `<div class="page-h"><div><h1>Ventas</h1><p>Historial de ventas con comprobante, garantía y devoluciones.</p></div><div style="display:flex;gap:8px"><button class="btn" data-a="exportSales">⬇️ Exportar CSV</button>${can('sell')?'<button class="btn primary" data-a="nav" data-v="pos">🛒 Nueva venta</button>':''}</div></div>
   <div class="card"><div class="filters"><input id="sv-q" placeholder="Buscar por número, cliente, producto o serial…" value="${esc(f.q)}">
    <select id="sv-from"><option value="">Todo el historial</option>${[7,30,90].map(d=>`<option value="${d}" ${f.from==d?'selected':''}>Últimos ${d} días</option>`).join('')}</select>
-   <select id="sv-by"><option value="">Todos los vendedores</option>${DB.users.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
+   <select id="sv-by"><option value="">Todas las personas</option>${DB.users.map(u=>`<option value="${u.id}" ${f.by===u.id?'selected':''}>${esc(u.name)}</option>`).join('')}</select></div>
   <div class="tbl-wrap"><table><thead><tr><th>Venta</th><th>Cliente</th><th>Productos</th><th>Pago</th><th>Vendedor</th><th class="num">Total</th>${cv?'<th class="num">Margen</th>':''}<th>Estado</th></tr></thead><tbody>
   ${list.map(s=>{const c=clientById(s.client),v=saleVoid(s),part=s.lines.some(l=>l.ret)&&!v;return `<tr class="click" data-a="receipt" data-id="${s.id}"><td><div class="m">${s.no}</div><div class="s">${fdt(s.t)}</div></td><td>${esc(c?c.name:'Mostrador')}</td>
    <td>${esc(s.lines[0].name)}${s.lines.length>1?` <span style="color:var(--t3)">+${s.lines.length-1}</span>`:''}</td><td>${s.mode==='contado'?esc(s.method):s.mode.split(':')[1]+' cuotas'}</td><td>${esc((userById(s.by)||{name:'—'}).name.split(' ')[0])}</td>

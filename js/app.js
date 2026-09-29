@@ -44,7 +44,7 @@ function showLogin(){
   const s=DB.settings,users=DB.users.filter(u=>u.active);
   $('#login').innerHTML=`<div class="login-box"><div class="logo">${logoHtml('logo-img')}<div><div class="logo-name">${esc(s.name)}</div><div class="logo-tag">Control de inventario</div></div></div>
    <p style="text-align:center;color:var(--t3);font-size:13.5px;margin:6px 0 14px">Elige tu usuario para entrar</p><div id="login-list">${users.map(u=>`<button class="ucard" data-a="loginAs" data-id="${u.id}"><div class="avatar" style="width:36px;height:36px">${esc(initials(u.name))}</div><div><b>${esc(u.name)}</b><span>${esc(roleOf(u).name)}${u.pin?' · 🔒 con PIN':''}</span></div></button>`).join('')}</div>
-   <div class="note" style="text-align:center">Demo: cada usuario ve solo lo que su rol permite. Prueba con <b>Andrés (Vendedor)</b> para ver cómo se ocultan costos y márgenes.</div></div>`;
+   <div class="note" style="text-align:center">Demo: cada usuario ve solo lo que su rol permite. Prueba con <b>Anderson (Empleado/a)</b> para ver cómo se ocultan costos y márgenes.</div></div>`;
   $('#login').classList.add('on');$('.app').style.display='none';
 }
 function startApp(){

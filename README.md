@@ -9,7 +9,7 @@ Demo interactivo y **completamente funcional** (HTML, CSS y JavaScript, sin back
 
 ## Qué incluye
 
-- **Inicio de sesión con usuarios y roles**, PIN opcional y matriz de permisos editable (16 permisos).
+- **Inicio de sesión con usuarios y roles**, PIN opcional y matriz de permisos editable (17 permisos). Equipo del demo: **Daniel** (Desarrollador, acceso total y herramientas de datos), **Angelica** (Propietario/a, todo el negocio) y **Anderson** (Empleado/a de tienda: vende, cobra cuotas, trade-in, clientes y taller; sin costos ni reportes).
 - **Inventario** de 70+ productos: iPhone, iPad, Mac, Apple Watch, AirPods y accesorios, en 5 condiciones (nuevo, exhibición, reacondicionado, pre-owned y usado), con costo, precio, garantía y línea de tiempo por producto.
 - **Ingreso de productos** con verificación de IMEI (simulada), edición, ajuste de stock, exportar CSV.
 - **Ventas (POS)** con carrito, descuentos con límite por rol, contado, cuotas y apartados.

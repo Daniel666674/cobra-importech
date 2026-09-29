@@ -1,7 +1,7 @@
 /* =====================================================
    DATA · constantes, catálogo, datos de ejemplo y persistencia
    ===================================================== */
-const DB_KEY='importech_demo_v4', SESSION_KEY='importech_session_v4', DB_VER=4;
+const DB_KEY='importech_demo_v4', SESSION_KEY='importech_session_v4', DB_VER=5;
 const DAY=864e5;
 
 const CATS=['iPhone','iPad','Mac','Apple Watch','AirPods','Accesorios'];
@@ -63,14 +63,13 @@ const PERMS=[
  ['sell','Registrar ventas'],['discount','Dar descuentos sobre el límite'],['refund','Hacer devoluciones'],
  ['credit','Gestionar cuotas y apartados'],['tradein','Recibir trade-in'],['workshop','Gestionar taller'],
  ['transfer','Hacer transferencias entre sedes'],['purchase','Gestionar compras'],['clients','Gestionar clientes'],
- ['reports','Ver reportes'],['users','Gestionar usuarios y permisos'],['settings','Cambiar configuración y logo']];
+ ['reports','Ver reportes'],['users','Gestionar usuarios y permisos'],['settings','Cambiar configuración y logo'],
+ ['dev','Herramientas de desarrollador (restaurar y restablecer datos)']];
 const ALL_PERMS=PERMS.map(p=>p[0]);
 const DEFAULT_ROLES={
- admin:{name:'Administrador',locked:true,perms:ALL_PERMS},
- gerente:{name:'Gerente de tienda',perms:ALL_PERMS.filter(p=>!['users','settings'].includes(p))},
- vendedor:{name:'Vendedor',perms:['inv_view','sell','credit','tradein','clients']},
- tecnico:{name:'Técnico de taller',perms:['inv_view','workshop']},
- bodega:{name:'Bodega y compras',perms:['inv_view','inv_edit','transfer','purchase','cost_view']}};
+ dev:{name:'Desarrollador',locked:true,perms:ALL_PERMS},
+ owner:{name:'Propietario/a',perms:ALL_PERMS.filter(p=>p!=='dev')},
+ employee:{name:'Empleado/a de tienda',perms:['inv_view','sell','credit','tradein','clients','workshop']}};
 
 /* ---------- Automatizaciones ---------- */
 const AUTOS=[
@@ -101,10 +100,9 @@ function buildSeed(){
   AUTOS.forEach(a=>D.autos[a.id]=true);
 
   /* Usuarios */
-  [['Daniel Acosta','daniel@importech.demo','admin'],['Laura Gómez','laura@importech.demo','gerente'],['Andrés Pérez','andres@importech.demo','vendedor'],
-   ['Sofía Ramírez','sofia@importech.demo','tecnico'],['Marcela Torres','marcela@importech.demo','bodega']].forEach(([name,email,role])=>
+  [['Daniel Acosta','daniel@importech.demo','dev'],['Angelica','angelica@importech.demo','owner'],['Anderson','anderson@importech.demo','employee']].forEach(([name,email,role])=>
     D.users.push({id:'u'+(++D.seq.user),name,email,role,active:true,pin:null}));
-  const U=D.users;
+  const U=D.users,SU=[U[1],U[2],U[2]];   // quién vendió: Angelica o Anderson
 
   /* Clientes */
   [['Camila Rojas','300 512 4471','camila.rojas@correo.co','1.020.334.551'],['Juan Pablo Gómez','315 220 8834','jp.gomez@correo.co','1.017.220.118'],
@@ -128,7 +126,7 @@ function buildSeed(){
     D.items.push(it);return it;
   }
   const ev=(it,t,title,detail,tone,by)=>it.tl.push({t,title,detail:detail||'',tone:tone||'',by:by||''});
-  const staff=['Marcela','Sofía','Andrés','Laura'];
+  const staff=['Anderson','Angelica'];
   const soldDefs=[];
   /* r(cat,name,spec,color,cond,cost,price,branch,status,díasAdq,origen,extra) */
   const r=(cat,name,spec,color,cond,cost,price,branch,status,acq,src,x)=>{
@@ -136,14 +134,14 @@ function buildSeed(){
     const it=mk({cat,name,spec,color,cond,cost,price,branch,status,acq:ago(acq),src,warr:x.warr!=null?x.warr:W[cond],batt:x.batt||null,qty:x.qty!=null?x.qty:1,min:x.min||0,notes:x.notes||''});
     const t0=ago(acq),tr=/Trade-in/.test(src);
     ev(it,t0,tr?'Trade-in recibido':(/Consig/.test(src)?'Ingreso en consignación':'Compra'),src,'',staff[it.id.length%2]);
-    if(status==='En tránsito')ev(it,t0+2*36e5,'Despachado desde Miami','Guía SVD-88231 · llegada estimada en 2 días','warn','Marcela');
+    if(status==='En tránsito')ev(it,t0+2*36e5,'Despachado desde Miami','Guía SVD-88231 · llegada estimada en 2 días','warn','Anderson');
     else{
-      if(it.track==='unit'&&cat==='iPhone')ev(it,t0+2*36e5,'Recepción · IMEI verificado','Base negativa: limpio · iCloud: libre · Operador: libre','ok','Marcela');
-      else ev(it,t0+2*36e5,'Recepción',it.track==='qty'?it.qty+' unidades ingresadas':'Equipo recibido y revisado','ok','Marcela');
-      if(status!=='En revisión')ev(it,t0+DAY*.8,'En vitrina',branch,'','Marcela');
+      if(it.track==='unit'&&cat==='iPhone')ev(it,t0+2*36e5,'Recepción · IMEI verificado','Base negativa: limpio · iCloud: libre · Operador: libre','ok','Anderson');
+      else ev(it,t0+2*36e5,'Recepción',it.track==='qty'?it.qty+' unidades ingresadas':'Equipo recibido y revisado','ok','Anderson');
+      if(status!=='En revisión')ev(it,t0+DAY*.8,'En vitrina',branch,'','Anderson');
     }
-    if(status==='En taller')ev(it,ago(4),'Entró a taller','Orden de reparación abierta','warn','Sofía');
-    if(status==='Apartado'){it.hold={client:C[9].id,abono:500000,expires:now+4*DAY,t:ago(3),by:'u3'};ev(it,ago(3),'Apartado','Carlos Ramírez · abono $500.000 · vence en 4 días','warn','Andrés')}
+    if(status==='En taller')ev(it,ago(4),'Entró a taller','Orden de reparación abierta','warn','Anderson');
+    if(status==='Apartado'){it.hold={client:C[9].id,abono:500000,expires:now+4*DAY,t:ago(3),by:'u3'};ev(it,ago(3),'Apartado','Carlos Ramírez · abono $500.000 · vence en 4 días','warn','Anderson')}
     if(x.sale)soldDefs.push([it,x.sale]);
     return it;
   };
@@ -256,18 +254,18 @@ function buildSeed(){
     if(it.track==='qty'){it.status='En vitrina';it.qty=0}else it.status='Vendido';
     lines.push({item:it.id,name:it.name+(it.spec?' · '+it.spec:''),color:it.color,cond:it.cond,serial:it.serial,qty:1,price,cost:it.cost,warr:it.warr,ret:0});
     (s.acc||[]).forEach(([nm,q])=>{const a=D.items.find(x=>x.name===nm&&x.track==='qty'&&x.cat==='Accesorios');if(a){a.qty+=q;lines.push({item:a.id,name:a.name,color:'',cond:a.cond,serial:'',qty:q,price:a.price,cost:a.cost,warr:a.warr,ret:0});a.qty-=q;
-      ev(a,t,'Vendido ×'+q,C[s.c].name,'ok','Andrés')}});
+      ev(a,t,'Vendido ×'+q,C[s.c].name,'ok','Anderson')}});
     const total=lines.reduce((a,l)=>a+l.price*l.qty,0);
-    const sale={id:'S-'+String(++D.seq.sale).padStart(4,'0'),no:'FV-'+String(1000+D.seq.sale),t,client:C[s.c].id,by:U[s.u].id,method:s.m,mode:s.mode,lines,disc:0,total,abono:0,prepaid:0,plan:null,notes:''};
+    const sale={id:'S-'+String(++D.seq.sale).padStart(4,'0'),no:'FV-'+String(1000+D.seq.sale),t,client:C[s.c].id,by:SU[s.u].id,method:s.m,mode:s.mode,lines,disc:0,total,abono:0,prepaid:0,plan:null,notes:''};
     if(s.mode.startsWith('cuotas')){
       const n=+s.mode.split(':')[1],abono=Math.round(total*.3/1000)*1000,fin=total-abono,cuota=Math.round(fin/n/1000)*1000;
       const pl={id:'P-'+String(++D.seq.plan).padStart(3,'0'),sale:sale.id,client:C[s.c].id,total,abono,n,cuota,start:t,paidAmt:0,pays:[]};
       let paidC=s.paid!=null?s.paid:Math.min(n-1,Math.floor(s.d/30));
-      for(let k=0;k<paidC;k++){pl.pays.push({t:t+(k+1)*30*DAY,amount:cuota,method:s.m,by:U[s.u].id});pl.paidAmt+=cuota}
+      for(let k=0;k<paidC;k++){pl.pays.push({t:t+(k+1)*30*DAY,amount:cuota,method:s.m,by:SU[s.u].id});pl.paidAmt+=cuota}
       sale.abono=abono;sale.plan=pl.id;D.plans.push(pl);
     }
     D.sales.push(sale);
-    ev(it,t,'Vendido',C[s.c].name+' · '+(s.mode==='contado'?'contado · '+s.m:'plan de '+s.mode.split(':')[1]+' cuotas')+' · '+sale.no,'ok',U[s.u].name.split(' ')[0]);
+    ev(it,t,'Vendido',C[s.c].name+' · '+(s.mode==='contado'?'contado · '+s.m:'plan de '+s.mode.split(':')[1]+' cuotas')+' · '+sale.no,'ok',SU[s.u].name.split(' ')[0]);
     ev(it,t+6e4,'Comprobante de venta',sale.no+' emitido con serial/IMEI y garantía');
     ev(it,t+12e4,'Garantía activada',it.warr+' meses','ok');
   });
@@ -276,21 +274,21 @@ function buildSeed(){
   /* Reclamo de garantía abierto */
   {const sl=D.sales.find(s=>s.lines[0].name.startsWith('iPhone 16 · 128'));
    if(sl){const it=D.items.find(x=>x.id===sl.lines[0].item);D.claims.push({id:'G-001',sale:sl.id,line:0,t:ago(2),note:'La batería se descarga rápido',status:'Abierto'});
-     ev(it,ago(2),'Reclamo de garantía abierto','La batería se descarga rápido','warn','Sofía')}}
+     ev(it,ago(2),'Reclamo de garantía abierto','La batería se descarga rápido','warn','Anderson')}}
 
   /* Taller */
   const byS=(n,c,st)=>D.items.find(x=>x.name===n&&x.color===c&&x.status===st);
   D.orders.push(
-   {id:'T-031',item:byS('iPhone 15','Rosado','En taller').id,job:'Cambio de batería',st:'En reparación',cost:180000,tech:'Sofía',t:ago(3)},
-   {id:'T-030',item:byS('iPhone 15 Pro','Titanio azul','En taller').id,job:'Cambio de pantalla',st:'Esperando repuesto',cost:420000,tech:'Sofía',t:ago(6)},
-   {id:'T-029',item:byS('iPhone 14','Medianoche','En taller').id,job:'Cambio de batería',st:'Listo',cost:160000,tech:'Sofía',t:ago(4)},
-   {id:'T-032',item:D.items.find(x=>x.status==='En revisión').id,job:'Diagnóstico Face ID',st:'Diagnóstico',cost:0,tech:'Sofía',t:ago(1)});
+   {id:'T-031',item:byS('iPhone 15','Rosado','En taller').id,job:'Cambio de batería',st:'En reparación',cost:180000,tech:'Anderson',t:ago(3)},
+   {id:'T-030',item:byS('iPhone 15 Pro','Titanio azul','En taller').id,job:'Cambio de pantalla',st:'Esperando repuesto',cost:420000,tech:'Anderson',t:ago(6)},
+   {id:'T-029',item:byS('iPhone 14','Medianoche','En taller').id,job:'Cambio de batería',st:'Listo',cost:160000,tech:'Anderson',t:ago(4)},
+   {id:'T-032',item:D.items.find(x=>x.status==='En revisión').id,job:'Diagnóstico Face ID',st:'Diagnóstico',cost:0,tech:'Anderson',t:ago(1)});
   D.seq.order=32;
 
   /* Transferencias */
   D.transfers.push(
-   {id:'TR-118',from:B[2],to:B[0],lines:D.items.filter(x=>x.status==='En tránsito').map(x=>({item:x.id,qty:1})),guia:'SVD-88231',st:'En tránsito',t:ago(1),by:'u5'},
-   {id:'TR-117',from:B[2],to:B[1],lines:[{item:D.items.find(x=>x.name==='iPhone 16 Pro'&&x.spec==='128 GB').id,qty:1}],guia:'INT-2207',st:'Recibido',t:ago(15),by:'u5'});
+   {id:'TR-118',from:B[2],to:B[0],lines:D.items.filter(x=>x.status==='En tránsito').map(x=>({item:x.id,qty:1})),guia:'SVD-88231',st:'En tránsito',t:ago(1),by:'u3'},
+   {id:'TR-117',from:B[2],to:B[1],lines:[{item:D.items.find(x=>x.name==='iPhone 16 Pro'&&x.spec==='128 GB').id,qty:1}],guia:'INT-2207',st:'Recibido',t:ago(15),by:'u3'});
   D.seq.tr=118;
 
   /* Compras */
@@ -327,8 +325,29 @@ function buildSeed(){
    PERSISTENCIA (localStorage; si está bloqueado, funciona en memoria)
    ===================================================== */
 let DB=null,STORAGE_OK=true;
+/* Migra copias guardadas con el equipo anterior (v4) al equipo nuevo: Daniel (Desarrollador), Angelica (Propietario/a), Anderson (Empleado/a) */
+function migrateDB(d){
+  if(!d)return null;
+  if(d.ver===4){
+    const ren={'Marcela':'Anderson','Sofía':'Anderson','Andrés':'Anderson','Laura':'Angelica'};
+    const idMap={u1:'u1',u2:'u2',u3:'u3',u4:'u3',u5:'u3'},roleMap={admin:'owner',gerente:'owner',vendedor:'employee',tecnico:'employee',bodega:'employee'};
+    const fresh=JSON.parse(JSON.stringify(DEFAULT_ROLES));
+    Object.keys(d.roles||{}).forEach(k=>{if(k.startsWith('rol')&&!fresh[k])fresh[k]=d.roles[k]});
+    const base={u1:['Daniel Acosta','daniel@importech.demo','dev'],u2:['Angelica','angelica@importech.demo','owner'],u3:['Anderson','anderson@importech.demo','employee']};
+    const users=Object.entries(base).map(([id,[name,email,role]])=>{const o=(d.users||[]).find(u=>u.id===id)||{};return{id,name,email,role,active:true,pin:o.pin||null}});
+    (d.users||[]).filter(u=>!idMap[u.id]).forEach(u=>users.push(Object.assign({},u,{role:fresh[u.role]?u.role:(roleMap[u.role]||'employee')})));
+    d.roles=fresh;d.users=users;
+    const m=id=>idMap[id]||id;
+    (d.sales||[]).forEach(s=>{s.by=m(s.by)});(d.transfers||[]).forEach(t=>{t.by=m(t.by)});
+    (d.plans||[]).forEach(p=>(p.pays||[]).forEach(x=>{x.by=m(x.by)}));
+    (d.items||[]).forEach(i=>{if(i.hold)i.hold.by=m(i.hold.by);(i.tl||[]).forEach(e=>{if(ren[e.by])e.by=ren[e.by]})});
+    (d.orders||[]).forEach(o=>{if(ren[o.tech])o.tech=ren[o.tech]});
+    d.ver=5;
+  }
+  return d.ver===DB_VER?d:null;
+}
 function loadDB(){
-  try{const s=localStorage.getItem(DB_KEY);if(s){const d=JSON.parse(s);if(d&&d.ver===DB_VER)return d}}catch(e){STORAGE_OK=false}
+  try{const s=localStorage.getItem(DB_KEY);if(s){return migrateDB(JSON.parse(s))}}catch(e){STORAGE_OK=false}
   return null;
 }
 function saveDB(){

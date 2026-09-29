@@ -242,7 +242,7 @@ function createItem(cat,o,extra){
     status:'En vitrina',acq:Date.now(),src:'Importación',batt:null,notes:'',repairs:0,min:0,tl:[],hold:null},o);
   it.track=(cat==='AirPods'||cat==='Accesorios')?'qty':'unit';
   addEv(it,it.src==='Trade-in'?'Trade-in recibido':'Ingreso al inventario',it.src+(it.track==='qty'?' · '+it.qty+' unidades':''));
-  if(extra&&extra.verify)addEv(it,'Verificación de IMEI',extra.verify.verdict==='clean'?'Base negativa: limpio · iCloud: libre · Operador: libre':'Advertencia aprobada por el gerente: '+extra.verify.steps.filter(s=>s.s==='warn').map(s=>s.d).join(' | '),extra.verify.verdict==='clean'?'ok':'warn');
+  if(extra&&extra.verify)addEv(it,'Verificación de IMEI',extra.verify.verdict==='clean'?'Base negativa: limpio · iCloud: libre · Operador: libre':'Advertencia aprobada por el propietario/a: '+extra.verify.steps.filter(s=>s.s==='warn').map(s=>s.d).join(' | '),extra.verify.verdict==='clean'?'ok':'warn');
   addEv(it,'En vitrina',it.branch);
   DB.items.unshift(it);logAct('owner','📦','Nuevo ingreso: <b>'+esc(uname(it))+'</b>'+(it.track==='qty'?' ×'+it.qty:'')+' por '+esc(ME.name));
   saveDB();paintNav();toast('✅ '+esc(uname(it))+' guardado en inventario');S.inv={q:'',cat:'',cond:'',br:'',st:'stock'};go('inventario');setTimeout(()=>openItem(it.id),250);
@@ -268,7 +268,7 @@ function paintVerify(){
     :`<div class="step skip"><div class="ico">·</div><div><div class="t">${s.l}</div></div></div>`).join('');
   let out=`<h3 style="margin:22px 0 6px;font-size:14px">Verificación <span class="mono" style="color:var(--t3)">${S.v.imei}</span></h3><div class="steps">${rows}</div>`;
   if(done){
-    const v=res.verdict,msg={clean:['✅','Equipo limpio','Puedes ingresarlo al inventario.'],review:['⚠️','Requiere revisión','Solo se puede ingresar con aprobación del gerente y queda anotado en el historial.'],
+    const v=res.verdict,msg={clean:['✅','Equipo limpio','Puedes ingresarlo al inventario.'],review:['⚠️','Requiere revisión','Solo se puede ingresar con aprobación del propietario/a y queda anotado en el historial.'],
      blocked:['⛔',res.reason==='invalid'?'IMEI inválido':res.reason==='dup'?'Equipo duplicado':'Ingreso bloqueado',res.reason==='invalid'?'Revisa el número y vuelve a intentar.':res.reason==='dup'?'Este IMEI ya está en tu inventario.':'Este equipo está reportado. No lo compres ni lo ingreses. El dueño ya fue alertado.']}[v];
     out+=`<div class="verdict ${v}"><div class="big">${msg[0]}</div><div><b>${msg[1]}</b><div style="font-size:13px;margin-top:2px">${msg[2]}</div>${res.reason==='dup'&&res.existing?`<button class="btn sm" style="margin-top:8px" data-a="item" data-id="${res.existing.id}">Ver equipo existente</button>`:''}</div></div>`;
     if(res.reason==='neg')out+=`<div class="wa-box" style="margin-top:12px"><div style="font-size:11.5px;color:#6b6b6b">Alerta enviada al dueño · WhatsApp</div><div class="wa">🚨 *Alerta ${esc(DB.settings.name)}*
@@ -278,7 +278,7 @@ Motivo: ${esc(REG[S.v.imei].neg)}
 Usuario: ${esc(ME.name)}
 El equipo NO fue ingresado.<small>${ftime(Date.now())}</small></div></div>`;
     if(v!=='blocked')out+=`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px"><h3 style="font-size:14px;margin-bottom:12px">Datos del equipo</h3>${itemForm({name:res.model?res.model.name:'',spec:'256 GB',color:'',cond:'Nuevo',serial:S.v.imei,qty:1,cost:0,price:0,warr:DB.settings.warr.Nuevo,branch:DB.settings.branches[0],src:'Importación',batt:100,notes:'',min:0,cat:'iPhone'})}
-      ${v==='review'?`<label class="chk"><input type="checkbox" id="i-ok"> <span><b>Aprobación del gerente:</b> autorizo ingresar este equipo pese a la advertencia.</span></label>`:''}
+      ${v==='review'?`<label class="chk"><input type="checkbox" id="i-ok"> <span><b>Aprobación del propietario/a:</b> autorizo ingresar este equipo pese a la advertencia.</span></label>`:''}
       <button class="btn primary" data-a="saveVerified" ${v==='review'?'id="i-save" disabled':''}>Guardar en inventario</button></div>`;
   }
   el.innerHTML=out;
