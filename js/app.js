@@ -151,7 +151,9 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
       swReg=reg;if(reg.waiting&&navigator.serviceWorker.controller)showUpdate();
-      reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)showUpdate()})});
+      const watch=w=>{if(w)w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)showUpdate()})};
+      watch(reg.installing);                       /* versión que ya se está descargando al cargar la página */
+      reg.addEventListener('updatefound',()=>watch(reg.installing));
       setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
     }).catch(()=>{});
   });

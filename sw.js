@@ -14,6 +14,9 @@ const SHELL = [
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SHELL_CACHE).then(c => c.addAll(SHELL)));
+  /* DEMO: aplica la versión nueva apenas se descarga, para que nadie se quede con una versión vieja.
+     En la app real usa el aviso "Actualizar" (ver docs/PWA.md) para no interrumpir una venta en curso. */
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
