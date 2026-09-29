@@ -407,3 +407,7 @@ kbd{border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;pad
 @media(max-width:1000px){.pos-wrap{grid-template-columns:1fr}.pos-panel{position:static;max-height:none}.pos-cardsbox{max-height:none}
   .pos-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:#0D1527;color:#fff;justify-content:space-between;align-items:center;padding:10px 16px;gap:12px}
   .pos-bar span{display:block;font-size:12px;color:#B6C1D1}.pos-bar b{font-size:18px}#main{padding-bottom:88px}}
+.scan-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:10px 14px 0}
+.scan-tabs button{height:36px;border:1px solid var(--border);border-radius:9px;font-size:12.5px;font-weight:600;color:var(--t2);background:#fff}
+.scan-tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.scan-steps{margin:6px 0 6px 18px;display:flex;flex-direction:column;gap:3px}

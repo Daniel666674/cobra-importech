@@ -62,10 +62,17 @@ function parseLabelText(raw,cat){
   /* Números de parte y de modelo */
   m=/\b([A-Z0-9]{5}[A-Z]{1,2}\/[A-Z])\b/.exec(flat.toUpperCase());if(m)out.part=m[1];
   m=/\b(A\d{4})\b/.exec(flat.toUpperCase());if(m)out.modelno=m[1];
+  /* Otros datos útiles de la pantalla Información y de Batería (equipos usados) */
+  const info=[];
+  m=/(?:versi[oó]n\s*de\s*(?:ios|ipados)|(?:ios|ipados)\s*version|software\s*version)\s*[:]?\s*(\d{1,2}(?:\.\d+){0,2})/i.exec(flat);if(m)info.push('iOS '+m[1]);
+  m=/(?:cantidad\s*de\s*ciclos|cycle\s*count|\bciclos)\D{0,10}(\d{1,4})\b/i.exec(flat);if(m)info.push(m[1]+' ciclos de batería');
+  if(/sin\s*restricciones\s*de\s*sim|no\s*sim\s*restrictions/i.test(flat))info.push('Operador: sin restricciones de SIM');
+  else if(/bloqueo\s*de(?:l)?\s*operador|carrier\s*lock|sim\s*lock/i.test(flat))info.push('Revisar bloqueo de operador');
+  if(info.length)out.info=info;
   return out;
 }
 /* Une lo leído sin pisar lo que ya está confirmado */
-function mergeRead(into,from){Object.keys(from).forEach(k=>{if(from[k]!=null&&from[k]!==''&&(into[k]==null||into[k]===''))into[k]=from[k]});return into}
+function mergeRead(into,from){Object.keys(from).forEach(k=>{const v=from[k];if(v==null||v==='')return;if(Array.isArray(v)){into[k]=[...new Set([...(into[k]||[]),...v])];return}if(into[k]==null||into[k]==='')into[k]=v});return into}
 
 /* ---------- Lectura de códigos de barras ---------- */
 let _zx=null;
@@ -107,20 +114,37 @@ async function ocrCanvas(canvas,onStatus){
   const id=x.getImageData(0,0,w,h),d=id.data,hist=new Uint32Array(256);
   for(let i=0;i<d.length;i+=4){const g=(d[i]*.299+d[i+1]*.587+d[i+2]*.114)|0;d[i]=g;hist[g]++}
   let lo=0,hi=255,acc=0;const tot=w*h;for(let i=0;i<256;i++){acc+=hist[i];if(acc>tot*.02){lo=i;break}}acc=0;for(let i=255;i>=0;i--){acc+=hist[i];if(acc>tot*.02){hi=i;break}}
-  const sc=255/Math.max(1,hi-lo);for(let i=0;i<d.length;i+=4){const v=Math.max(0,Math.min(255,((d[i]-lo)*sc)|0));d[i]=d[i+1]=d[i+2]=v}
+  let mean=0;for(let i=0;i<256;i++)mean+=i*hist[i];mean/=tot;const dark=mean<115;    /* modo oscuro de iPhone: texto claro sobre fondo negro */
+  const gam=new Uint8Array(256);for(let i=0;i<256;i++)gam[i]=Math.round(255*Math.pow(i/255,1.9));   /* oscurece los grises del texto secundario (p. ej. el valor de "Ciclos") */
+  const sc=255/Math.max(1,hi-lo);for(let i=0;i<d.length;i+=4){let v=dark?255-d[i]:Math.max(0,Math.min(255,((d[i]-lo)*sc)|0));v=gam[v];d[i]=d[i+1]=d[i+2]=v}   /* oscuro: solo invertir (estirar el contraste borraría el texto) */
   x.putImageData(id,0,0);
   const r=await _worker.recognize(c);return r.data.text||'';
 }
 
 /* ---------- Interfaz del escáner ---------- */
-function scanHint(){return SC.mode==='multi'?'Apunta a cada código de barras. Cada IMEI o serial nuevo se agrega solo.':SC.mode==='pick'?'Apunta al código de barras del equipo.':'Apunta a los códigos de barras de la caja (IMEI y serial). Para leer modelo, capacidad, color y batería, muestra la pantalla Ajustes → General → Información y toca “Leer texto”.'}
+function scanHint(){
+  if(SC.mode==='multi')return 'Apunta a cada código de barras. Cada IMEI o serial nuevo se agrega solo.';
+  if(SC.mode==='pick')return 'Apunta al código de barras del equipo.';
+  if(SC.tab==='screen')return `<b>Equipo usado o sin caja.</b> Muestra en el equipo:<ol class="scan-steps"><li><b>Ajustes → General → Información</b> y toca <b>📸 Leer pantalla</b>: modelo, capacidad, serial, IMEI y versión de iOS.</li><li><b>Ajustes → Batería → Salud de la batería</b> y toca de nuevo: capacidad máxima y ciclos.</li><li>Para el IMEI también sirve marcar <b>*#06#</b>.</li></ol>Las lecturas se combinan. Sube el brillo y evita reflejos; funciona con modo oscuro.${SC.caps?` <b>Capturas: ${SC.caps}</b>`:''}`;
+  return 'Apunta a los códigos de barras de la caja (IMEI y serial). Para leer también el modelo, capacidad y color de la etiqueta, toca <b>📸 Leer texto</b>.';
+}
+function scanChromeHtml(){
+  const tabs=SC.mode==='fill'?`<div class="scan-tabs"><button class="${SC.tab==='box'?'on':''}" data-a="scanTab" data-t="box">📦 Caja o etiqueta</button><button class="${SC.tab==='screen'?'on':''}" data-a="scanTab" data-t="screen">📱 Pantalla del equipo (usado)</button></div>`:'';
+  return tabs;
+}
+function paintScanChrome(){
+  const t=$('#scan-tabs');if(t)t.innerHTML=scanChromeHtml();const h=$('#scan-hint');if(h)h.innerHTML=scanHint();
+  const b=$('#sc-ocr');if(b)b.textContent=SC.tab==='screen'?'📸 Leer pantalla':'📸 Leer texto';
+}
+ACT.scanTab=d=>{SC.tab=d.t;S.scanTab=d.t;paintScanChrome()};
 function openScanner(opts){
-  Object.assign(SC,{mode:opts.mode||'fill',cat:opts.cat||'iPhone',onDone:opts.onDone,found:new Map(),R:{},busy:false,ocrBusy:false,torch:false,list:[]});
+  Object.assign(SC,{mode:opts.mode||'fill',cat:opts.cat||'iPhone',onDone:opts.onDone,found:new Map(),R:{},busy:false,ocrBusy:false,torch:false,list:[],caps:0,tab:opts.tab||S.scanTab||'box'});
   let el=$('#scanner');if(!el){el=document.createElement('div');el.id='scanner';document.body.appendChild(el)}
   el.className='scan on';
   el.innerHTML=`<div class="scan-box"><div class="scan-head"><b>📷 ${SC.mode==='multi'?'Escanear varios':SC.mode==='pick'?'Escanear para vender':'Escanear producto'}</b><button class="x" data-a="scanClose" aria-label="Cerrar">×</button></div>
+   <div id="scan-tabs">${scanChromeHtml()}</div>
    <div class="scan-view"><video id="scan-video" playsinline muted autoplay></video><div class="scan-frame"></div><div class="scan-msg" id="scan-msg">Iniciando cámara…</div></div>
-   <div class="scan-tools"><button class="btn" data-a="scanOcr" id="sc-ocr">📸 Leer texto</button>
+   <div class="scan-tools"><button class="btn primary" data-a="scanOcr" id="sc-ocr">${SC.tab==='screen'?'📸 Leer pantalla':'📸 Leer texto'}</button>
     <label class="btn" style="cursor:pointer">🖼️ Tomar o subir foto<input type="file" id="scan-file" accept="image/*" capture="environment" hidden></label>
     <button class="btn" data-a="scanTorch" id="sc-torch" hidden>🔦 Luz</button></div>
    <div class="scan-hint" id="scan-hint">${scanHint()}</div><div id="scan-res"></div></div>`;
@@ -181,7 +205,9 @@ async function runOcr(canvas){
     const t0=await ocrCanvas(canvas,m=>{const e=$('#scan-msg');if(e)e.textContent=m});
     const got=parseLabelText(t0,SC.cat);SC.lastText=t0;
     const n=Object.keys(got).length;
-    mergeRead(SC.R,got);
+    mergeRead(SC.R,got);if(n)SC.caps++;
+    if(SC.R.batt&&!SC.R.cond&&SC.tab==='screen')SC.R.cond=SC.R.batt>=88?'Pre-owned':'Usado';
+    paintScanChrome();
     if(SC.R.imei)SC.found.set('imei:'+SC.R.imei,{k:'imei',v:SC.R.imei});
     if($('#scan-msg'))$('#scan-msg').textContent=n?'Listo: revisa los datos leídos abajo.':'No se reconoció texto útil. Acerca la cámara y evita reflejos.';
   }catch(e){if($('#scan-msg'))$('#scan-msg').textContent='No se pudo leer el texto: '+(e&&e.message?e.message:'error')+'. Si tu navegador es antiguo, actualízalo.'}
@@ -211,7 +237,8 @@ function paintScanRes(){
    <div class="row"><div><label>IMEI ${R.imei?'✅':''}</label><input id="sc-imei" class="mono" value="${esc(R.imei||'')}" placeholder="Sin leer"></div><div><label>Serial ${R.serial?'✅':''}</label><input id="sc-serial" class="mono" value="${esc(R.serial||'')}" placeholder="Sin leer"></div></div>
    <div class="row"><div style="grid-column:span 2"><label>Modelo ${R.name?'✅':''}</label><input id="sc-name" list="dl-scan" value="${esc(R.name||'')}" placeholder="Sin leer"></div><div><label>Capacidad ${R.spec?'✅':''}</label><input id="sc-spec" value="${esc(R.spec||'')}" placeholder="Sin leer"></div></div>
    <div class="row"><div><label>Color ${R.color?'✅':''}</label><input id="sc-color" value="${esc(R.color||'')}" placeholder="Sin leer"></div><div><label>Batería % ${R.batt?'✅':''}</label><input id="sc-batt" type="number" min="1" max="100" value="${R.batt||''}" placeholder="Sin leer"></div>
-    <div><label>Parte / modelo</label><input id="sc-extra" value="${esc([R.part,R.modelno].filter(Boolean).join(' · '))}" placeholder="Opcional"></div></div>
+    <div><label>Condición ${R.cond?'✅':''}</label><select id="sc-cond"><option value="">— Elegir —</option>${CONDS.map(c=>`<option ${R.cond===c?'selected':''}>${c}</option>`).join('')}</select></div></div>
+   <div class="row"><div style="grid-column:span 3"><label>Notas del equipo ${R.info&&R.info.length?'✅':''}</label><input id="sc-notes" value="${esc([R.part,R.modelno,...(R.info||[])].filter(Boolean).join(' · '))}" placeholder="Versión de iOS, ciclos, número de parte… (opcional)"></div></div>
    ${SC.ocrBusy?'<div class="note">⏳ Leyendo texto…</div>':''}
    <button class="btn primary" style="width:100%;justify-content:center;height:42px" data-a="scanDone" ${has&&!SC.ocrBusy?'':'disabled'}>✅ Usar estos datos</button>
    <div class="note">Revisa y corrige antes de usar. Las fotos se procesan en tu dispositivo y no se envían a ningún servidor.</div></div>`;
@@ -219,7 +246,7 @@ function paintScanRes(){
 ACT.scanDone=()=>{
   const cb=SC.onDone;let data;
   if(SC.mode==='multi')data=SC.list.slice();
-  else data={cat:SC.cat,imei:val('sc-imei').replace(/\D/g,''),serial:val('sc-serial').toUpperCase(),name:val('sc-name'),spec:val('sc-spec'),color:val('sc-color'),batt:num('sc-batt')||null,extra:val('sc-extra')};
+  else data={cat:SC.cat,imei:val('sc-imei').replace(/\D/g,''),serial:val('sc-serial').toUpperCase(),name:val('sc-name'),spec:val('sc-spec'),color:val('sc-color'),batt:num('sc-batt')||null,cond:val('sc-cond'),extra:val('sc-notes')};
   closeScanner();cb&&cb(data);
 };
 
@@ -228,12 +255,12 @@ function fillFromScan(d,cat){                       /* llena el formulario de pr
   const set=(id,v)=>{const e=$('#'+id);if(e&&v!=null&&v!=='')e.value=v};
   set('i-name',d.name);set('i-spec',d.spec);set('i-color',d.color);set('i-serial',d.serial||'');set('i-batt',d.batt);
   const notes=[d.imei?'IMEI: '+d.imei:'',d.extra].filter(Boolean).join(' · ');if(notes)set('i-notes',notes);
-  itemAutofill(true);
+  set('i-cond',d.cond);itemAutofill(true);
 }
 function applyScanFill(){                            /* iPhone: se aplica cuando el IMEI ya fue verificado */
   const d=S.scanFill;if(!d||!$('#i-name'))return;
   const set=(id,v)=>{const e=$('#'+id);if(e&&v!=null&&v!=='')e.value=v};
-  set('i-name',d.name);set('i-spec',d.spec);set('i-color',d.color);set('i-batt',d.batt);
+  set('i-name',d.name);set('i-spec',d.spec);set('i-color',d.color);set('i-batt',d.batt);set('i-cond',d.cond);
   const notes=[d.serial?'Serial Apple: '+d.serial:'',d.extra].filter(Boolean).join(' · ');if(notes)set('i-notes',notes);
   if(S.v&&S.v.res.model&&d.name&&S.v.res.model.name!==d.name)toast('⚠️ El modelo leído ('+esc(d.name)+') no coincide con el del IMEI ('+esc(S.v.res.model.name)+'). Revísalo.');
   itemAutofill(true);S.scanFill=null;toast('📷 Datos completados con la cámara. Revisa antes de guardar.');
@@ -247,7 +274,7 @@ ACT.scanAdd=()=>{
     else{fillFromScan(d,guess);S.scanFill=null;toast('📷 Datos completados con la cámara. Revisa antes de guardar.')}
   }});
 };
-ACT.scanTi=()=>openScanner({mode:'fill',cat:'iPhone',onDone:d=>{
+ACT.scanTi=()=>openScanner({mode:'fill',cat:'iPhone',tab:'screen',onDone:d=>{
   tiInit();if(d.imei)S.ti.imei=d.imei;const m=CATALOG.find(c=>c.cat==='iPhone'&&c.name===d.name);if(m)S.ti.model=m.name;
   const gb=/(\d+)\s*(GB|TB)/i.exec(d.spec||'');if(gb){const n=+gb[1]*(/TB/i.test(gb[2])?1024:1);if([128,256,512,1024].includes(n))S.ti.gb=n}
   if(d.batt)S.ti.batt=d.batt;render();toast('📷 Datos leídos. Revisa el estado del equipo.')}});
