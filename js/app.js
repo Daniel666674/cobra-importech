@@ -105,7 +105,7 @@ document.addEventListener('change',e=>{
   else if(id==='feed-f'){S.feedType=t.value;render()}
   else if(t.closest&&t.closest('.pos-wrap')){posChange(t)}
   else if(id==='tr-from'){$('#tr-list').innerHTML=trListHtml()}
-  else if(id==='i-ok'){$('#i-save').disabled=!t.checked}
+  else if(id==='i-ok'){offRefresh()}
   else if(t.classList&&t.classList.contains('perm')){const r=DB.roles[t.dataset.r],p=t.dataset.p;if(!r||r.locked)return;
     r.perms=t.checked?[...new Set([...r.perms,p])]:r.perms.filter(x=>x!==p);saveDB();paintNav();toast('Permiso actualizado')}
   else if(id==='logo-file'){const f=t.files&&t.files[0];t.value='';if(f)setLogoFile(f)}

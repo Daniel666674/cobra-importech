@@ -142,7 +142,13 @@ function openItem(id){
 ACT.item=d=>{closeModal();openItem(d.id)};
 ACT.sellItem=d=>{closeDrawer();posStart(d.id)};
 ACT.finishHold=d=>{closeDrawer();posStart(d.id,true)};
-ACT.reverify=d=>{const it=itemById(d.id),r=verifyImei(it.serial,it.id);addEv(it,'Re-verificación de IMEI',r.verdict==='clean'?'Sin cambios: limpio en base negativa, iCloud y operador':r.steps.filter(s=>s.s!=='ok').map(s=>s.d).join(' | '),r.verdict==='clean'?'ok':'bad');saveDB();openItem(it.id);toast(r.verdict==='clean'?'✅ IMEI sigue limpio (simulado)':'⚠️ Se encontraron novedades')};
+ACT.reverify=d=>{const it=itemById(d.id),r=verifyImei(it.serial,it.id);S.rv={imei:it.serial,id:it.id,res:r,off:{}};OFF=S.rv;
+  openModal(`${modalHead('Re-verificar IMEI')}<div class="modal-b"><div class="steps">${r.steps.map(s=>`<div class="step ${s.s}"><div class="ico">${STEP_ICON[s.s]}</div><div><div class="t">${s.l}</div><div class="d">${esc(s.d)}</div></div></div>`).join('')}</div><div style="margin-top:14px">${offHtml(S.rv)}</div></div><div class="modal-f"><button class="btn" data-a="closeModal">Cancelar</button><button class="btn primary" id="rv-save" data-a="rvSave" disabled>Registrar verificación</button></div>`)};
+ACT.rvSave=()=>{const c=S.rv,it=c&&itemById(c.id);if(!it||!offGate(c).set)return;const bad=[];
+  addEv(it,'Re-verificación de IMEI (automática)',c.res.verdict==='clean'?'Sin cambios: limpio en base negativa, iCloud y operador':c.res.steps.filter(s=>s.s!=='ok').map(s=>s.d).join(' | '),c.res.verdict==='clean'?'ok':'bad');
+  ['crc','apple'].forEach(k=>{const x=c.off[k];addEv(it,'Consulta oficial · '+OFF_LBL[k],OFF_TXT[x.r]+' · verificó '+x.name,x.r==='clean'?'ok':'bad');if(x.r!=='clean')bad.push(OFF_LBL[k]+': '+OFF_TXT[x.r])});
+  it.imeiCheck=c.off;if(bad.length)logAct('owner','🚨','Re-verificación de <b>'+esc(uname(it))+'</b>: '+esc(bad.join(' · '))+' · '+esc(ME.name));
+  saveDB();closeModal();openItem(it.id);toast(bad.length?'🚨 Novedades registradas: no vendas este equipo':'✅ Verificación oficial registrada')};
 ACT.delItem=d=>{if(!need('inv_delete'))return;const it=itemById(d.id);
   if(DB.sales.some(s=>s.lines.some(l=>l.item===it.id))){toast('No se puede eliminar: tiene ventas asociadas. Ponle stock 0 si ya no lo vendes.');return}
   confirmBox('Eliminar producto','Vas a eliminar <b>'+esc(uname(it))+'</b> ('+it.id+'). Esta acción no se puede deshacer.','Eliminar',()=>{
@@ -216,8 +222,8 @@ VIEWS.ingreso={html(){
      <div class="tests"><span style="font-size:12px;color:var(--t3);align-self:center">Probar con:</span>
       <button class="btn sm" data-a="fill" data-k="clean">✅ Limpio</button><button class="btn sm" data-a="fill" data-k="hurto">⛔ Hurtado</button><button class="btn sm" data-a="fill" data-k="extravio">⛔ Extraviado</button><button class="btn sm" data-a="fill" data-k="icloud">⚠️ iCloud activo</button><button class="btn sm" data-a="fill" data-k="operador">⚠️ Operador</button><button class="btn sm" data-a="fill" data-k="dup">♻️ Duplicado</button><button class="btn sm" data-a="fill" data-k="bad">✕ Inválido</button></div>
      <div id="vpanel"></div>
-     <div class="note">Demo: los resultados de hurto, iCloud y operador están <b>simulados</b> con los IMEI de prueba de arriba. En el sistema real se consulta la base negativa oficial y un servicio de verificación de bloqueo.</div></div>
-    <div class="card card-p" style="box-shadow:none;background:var(--ws-bg)"><h3>Qué se verifica</h3><ol style="margin:10px 0 0 18px;font-size:13px;color:var(--t2);display:flex;flex-direction:column;gap:7px"><li>Validación matemática del IMEI.</li><li>Modelo real según el TAC.</li><li>Que no esté ya en tu inventario.</li><li>Base negativa de hurto y extravío.</li><li>Bloqueo de iCloud y de operador.</li><li><b>Si está reportado no se puede guardar</b> y el dueño recibe una alerta.</li></ol></div></div>`
+     <div class="note">Demo: las verificaciones automáticas de hurto, iCloud y operador están <b>simuladas</b> con los IMEI de prueba. La <b>verificación oficial</b> (CRC y Apple) abre las páginas reales y el resultado lo registra una persona.</div></div>
+    <div class="card card-p" style="box-shadow:none;background:var(--ws-bg)"><h3>Qué se verifica</h3><ol style="margin:10px 0 0 18px;font-size:13px;color:var(--t2);display:flex;flex-direction:column;gap:7px"><li>Validación matemática del IMEI.</li><li>Modelo real según el TAC.</li><li>Que no esté ya en tu inventario.</li><li>Base negativa de hurto y extravío (automática, simulada en la demo).</li><li>Bloqueo de iCloud y de operador (automática, simulada en la demo).</li><li><b>Verificación oficial:</b> CRC y Apple, con captcha escrito por el empleado. Sin este resultado no se guarda.</li><li><b>Si está reportado no se puede guardar</b> y el dueño recibe una alerta.</li></ol></div></div>`
    :`<div class="scan-banner"><div>📷 <b>Llena el formulario con la cámara</b><span>Caja nueva: lee los códigos de barras. Equipo usado: lee la pantalla Ajustes → General → Información y la batería.</span></div><button class="btn primary" data-a="scanAdd">Escanear</button></div><h3 style="margin-bottom:12px">Nuevo ${c(cat)}</h3>${itemForm(null,cat)}<button class="btn primary" data-a="saveNew">Guardar en inventario</button>`}</div></div>`;
   function c(x){return x==='Accesorios'?'accesorio':x==='AirPods'?'AirPods':x==='Apple Watch'?'Apple Watch':x}
 },after(){S.v=null;const i=$('#imei');if(i){i.addEventListener('input',()=>{i.value=i.value.replace(/\D/g,'').slice(0,15)});i.addEventListener('keydown',e=>{if(e.key==='Enter')doVerify()})}else itemMgHint()}};
@@ -232,6 +238,7 @@ function createItem(cat,o,extra){
   it.track=(cat==='AirPods'||cat==='Accesorios')?'qty':'unit';
   addEv(it,it.src==='Trade-in'?'Trade-in recibido':'Ingreso al inventario',it.src+(it.track==='qty'?' · '+it.qty+' unidades':''));
   if(extra&&extra.verify)addEv(it,'Verificación de IMEI',extra.verify.verdict==='clean'?'Base negativa: limpio · iCloud: libre · Operador: libre':'Advertencia aprobada por el propietario/a: '+extra.verify.steps.filter(s=>s.s==='warn').map(s=>s.d).join(' | '),extra.verify.verdict==='clean'?'ok':'warn');
+  if(extra&&extra.off){it.imeiCheck=extra.off;['crc','apple'].forEach(k=>{const x=extra.off[k];addEv(it,'Consulta oficial · '+OFF_LBL[k],OFF_TXT[x.r]+' · verificó '+x.name,x.r==='clean'?'ok':'warn')})}
   addEv(it,'En vitrina',it.branch);
   DB.items.unshift(it);logAct('owner','📦','Nuevo ingreso: <b>'+esc(uname(it))+'</b>'+(it.track==='qty'?' ×'+it.qty:'')+' por '+esc(ME.name));
   saveDB();paintNav();toast('✅ '+esc(uname(it))+' guardado en inventario');S.inv={q:'',cat:'',cond:'',br:'',st:'stock'};go('inventario');setTimeout(()=>openItem(it.id),250);
@@ -266,15 +273,49 @@ IMEI: ••••${S.v.imei.slice(-6)}
 Motivo: ${esc(REG[S.v.imei].neg)}
 Usuario: ${esc(ME.name)}
 El equipo NO fue ingresado.<small>${ftime(Date.now())}</small></div></div>`;
-    if(v!=='blocked')out+=`<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px"><h3 style="font-size:14px;margin-bottom:12px">Datos del equipo</h3>${itemForm({name:res.model?res.model.name:'',spec:'256 GB',color:'',cond:'Nuevo',serial:S.v.imei,qty:1,cost:0,price:0,warr:DB.settings.warr.Nuevo,branch:DB.settings.branches[0],src:'Importación',batt:100,notes:'',min:0,cat:'iPhone'})}
-      ${v==='review'?`<label class="chk"><input type="checkbox" id="i-ok"> <span><b>Aprobación del propietario/a:</b> autorizo ingresar este equipo pese a la advertencia.</span></label>`:''}
-      <button class="btn primary" data-a="saveVerified" ${v==='review'?'id="i-save" disabled':''}>Guardar en inventario</button></div>`;
+    if(v!=='blocked'){OFF=S.v;out+=`<div style="margin-top:20px">${offHtml(S.v)}</div><div style="margin-top:20px;border-top:1px solid var(--border);padding-top:18px"><h3 style="font-size:14px;margin-bottom:12px">Datos del equipo</h3>${itemForm({name:res.model?res.model.name:'',spec:'256 GB',color:'',cond:'Nuevo',serial:S.v.imei,qty:1,cost:0,price:0,warr:DB.settings.warr.Nuevo,branch:DB.settings.branches[0],src:'Importación',batt:100,notes:'',min:0,cat:'iPhone'})}
+      <label class="chk" id="i-okrow" style="display:${v==='review'?'flex':'none'}"><input type="checkbox" id="i-ok"> <span><b>Aprobación del propietario/a:</b> autorizo ingresar este equipo pese a la advertencia.</span></label>
+      <button class="btn primary" data-a="saveVerified" id="i-save" disabled>Guardar en inventario</button><div class="note" id="i-savehint" style="margin-top:8px">Para guardar, registra primero el resultado de la verificación oficial.</div></div>`}
   }
   el.innerHTML=out;
   if(done&&res.verdict!=='blocked'){const sr=$('#i-serial');if(sr){sr.value=S.v.imei;sr.readOnly=true}itemAutofill(true);applyScanFill()}
 }
 ACT.saveVerified=()=>{if(!need('inv_edit'))return;const r=readItemForm(null,'iPhone');if(r.err){toast(r.err);$('#'+r.f)&&$('#'+r.f).focus();return}
-  if(S.v.res.verdict==='review'&&!$('#i-ok').checked)return;r.o.serial=S.v.imei;createItem('iPhone',r.o,{verify:S.v.res})};
+  const g=offGate(S.v);if(!g.can){toast(g.msg);return}
+  if(offNeedOwner(S.v)&&!$('#i-ok').checked)return;r.o.serial=S.v.imei;createItem('iPhone',r.o,{verify:S.v.res,off:S.v.off})};
+
+/* ---------- Verificación oficial (manual: el captcha lo escribe una persona) ---------- */
+const OFF_URL={crc:'https://www.imeicolombia.com.co/',apple:'https://www.icloud.com/activationlock'};
+const OFF_LBL={crc:'CRC · Base de datos negativa',apple:'Apple · Activation Lock'};
+const OFF_OPT={crc:[['clean','✅ Limpio'],['reported','⛔ Reportado'],['blocked','⛔ Bloqueado']],apple:[['clean','✅ Sin bloqueo'],['locked','⚠️ Activation Lock activo']]};
+const OFF_TXT={clean:'Limpio',reported:'Reportado (hurto/extravío)',blocked:'Bloqueado',locked:'Activation Lock activo'};
+let OFF=null;
+function offGate(c){const o=c.off||{};
+  if(!(o.crc&&o.apple))return {can:false,set:false,msg:'Falta registrar el resultado de la verificación oficial (CRC y Apple).'};
+  if(o.crc.r!=='clean')return {can:false,set:true,msg:'⛔ Resultado oficial: equipo '+OFF_TXT[o.crc.r].toLowerCase()+'. No se puede ingresar.'};
+  return {can:true,set:true}}
+function offNeedOwner(c){return c.res.verdict==='review'||!!(c.off&&c.off.apple&&c.off.apple.r==='locked')}
+function offHtml(c){const o=c.off||(c.off={}),g=offGate(c);
+  const row=k=>`<div class="off-row"><div class="off-l"><b>${OFF_LBL[k]}</b><button class="btn sm" data-a="offOpen" data-k="${k}">Abrir ↗</button></div>
+    <div class="off-o">${OFF_OPT[k].map(([v,l])=>`<button class="offb ${o[k]&&o[k].r===v?'on '+(v==='clean'?'ok':v==='locked'?'warn':'bad'):''}" data-a="offSet" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>
+    ${o[k]?`<div class="off-by">Registrado por <b>${esc(o[k].name)}</b> · ${fdt(o[k].t)}</div>`:''}</div>`;
+  return `<div id="off-panel" class="off ${g.set?(g.can?'ok':'bad'):''}">
+   <div class="off-h"><div><b>🛡️ Verificación oficial</b><span>Obligatoria para guardar. El captcha lo escribe una persona en la página oficial.</span></div>
+   <button class="btn primary" data-a="offOpen" data-k="all">🔎 Verificar en la fuente oficial</button></div>
+   <ol class="off-steps"><li>Pulsa el botón: se copia el IMEI <span class="mono">${c.imei}</span> y se abren la CRC y Apple.</li><li>Pega el IMEI, resuelve el captcha y lee el resultado.</li><li>Elige aquí el resultado de cada consulta.</li></ol>
+   ${row('crc')}${row('apple')}
+   ${g.set&&!g.can?`<div class="off-msg bad">${g.msg}</div>`:g.set?`<div class="off-msg ok">Verificación oficial registrada.${o.apple.r==='locked'?' Con Activation Lock activo se requiere aprobación del propietario/a.':''}</div>`:''}</div>`}
+function offCopy(t){try{if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(()=>true,()=>offCopyOld(t))}catch(e){}return Promise.resolve(offCopyOld(t))}
+function offCopyOld(t){try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
+ACT.offOpen=d=>{const c=OFF;if(!c)return;offCopy(c.imei).then(ok=>toast(ok?'📋 IMEI '+c.imei+' copiado. Pégalo en la página oficial.':'Copia el IMEI: '+c.imei));
+  const ks=d.k==='all'?['crc','apple']:[d.k];ks.forEach(k=>window.open(OFF_URL[k],'_blank','noopener'))};
+ACT.offSet=d=>{const c=OFF;if(!c)return;c.off=c.off||{};const prev=c.off[d.k];c.off[d.k]={r:d.v,by:ME.id,name:ME.name,t:Date.now(),alerted:prev&&prev.alerted};
+  if((d.v==='reported'||d.v==='blocked')&&!c.off[d.k].alerted){c.off[d.k].alerted=true;logAct('owner','🚨','Alerta al dueño: consulta oficial de IMEI <b>••'+c.imei.slice(-6)+'</b> → <b>'+OFF_TXT[d.v]+'</b> · verificó '+esc(ME.name));saveDB();toast('🚨 Alerta enviada al dueño')}
+  offRefresh()};
+function offRefresh(){const c=OFF;if(!c)return;const p=$('#off-panel');if(p)p.outerHTML=offHtml(c);
+  if(c===S.v){const btn=$('#i-save');if(!btn)return;const g=offGate(c),nd=offNeedOwner(c),row=$('#i-okrow'),ok=$('#i-ok');row.style.display=nd?'flex':'none';btn.disabled=!(g.can&&(!nd||ok.checked));const h=$('#i-savehint');if(h)h.textContent=g.can?(nd&&!ok.checked?'Falta la aprobación del propietario/a.':''):g.msg}
+  else if(c===S.rv){const b=$('#rv-save');if(b)b.disabled=!offGate(c).set}}
+window.offRefresh=offRefresh;
 
 /* ---------- Trade-in ---------- */
 function tiInit(){if(!S.ti)S.ti={model:'iPhone 15 Pro',gb:256,batt:88,scr:0,body:1,fid:true,cam:true,btn:true,icl:true,imei:'',cli:''}}
