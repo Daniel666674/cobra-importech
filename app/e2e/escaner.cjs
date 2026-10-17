@@ -1,0 +1,21 @@
+const { chromium } = require('playwright');
+let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
+const B='http://localhost:3101';
+(async()=>{
+ const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
+ const ctx=await b.newContext({viewport:{width:1280,height:900}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPin','2222');
+ await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
+ await p.goto(B+'/ingreso');await p.click('button:has-text("Escanear")');await p.waitForSelector('[role=dialog]');
+ await p.waitForTimeout(1500);ok(await p.locator('video').count()===1,'abre el diálogo con la cámara (cámara de prueba)');
+ await p.setInputFiles('[role=dialog] input[type=file]',__dirname+'/box.jpg');
+ await p.waitForSelector('text=Listo. Revisa',{timeout:120000});
+ const t=await p.innerText('[role=dialog]');console.log(t.replace(/\n+/g,' | ').slice(0,400));
+ ok(/359110017000013/.test(t)&&/F2LK9X8YQ4/.test(t),'lee IMEI y serie exactos de la foto de la caja');
+ await p.click('button:has-text("Usar estos datos")');
+ await p.waitForSelector('section[aria-label="Verificación oficial"]',{timeout:20000});
+ ok(await p.inputValue('#i-serial').then(v=>/^\d{15}$/.test(v)),'verifica el IMEI y llena el formulario');
+ console.log('modelo:',await p.inputValue('#i-name'),'| color:',await p.inputValue('#i-color'));
+ ok(errs.length===0,'sin errores JS '+errs.join(';'));
+ await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');
+})().catch(e=>{console.log('EXC',e.message);process.exit(1)});

@@ -38,7 +38,7 @@ export async function runSetup(db: Db, raw: unknown) {
     const rows = [{ id: "u1", name: v.ownerName, email: "", role: "owner", active: true, pinHash: ownerHash, createdAt: now }];
     if (v.devName) rows.push({ id: "u2", name: v.devName, email: "", role: "dev", active: true, pinHash: devHash, createdAt: now });
     await tx.insert(users).values(rows);
-    await tx.insert(counters).values([{ key: "user", value: rows.length }, { key: "invoice", value: 1000 }, { key: "hold", value: 1000 }, { key: "receipt", value: 1000 }]);
+    await tx.insert(counters).values([{ key: "user", value: rows.length }, { key: "invoice", value: 1000 }, { key: "hold", value: 0 }, { key: "receipt", value: 0 }]);
     return rows[0].id;
   });
 }

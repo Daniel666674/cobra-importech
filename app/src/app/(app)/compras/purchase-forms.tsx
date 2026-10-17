@@ -57,7 +57,11 @@ export function ReceiveForm({ po }: { po: string }) {
       <div className="flex gap-2">
         <button className="btn primary" disabled={busy || !v.name} onClick={() => start(async () => {
           const r = await receivePurchaseAction(po, { ...v, serials: v.serials.split(/[\s,;]+/).filter(Boolean) });
-          if (r.ok) { setMsg({ ok: !r.data.bad.length, t: `${r.data.ok.length} ingresado(s)` + (r.data.bad.length ? ` · ${r.data.bad.length} bloqueado(s): ` + r.data.bad.map((b) => `••${b[0].slice(-6)} ${b[1]}`).join("; ") : "") }); router.refresh(); if (!r.data.bad.length) setOpen(false); }
+          if (r.ok) {
+            if (!r.data.bad.length) { router.push(v.cat === "iPhone" ? "/inventario?status=En%20revisi%C3%B3n" : "/inventario"); return; }
+            setMsg({ ok: false, t: `${r.data.ok.length} ingresado(s) · ${r.data.bad.length} bloqueado(s): ` + r.data.bad.map((b) => `••${b[0].slice(-6)} ${b[1]}`).join("; ") });
+            router.refresh();
+          }
           else setMsg({ ok: false, t: r.error });
         })}>Ingresar al inventario</button>
         <button className="btn" onClick={() => setOpen(false)}>Cerrar</button>
