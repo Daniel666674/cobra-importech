@@ -36,6 +36,15 @@ CREATE TABLE "feed" (
 	"by" text DEFAULT 'Sistema' NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "hold_history" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"t" bigint NOT NULL,
+	"item" text NOT NULL,
+	"client" text DEFAULT '' NOT NULL,
+	"abono" integer DEFAULT 0 NOT NULL,
+	"outcome" text NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "imei_blocklist" (
 	"imei" text PRIMARY KEY NOT NULL,
 	"reason" text NOT NULL,
@@ -86,6 +95,7 @@ CREATE TABLE "orders" (
 	"st" text NOT NULL,
 	"cost" integer DEFAULT 0 NOT NULL,
 	"tech" text DEFAULT '' NOT NULL,
+	"prev" text DEFAULT 'En vitrina' NOT NULL,
 	"t" bigint NOT NULL
 );
 --> statement-breakpoint
@@ -123,7 +133,10 @@ CREATE TABLE "sales" (
 	"disc" integer DEFAULT 0 NOT NULL,
 	"total" integer NOT NULL,
 	"prepaid" integer DEFAULT 0 NOT NULL,
-	"notes" text DEFAULT '' NOT NULL
+	"notes" text DEFAULT '' NOT NULL,
+	"disc_reason" text DEFAULT '' NOT NULL,
+	"cash" jsonb,
+	"hold_pays" jsonb
 );
 --> statement-breakpoint
 CREATE TABLE "settings" (

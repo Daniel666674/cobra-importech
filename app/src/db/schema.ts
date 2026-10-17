@@ -41,6 +41,8 @@ export type HoldPay = {
 };
 export type Hold = {
   client: string;
+  reminded?: boolean;
+  discNote?: string;
   abono: number;
   expires: number;
   t: number;
@@ -148,6 +150,9 @@ export const sales = pgTable("sales", {
   total: integer("total").notNull(),
   prepaid: integer("prepaid").notNull().default(0),
   notes: text("notes").notNull().default(""),
+  discReason: text("disc_reason").notNull().default(""),
+  cash: jsonb("cash").$type<{ given: number; change: number } | null>(),
+  holdPays: jsonb("hold_pays").$type<{ t: number; amount: number; method: string; no: string }[] | null>(),
 });
 
 export const orders = pgTable("orders", {
@@ -157,6 +162,7 @@ export const orders = pgTable("orders", {
   st: text("st").notNull(),
   cost: integer("cost").notNull().default(0),
   tech: text("tech").notNull().default(""),
+  prev: text("prev").notNull().default("En vitrina"),
   t: ms("t").notNull(),
 });
 
@@ -210,4 +216,13 @@ export const imeiBlocklist = pgTable("imei_blocklist", {
   reason: text("reason").notNull(),
   t: ms("t").notNull(),
   by: text("by").notNull().default(""),
+});
+
+export const holdHistory = pgTable("hold_history", {
+  id: serial("id").primaryKey(),
+  t: ms("t").notNull(),
+  item: text("item").notNull(),
+  client: text("client").notNull().default(""),
+  abono: integer("abono").notNull().default(0),
+  outcome: text("outcome").notNull(),
 });

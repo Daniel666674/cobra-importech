@@ -1,5 +1,5 @@
 {
-  "id": "6459997f-382f-40aa-8937-cdcb853768a4",
+  "id": "ff15546e-9b27-4d49-8945-a8e94fa5df74",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -209,6 +209,57 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'Sistema'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hold_history": {
+      "name": "hold_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "t": {
+          "name": "t",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item": {
+          "name": "item",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "abono": {
+          "name": "abono",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -537,6 +588,13 @@
           "notNull": true,
           "default": "''"
         },
+        "prev": {
+          "name": "prev",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'En vitrina'"
+        },
         "t": {
           "name": "t",
           "type": "bigint",
@@ -759,6 +817,25 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
+        },
+        "disc_reason": {
+          "name": "disc_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "cash": {
+          "name": "cash",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hold_pays": {
+          "name": "hold_pays",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
