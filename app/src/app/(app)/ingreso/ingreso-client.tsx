@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { createItemAction, verifyImeiAction } from "@/app/actions/inventory";
 import { ItemForm, emptyItem, toPayload, type ItemFormValues } from "@/components/item-form";
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
+import { ScanDialog } from "@/components/scan-dialog";
 import { CATS, type Cat } from "@/lib/catalog";
+import type { ScanRead } from "@/lib/scan-parse";
 import { modelByTac, officialGate, type ImeiResult } from "@/lib/imei";
 
 const ICON: Record<Cat, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
@@ -21,6 +23,8 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
   const [form, setForm] = useState<ItemFormValues>(emptyItem("iPhone", warr.Nuevo));
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
+  const [scanOpen, setScanOpen] = useState(false);
+  const [pending, setPending] = useState<ScanRead | null>(null);
 
   const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm(emptyItem(c, warr.Nuevo)); };
 
@@ -33,13 +37,25 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
       if (!r.ok) { setErr(r.error); return; }
       setRes({ ...r.data, imei: clean });
       const model = modelByTac(clean);
-      setForm({ ...emptyItem("iPhone", warr.Nuevo), name: r.data.modelName ?? "", serial: clean, spec: "256 GB", src: "Importación", ...(model ? {} : {}) });
+      const sc = pending;
+      setPending(null);
+      void model;
+      setForm({ ...emptyItem("iPhone", warr.Nuevo), name: sc?.name ?? r.data.modelName ?? "", serial: clean, spec: sc?.spec ?? "256 GB", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "100", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
     });
   }
 
   const gate = res ? officialGate(res.verdict, off) : null;
   const needOwner = gate?.needsOwner ?? false;
   const canSave = cat === "iPhone" ? !!gate?.canSave && (!needOwner || ok) : true;
+
+  function applyScan(r: ScanRead) {
+    if (cat === "iPhone") {
+      if (r.imei) { setPending(r); setImei(r.imei); setTimeout(() => document.getElementById("verify-btn")?.click(), 50); }
+      else setErr("No se leyó el IMEI: escríbelo o escanea su código de barras para verificarlo.");
+    } else {
+      setForm((f) => ({ ...f, name: r.name ?? f.name, spec: r.spec ?? f.spec, color: r.color ?? f.color, serial: r.serial ?? f.serial, batt: r.batt != null ? String(r.batt) : f.batt, notes: r.info?.length ? [f.notes, r.info.join(" · ")].filter(Boolean).join(" · ") : f.notes }));
+    }
+  }
 
   function save() {
     setErr("");
@@ -67,7 +83,8 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
               <div className="flex gap-2">
                 <input id="imei" className="mono !text-lg !tracking-widest" inputMode="numeric" maxLength={15} placeholder="000000000000000" autoComplete="off"
                   value={imei} onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))} onKeyDown={(e) => e.key === "Enter" && verify()} />
-                <button type="button" className="btn primary" onClick={verify} disabled={busy}>Verificar</button>
+                <button id="verify-btn" type="button" className="btn primary" onClick={verify} disabled={busy}>Verificar</button>
+                <button type="button" className="btn" onClick={() => setScanOpen(true)}>📷 Escanear</button>
               </div>
               {res && (
                 <div className="mt-5 space-y-4">
@@ -118,12 +135,14 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
           </div>
         ) : (
           <div className="max-w-3xl space-y-4">
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-bg/60 p-3"><span className="text-[13px]">📷 <b>Llena el formulario con la cámara</b> · caja nueva o pantalla de un equipo usado</span><button type="button" className="btn primary" onClick={() => setScanOpen(true)}>Escanear</button></div>
             <ItemForm cat={cat} values={form} onChange={setForm} warrByCond={warr} showCost={canCost} />
             <button type="button" className="btn primary" onClick={save} disabled={busy}>Guardar en inventario</button>
           </div>
         )}
         {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal mt-4">{err}</p>}
       </div>
+      {scanOpen && <ScanDialog onClose={() => setScanOpen(false)} onUse={applyScan} />}
     </div>
   );
 }

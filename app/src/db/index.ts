@@ -18,6 +18,7 @@ async function connect(): Promise<Db> {
     const pool = new Pool({ connectionString: url });
     return drizzle(pool, { schema }) as unknown as Db;
   }
+  if (process.env.VERCEL) throw new Error("Falta la variable DATABASE_URL (base de datos Postgres).");
   // Sin DATABASE_URL: base embebida (PGlite) para desarrollo y pruebas.
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");

@@ -11,7 +11,9 @@ export default async function Config() {
     <>
       <PageHeader title="Configuración" subtitle="Datos del negocio, logo y reglas de venta" />
       <ConfigClient cfg={{ name: cfg.name, legal: cfg.legal, nit: cfg.nit, address: cfg.address, phone: cfg.phone, email: cfg.email, footer: cfg.footer, brand: cfg.brand, maxDisc: cfg.maxDisc, minMargin: cfg.minMargin, trm: cfg.trm, agedDays: cfg.agedDays, holdDays: cfg.holdDays, apartadoMinPct: cfg.apartadoMinPct }} logo={cfg.logo} />
-      <p className="note mt-6">Copia de seguridad: <a className="underline" href="/api/export/inventario">descargar inventario (CSV)</a> · <a className="underline" href="/api/export/ventas">descargar ventas (CSV)</a></p>
+      <div className="note mt-6">Copia de seguridad: { }
+        <a className="underline" href="/api/export/inventario" download>descargar inventario (CSV)</a> · { }
+        <a className="underline" href="/api/export/ventas" download>descargar ventas (CSV)</a></div>
     </>
   );
 }

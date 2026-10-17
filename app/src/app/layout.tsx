@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const viewport: Viewport = { themeColor: "#1f2937", width: "device-width"
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es-CO" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">{children}<SwRegister /></body>
     </html>
   );
 }
