@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.mts",
-    "db:seed": "tsx scripts/seed.mts",
+    "db:seed-demo": "tsx scripts/seed-demo.mts",
     "vercel-build": "tsx scripts/migrate.mts && next build"
   },
   "dependencies": {

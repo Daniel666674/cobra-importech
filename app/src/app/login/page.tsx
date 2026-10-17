@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { roles, settings, users } from "@/db/schema";
 import { getMe } from "@/server/auth";
+import { needsSetup } from "@/server/setup";
 import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage() {
   if (await getMe()) redirect("/");
   const db = await getDb();
+  if (await needsSetup(db)) redirect("/setup");
   const [cfg] = await db.select().from(settings).limit(1);
   const list = await db
     .select({ id: users.id, name: users.name, role: roles.name })

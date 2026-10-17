@@ -1,6 +1,6 @@
 "use client";
-import { useMemo, useState } from "react";
-import { CATALOG, CONDS, listPrice, type Cat } from "@/lib/catalog";
+import { useMemo } from "react";
+import { CATALOG, CONDS, type Cat } from "@/lib/catalog";
 
 export type ItemFormValues = {
   name: string; spec: string; color: string; cond: string; serial: string; qty: string; cost: string; price: string;
@@ -30,15 +30,10 @@ const Field = ({ id, label, children, hint }: { id: string; label: string; child
 );
 
 export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial }: Props) {
-  const [touchedPrice, setTouchedPrice] = useState(false);
   const models = useMemo(() => CATALOG.filter((c) => c.cat === cat), [cat]);
   const qtyTrack = cat === "AirPods" || cat === "Accesorios";
   const set = (patch: Partial<ItemFormValues>) => {
     const next = { ...v, ...patch };
-    if (("name" in patch || "spec" in patch || "cond" in patch) && !touchedPrice) {
-      const p = listPrice(next.name, next.spec, next.cond);
-      if (p) next.price = String(p);
-    }
     if ("cond" in patch && patch.cond && warrByCond[patch.cond] != null) next.warr = String(warrByCond[patch.cond]);
     onChange(next);
   };
@@ -68,8 +63,8 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
         </>
       )}
       {showCost && <Field id="i-cost" label="Costo (COP)"><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
-      <Field id="i-price" label="Precio de venta (COP)" hint={margin != null ? `Margen ${margin}%` : "Se sugiere según el modelo y la condición"}>
-        <input id="i-price" type="number" min={0} step={1000} value={v.price} onChange={(e) => { setTouchedPrice(true); set({ price: e.target.value }); }} />
+      <Field id="i-price" label="Precio de venta (COP)" hint={margin != null ? `Margen ${margin}%` : undefined}>
+        <input id="i-price" type="number" min={0} step={1000} value={v.price} onChange={(e) => { set({ price: e.target.value }); }} />
       </Field>
       <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={0} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
