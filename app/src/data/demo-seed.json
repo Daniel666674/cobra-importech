@@ -1,0 +1,6235 @@
+{
+ "seed": {
+  "ver": 6,
+  "seedAt": 1792219293811,
+  "seq": {
+   "item": 88,
+   "sale": 16,
+   "client": 11,
+   "order": 32,
+   "po": 53,
+   "claim": 0,
+   "user": 3,
+   "feed": 17,
+   "role": 0
+  },
+  "settings": {
+   "name": "Importech",
+   "legal": "Importech S.A.S.",
+   "nit": "900.000.000-0",
+   "address": "Calle 10 # 5-20, Medellín",
+   "phone": "300 000 0000",
+   "email": "ventas@importech.demo",
+   "footer": "Gracias por tu compra. Conserva este comprobante para hacer válida tu garantía.",
+   "brand": "#1F2937",
+   "logo": "assets/brand/logo.png",
+   "branches": [
+    "Tienda principal"
+   ],
+   "warr": {
+    "Nuevo": 12,
+    "Exhibición": 9,
+    "Reacondicionado": 6,
+    "Pre-owned": 3,
+    "Usado": 1
+   },
+   "maxDisc": 5,
+   "minMargin": 12,
+   "trm": 4050,
+   "agedDays": 45,
+   "holdDays": 5,
+   "apartadoMinPct": 20
+  },
+  "roles": {
+   "dev": {
+    "name": "Desarrollador",
+    "locked": true,
+    "perms": [
+     "inv_view",
+     "inv_edit",
+     "inv_delete",
+     "cost_view",
+     "sell",
+     "discount",
+     "refund",
+     "credit",
+     "tradein",
+     "workshop",
+     "purchase",
+     "clients",
+     "reports",
+     "users",
+     "settings",
+     "dev"
+    ]
+   },
+   "owner": {
+    "name": "Propietario/a",
+    "perms": [
+     "inv_view",
+     "inv_edit",
+     "inv_delete",
+     "cost_view",
+     "sell",
+     "discount",
+     "refund",
+     "credit",
+     "tradein",
+     "workshop",
+     "purchase",
+     "clients",
+     "reports",
+     "users",
+     "settings"
+    ]
+   },
+   "employee": {
+    "name": "Empleado/a de tienda",
+    "perms": [
+     "inv_view",
+     "sell",
+     "credit",
+     "tradein",
+     "clients",
+     "workshop"
+    ]
+   }
+  },
+  "users": [
+   {
+    "id": "u1",
+    "name": "Daniel Acosta",
+    "email": "daniel@importech.demo",
+    "role": "dev",
+    "active": true,
+    "pin": null
+   },
+   {
+    "id": "u2",
+    "name": "Angelica",
+    "email": "angelica@importech.demo",
+    "role": "owner",
+    "active": true,
+    "pin": null
+   },
+   {
+    "id": "u3",
+    "name": "Anderson",
+    "email": "anderson@importech.demo",
+    "role": "employee",
+    "active": true,
+    "pin": null
+   }
+  ],
+  "clients": [
+   {
+    "id": "c1",
+    "name": "Camila Rojas",
+    "phone": "300 512 4471",
+    "email": "camila.rojas@correo.co",
+    "doc": "1.020.334.551",
+    "notes": ""
+   },
+   {
+    "id": "c2",
+    "name": "Juan Pablo Gómez",
+    "phone": "315 220 8834",
+    "email": "jp.gomez@correo.co",
+    "doc": "1.017.220.118",
+    "notes": ""
+   },
+   {
+    "id": "c3",
+    "name": "Valentina Ortiz",
+    "phone": "310 447 9012",
+    "email": "vale.ortiz@correo.co",
+    "doc": "1.036.902.774",
+    "notes": ""
+   },
+   {
+    "id": "c4",
+    "name": "Andrés Felipe Mejía",
+    "phone": "320 118 6650",
+    "email": "afmejia@correo.co",
+    "doc": "71.334.902",
+    "notes": ""
+   },
+   {
+    "id": "c5",
+    "name": "Laura Restrepo",
+    "phone": "301 776 2298",
+    "email": "lauraresp@correo.co",
+    "doc": "1.044.512.667",
+    "notes": ""
+   },
+   {
+    "id": "c6",
+    "name": "Sebastián Cárdenas",
+    "phone": "311 903 5517",
+    "email": "scardenas@correo.co",
+    "doc": "1.128.400.912",
+    "notes": ""
+   },
+   {
+    "id": "c7",
+    "name": "Daniela Vargas",
+    "phone": "318 665 0043",
+    "email": "dvargas@correo.co",
+    "doc": "1.152.887.340",
+    "notes": ""
+   },
+   {
+    "id": "c8",
+    "name": "Mateo Herrera",
+    "phone": "304 821 7709",
+    "email": "mherrera@correo.co",
+    "doc": "1.001.556.203",
+    "notes": ""
+   },
+   {
+    "id": "c9",
+    "name": "Isabela Duarte",
+    "phone": "316 390 2265",
+    "email": "isaduarte@correo.co",
+    "doc": "1.037.118.995",
+    "notes": ""
+   },
+   {
+    "id": "c10",
+    "name": "Carlos Ramírez",
+    "phone": "322 054 8813",
+    "email": "cramirez@correo.co",
+    "doc": "98.554.301",
+    "notes": ""
+   },
+   {
+    "id": "c11",
+    "name": "Tienda Digital SAS",
+    "phone": "604 444 1200",
+    "email": "compras@tiendadigital.co",
+    "doc": "901.223.445-1",
+    "notes": ""
+   }
+  ],
+  "items": [
+   {
+    "id": "I-0001",
+    "sku": "IPH-0001",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro Max",
+    "spec": "256 GB",
+    "color": "Titanio naranja",
+    "cond": "Nuevo",
+    "serial": "359110010011371",
+    "qty": 1,
+    "cost": 5750000,
+    "price": 6899000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0002",
+    "sku": "IPH-0002",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro Max",
+    "spec": "512 GB",
+    "color": "Titanio negro",
+    "cond": "Nuevo",
+    "serial": "359110010012742",
+    "qty": 1,
+    "cost": 6650000,
+    "price": 7899000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0003",
+    "sku": "IPH-0003",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro",
+    "spec": "256 GB",
+    "color": "Azul profundo",
+    "cond": "Nuevo",
+    "serial": "359110020014118",
+    "qty": 1,
+    "cost": 4950000,
+    "price": 5899000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0004",
+    "sku": "IPH-0004",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro",
+    "spec": "256 GB",
+    "color": "Plata",
+    "cond": "Nuevo",
+    "serial": "359110020015487",
+    "qty": 1,
+    "cost": 4950000,
+    "price": 5899000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Apartado",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791700893811,
+      "title": "Apartado",
+      "detail": "Carlos Ramírez · abono $300.000 · vence en 5 días",
+      "tone": "warn",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792046493811,
+      "title": "Abono recibido",
+      "detail": "$300.000 · Transferencia",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": {
+     "client": "c10",
+     "abono": 600000,
+     "expires": 1792651293811,
+     "t": 1791700893811,
+     "by": "u3",
+     "no": "RA-904",
+     "pays": [
+      {
+       "t": 1791700893811,
+       "amount": 300000,
+       "method": "Efectivo",
+       "by": "u3",
+       "no": "RB-912"
+      },
+      {
+       "t": 1792046493811,
+       "amount": 300000,
+       "method": "Transferencia",
+       "by": "u3",
+       "no": "RB-913"
+      }
+     ]
+    },
+    "track": "unit"
+   },
+   {
+    "id": "I-0005",
+    "sku": "IPH-0005",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro",
+    "spec": "512 GB",
+    "color": "Naranja",
+    "cond": "Exhibición",
+    "serial": "359110020016857",
+    "qty": 1,
+    "cost": 5300000,
+    "price": 6299000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": 100,
+    "notes": "Equipo de exhibición sin uso real",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0006",
+    "sku": "IPH-0006",
+    "cat": "iPhone",
+    "name": "iPhone 17",
+    "spec": "256 GB",
+    "color": "Negro",
+    "cond": "Nuevo",
+    "serial": "359110030018224",
+    "qty": 1,
+    "cost": 3550000,
+    "price": 4199000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0007",
+    "sku": "IPH-0007",
+    "cat": "iPhone",
+    "name": "iPhone 17",
+    "spec": "128 GB",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "359110030019594",
+    "qty": 1,
+    "cost": 3250000,
+    "price": 3899000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791787293811,
+    "src": "Importación L-53",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791787293811,
+      "title": "Compra",
+      "detail": "Importación L-53",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791794493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791856413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0008",
+    "sku": "IPH-0008",
+    "cat": "iPhone",
+    "name": "iPhone 16 Pro Max",
+    "spec": "256 GB",
+    "color": "Titanio desierto",
+    "cond": "Nuevo",
+    "serial": "358220030020962",
+    "qty": 1,
+    "cost": 4650000,
+    "price": 5499000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789972893811,
+    "src": "Importación L-49",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789972893811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789980093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790042013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0009",
+    "sku": "IPH-0009",
+    "cat": "iPhone",
+    "name": "iPhone 16 Pro",
+    "spec": "256 GB",
+    "color": "Titanio natural",
+    "cond": "Nuevo",
+    "serial": "358220010022335",
+    "qty": 1,
+    "cost": 4050000,
+    "price": 4799000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788072093811,
+    "src": "Importación L-47",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788072093811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788079293811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788141213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0010",
+    "sku": "IPH-0010",
+    "cat": "iPhone",
+    "name": "iPhone 16 Pro",
+    "spec": "128 GB",
+    "color": "Titanio negro",
+    "cond": "Reacondicionado",
+    "serial": "358220010023705",
+    "qty": 1,
+    "cost": 3300000,
+    "price": 3899000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790836893811,
+    "src": "Importación L-49",
+    "batt": 95,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790836893811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790844093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790906013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0011",
+    "sku": "IPH-0011",
+    "cat": "iPhone",
+    "name": "iPhone 16",
+    "spec": "128 GB",
+    "color": "Rosado",
+    "cond": "Nuevo",
+    "serial": "358220020025070",
+    "qty": 1,
+    "cost": 2900000,
+    "price": 3499000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1786776093811,
+    "src": "Importación L-44",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1786776093811,
+      "title": "Compra",
+      "detail": "Importación L-44",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786783293811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786845213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0012",
+    "sku": "IPH-0012",
+    "cat": "iPhone",
+    "name": "iPhone 16",
+    "spec": "256 GB",
+    "color": "Ultramarino",
+    "cond": "Exhibición",
+    "serial": "358220020026441",
+    "qty": 1,
+    "cost": 2950000,
+    "price": 3299000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790404893811,
+    "src": "Importación L-49",
+    "batt": 100,
+    "notes": "Exhibición",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790404893811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790412093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790474013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0013",
+    "sku": "IPH-0013",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro Max",
+    "spec": "256 GB",
+    "color": "Titanio azul",
+    "cond": "Exhibición",
+    "serial": "357330030027817",
+    "qty": 1,
+    "cost": 3850000,
+    "price": 4299000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789368093811,
+    "src": "Importación L-46",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789368093811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789375293811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789437213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0014",
+    "sku": "IPH-0014",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro",
+    "spec": "256 GB",
+    "color": "Titanio natural",
+    "cond": "Reacondicionado",
+    "serial": "357330010029189",
+    "qty": 1,
+    "cost": 3000000,
+    "price": 3599000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789627293811,
+    "src": "Trade-in",
+    "batt": 92,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789627293811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789634493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789696413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0015",
+    "sku": "IPH-0015",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro",
+    "spec": "256 GB",
+    "color": "Titanio negro",
+    "cond": "Pre-owned",
+    "serial": "357330010030559",
+    "qty": 1,
+    "cost": 2650000,
+    "price": 3199000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790318493811,
+    "src": "Trade-in",
+    "batt": 91,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790318493811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790325693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790387613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0016",
+    "sku": "IPH-0016",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro",
+    "spec": "128 GB",
+    "color": "Titanio azul",
+    "cond": "Pre-owned",
+    "serial": "357330010031920",
+    "qty": 1,
+    "cost": 2500000,
+    "price": 2999000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En taller",
+    "acq": 1787467293811,
+    "src": "Trade-in",
+    "batt": 88,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1787467293811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787474493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787536413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791873693811,
+      "title": "Entró a taller",
+      "detail": "Orden de reparación abierta",
+      "tone": "warn",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0017",
+    "sku": "IPH-0017",
+    "cat": "iPhone",
+    "name": "iPhone 15",
+    "spec": "256 GB",
+    "color": "Rosado",
+    "cond": "Reacondicionado",
+    "serial": "357330020033296",
+    "qty": 1,
+    "cost": 2200000,
+    "price": 2699000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En taller",
+    "acq": 1791441693811,
+    "src": "Trade-in",
+    "batt": 94,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791441693811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791448893811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791510813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791873693811,
+      "title": "Entró a taller",
+      "detail": "Orden de reparación abierta",
+      "tone": "warn",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0018",
+    "sku": "IPH-0018",
+    "cat": "iPhone",
+    "name": "iPhone 15",
+    "spec": "128 GB",
+    "color": "Negro",
+    "cond": "Pre-owned",
+    "serial": "357330020034666",
+    "qty": 1,
+    "cost": 1800000,
+    "price": 2299000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789281693811,
+    "src": "Trade-in",
+    "batt": 90,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789281693811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789288893811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789350813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0019",
+    "sku": "IPH-0019",
+    "cat": "iPhone",
+    "name": "iPhone 14 Pro",
+    "spec": "128 GB",
+    "color": "Morado oscuro",
+    "cond": "Pre-owned",
+    "serial": "356440020036032",
+    "qty": 1,
+    "cost": 2100000,
+    "price": 2599000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790664093811,
+    "src": "Trade-in",
+    "batt": 89,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790664093811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790671293811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790733213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0020",
+    "sku": "IPH-0020",
+    "cat": "iPhone",
+    "name": "iPhone 14",
+    "spec": "128 GB",
+    "color": "Medianoche",
+    "cond": "Pre-owned",
+    "serial": "356440010037404",
+    "qty": 1,
+    "cost": 1350000,
+    "price": 1799000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En taller",
+    "acq": 1788676893811,
+    "src": "Trade-in",
+    "batt": 86,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788676893811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788684093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788746013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791873693811,
+      "title": "Entró a taller",
+      "detail": "Orden de reparación abierta",
+      "tone": "warn",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0021",
+    "sku": "IPH-0021",
+    "cat": "iPhone",
+    "name": "iPhone 14",
+    "spec": "128 GB",
+    "color": "Morado",
+    "cond": "Usado",
+    "serial": "356440010038774",
+    "qty": 1,
+    "cost": 1150000,
+    "price": 1499000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1785998493811,
+    "src": "Consignación",
+    "batt": 84,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1785998493811,
+      "title": "Ingreso en consignación",
+      "detail": "Consignación",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786005693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786067613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0022",
+    "sku": "IPH-0022",
+    "cat": "iPhone",
+    "name": "iPhone 13",
+    "spec": "128 GB",
+    "color": "Azul",
+    "cond": "Usado",
+    "serial": "355550010040140",
+    "qty": 1,
+    "cost": 950000,
+    "price": 1299000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789886493811,
+    "src": "Trade-in",
+    "batt": 83,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789886493811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789893693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789955613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0023",
+    "sku": "IPH-0023",
+    "cat": "iPhone",
+    "name": "iPhone 13",
+    "spec": "128 GB",
+    "color": "Medianoche",
+    "cond": "Usado",
+    "serial": "355550010041510",
+    "qty": 1,
+    "cost": 900000,
+    "price": 1249000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En revisión",
+    "acq": 1792046493811,
+    "src": "Trade-in",
+    "batt": 81,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1792046493811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792053693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0024",
+    "sku": "IPH-0024",
+    "cat": "iPhone",
+    "name": "iPhone 12",
+    "spec": "64 GB",
+    "color": "Negro",
+    "cond": "Usado",
+    "serial": "354660010042888",
+    "qty": 1,
+    "cost": 650000,
+    "price": 899000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788936093811,
+    "src": "Trade-in",
+    "batt": 79,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788936093811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788943293811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789005213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0025",
+    "sku": "IPD-0025",
+    "cat": "iPad",
+    "name": "iPad 10.ª gen 64 GB Wi-Fi",
+    "spec": "",
+    "color": "Azul",
+    "cond": "Nuevo",
+    "serial": "F0W0VFWPX975",
+    "qty": 1,
+    "cost": 1450000,
+    "price": 1799000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0026",
+    "sku": "IPD-0026",
+    "cat": "iPad",
+    "name": "iPad Air 11\" M3 128 GB",
+    "spec": "",
+    "color": "Gris espacial",
+    "cond": "Nuevo",
+    "serial": "F04W55OAX894",
+    "qty": 1,
+    "cost": 2700000,
+    "price": 3299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0027",
+    "sku": "IPD-0027",
+    "cat": "iPad",
+    "name": "iPad Air 13\" M3 256 GB",
+    "spec": "",
+    "color": "Azul",
+    "cond": "Nuevo",
+    "serial": "F1CSIXEZX813",
+    "qty": 1,
+    "cost": 3650000,
+    "price": 4399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0028",
+    "sku": "IPD-0028",
+    "cat": "iPad",
+    "name": "iPad Pro 11\" M4 256 GB",
+    "spec": "",
+    "color": "Negro espacial",
+    "cond": "Nuevo",
+    "serial": "F0LNSN6KX732",
+    "qty": 1,
+    "cost": 4500000,
+    "price": 5499000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0029",
+    "sku": "IPD-0029",
+    "cat": "iPad",
+    "name": "iPad Pro 13\" M4 512 GB",
+    "spec": "",
+    "color": "Plata",
+    "cond": "Exhibición",
+    "serial": "F1TK6EX9X651",
+    "qty": 1,
+    "cost": 6300000,
+    "price": 7199000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788763293811,
+    "src": "Importación L-46",
+    "batt": null,
+    "notes": "Exhibición con Apple Pencil Pro de demostración",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788763293811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788770493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788832413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0030",
+    "sku": "IPD-0030",
+    "cat": "iPad",
+    "name": "iPad mini 7 128 GB",
+    "spec": "",
+    "color": "Púrpura",
+    "cond": "Nuevo",
+    "serial": "F12FG4OUX570",
+    "qty": 1,
+    "cost": 2200000,
+    "price": 2699000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791355293811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791355293811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791362493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791424413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0031",
+    "sku": "IPD-0031",
+    "cat": "iPad",
+    "name": "iPad 9.ª gen 64 GB Wi-Fi",
+    "spec": "",
+    "color": "Gris espacial",
+    "cond": "Reacondicionado",
+    "serial": "F0BAPUGFX489",
+    "qty": 1,
+    "cost": 950000,
+    "price": 1299000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789195293811,
+    "src": "Trade-in",
+    "batt": 90,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789195293811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789202493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789264413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0032",
+    "sku": "IPD-0032",
+    "cat": "iPad",
+    "name": "iPad Air 11\" M3 128 GB",
+    "spec": "",
+    "color": "Azul",
+    "cond": "Pre-owned",
+    "serial": "F1J73M74X408",
+    "qty": 1,
+    "cost": 2100000,
+    "price": 2599000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790059293811,
+    "src": "Trade-in",
+    "batt": 93,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790059293811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790066493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790128413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0033",
+    "sku": "MAC-0033",
+    "cat": "Mac",
+    "name": "MacBook Air 13\" M4 16/256",
+    "spec": "",
+    "color": "Azul cielo",
+    "cond": "Nuevo",
+    "serial": "F0S2DBYPX327",
+    "qty": 1,
+    "cost": 3850000,
+    "price": 4699000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0034",
+    "sku": "MAC-0034",
+    "cat": "Mac",
+    "name": "MacBook Air 15\" M4 16/512",
+    "spec": "",
+    "color": "Medianoche",
+    "cond": "Nuevo",
+    "serial": "F00XN1QAX246",
+    "qty": 1,
+    "cost": 5250000,
+    "price": 6299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Apartado",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791441693811,
+      "title": "Apartado",
+      "detail": "Isabela Duarte · abono $1.200.000 · vence en 1 días",
+      "tone": "warn",
+      "by": "Anderson"
+     }
+    ],
+    "hold": {
+     "client": "c9",
+     "abono": 1200000,
+     "expires": 1792305693811,
+     "t": 1791441693811,
+     "by": "u3",
+     "no": "RA-934",
+     "pays": [
+      {
+       "t": 1791441693811,
+       "amount": 1200000,
+       "method": "Tarjeta",
+       "by": "u3",
+       "no": "RB-1002"
+      }
+     ]
+    },
+    "track": "unit"
+   },
+   {
+    "id": "I-0035",
+    "sku": "MAC-0035",
+    "cat": "Mac",
+    "name": "MacBook Air 13\" M3 8/256",
+    "spec": "",
+    "color": "Gris espacial",
+    "cond": "Nuevo",
+    "serial": "F18U0TGZX165",
+    "qty": 1,
+    "cost": 3450000,
+    "price": 4199000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1787726493811,
+    "src": "Importación L-45",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1787726493811,
+      "title": "Compra",
+      "detail": "Importación L-45",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787733693811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787795613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0036",
+    "sku": "MAC-0036",
+    "cat": "Mac",
+    "name": "MacBook Pro 14\" M4 16/512",
+    "spec": "",
+    "color": "Negro espacial",
+    "cond": "Nuevo",
+    "serial": "F0HPAJ8KX084",
+    "qty": 1,
+    "cost": 6200000,
+    "price": 7499000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0037",
+    "sku": "MAC-0037",
+    "cat": "Mac",
+    "name": "MacBook Pro 14\" M4 Pro 24/512",
+    "spec": "",
+    "color": "Plata",
+    "cond": "Exhibición",
+    "serial": "F1PLOAZ9X003",
+    "qty": 1,
+    "cost": 7600000,
+    "price": 8699000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788417693811,
+    "src": "Importación L-46",
+    "batt": null,
+    "notes": "Exhibición, 0 ciclos de batería",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788417693811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788424893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788486813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0038",
+    "sku": "MAC-0038",
+    "cat": "Mac",
+    "name": "MacBook Pro 16\" M4 Pro 24/512",
+    "spec": "",
+    "color": "Negro espacial",
+    "cond": "Reacondicionado",
+    "serial": "F0YGY0QUX922",
+    "qty": 1,
+    "cost": 8900000,
+    "price": 10199000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789627293811,
+    "src": "Importación L-49",
+    "batt": 98,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789627293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789634493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789696413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0039",
+    "sku": "MAC-0039",
+    "cat": "Mac",
+    "name": "MacBook Air 13\" M2 8/256",
+    "spec": "",
+    "color": "Medianoche",
+    "cond": "Pre-owned",
+    "serial": "F07C7QIFX841",
+    "qty": 1,
+    "cost": 2600000,
+    "price": 3199000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790145693811,
+    "src": "Trade-in",
+    "batt": 91,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1790145693811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790152893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790214813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0040",
+    "sku": "MAC-0040",
+    "cat": "Mac",
+    "name": "MacBook Air 13\" M1 8/256",
+    "spec": "",
+    "color": "Oro",
+    "cond": "Usado",
+    "serial": "F1F8LI94X760",
+    "qty": 1,
+    "cost": 1750000,
+    "price": 2199000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1787208093811,
+    "src": "Trade-in",
+    "batt": 85,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1787208093811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787215293811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787277213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0041",
+    "sku": "MAC-0041",
+    "cat": "Mac",
+    "name": "Mac mini M4 16/256",
+    "spec": "",
+    "color": "Plata",
+    "cond": "Nuevo",
+    "serial": "F0O3V80PX679",
+    "qty": 1,
+    "cost": 2650000,
+    "price": 3299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0042",
+    "sku": "AWT-0042",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Series 10 46 mm",
+    "spec": "GPS",
+    "color": "Negro azabache",
+    "cond": "Nuevo",
+    "serial": "F1W08ZREX598",
+    "qty": 1,
+    "cost": 1850000,
+    "price": 2299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0043",
+    "sku": "AWT-0043",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Series 10 42 mm",
+    "spec": "GPS",
+    "color": "Rosa",
+    "cond": "Nuevo",
+    "serial": "F14VIPIZX517",
+    "qty": 1,
+    "cost": 1700000,
+    "price": 2099000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0044",
+    "sku": "AWT-0044",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Ultra 2 49 mm",
+    "spec": "GPS + Cellular",
+    "color": "Titanio natural",
+    "cond": "Exhibición",
+    "serial": "F0DQSFAKX436",
+    "qty": 1,
+    "cost": 3300000,
+    "price": 3699000,
+    "warr": 9,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789108893811,
+    "src": "Importación L-46",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789108893811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789116093811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789178013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0045",
+    "sku": "AWT-0045",
+    "cat": "Apple Watch",
+    "name": "Apple Watch SE (2.ª gen) 44 mm",
+    "spec": "GPS",
+    "color": "Medianoche",
+    "cond": "Nuevo",
+    "serial": "F1LN6719X355",
+    "qty": 1,
+    "cost": 1100000,
+    "price": 1399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0046",
+    "sku": "AWT-0046",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Series 9 45 mm",
+    "spec": "GPS",
+    "color": "Rojo",
+    "cond": "Reacondicionado",
+    "serial": "F0UIFWSUX274",
+    "qty": 1,
+    "cost": 1350000,
+    "price": 1699000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789713693811,
+    "src": "Trade-in",
+    "batt": 96,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789713693811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789720893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789782813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0047",
+    "sku": "AWT-0047",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Series 8 45 mm",
+    "spec": "GPS",
+    "color": "Medianoche",
+    "cond": "Usado",
+    "serial": "F03DPMKFX193",
+    "qty": 1,
+    "cost": 850000,
+    "price": 1149000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788158493811,
+    "src": "Trade-in",
+    "batt": 87,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788158493811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788165693811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788227613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0048",
+    "sku": "APD-0048",
+    "cat": "AirPods",
+    "name": "AirPods 4",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 6,
+    "cost": 590000,
+    "price": 749000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "6 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0049",
+    "sku": "APD-0049",
+    "cat": "AirPods",
+    "name": "AirPods 4 con cancelación de ruido",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 4,
+    "cost": 810000,
+    "price": 999000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "4 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0050",
+    "sku": "APD-0050",
+    "cat": "AirPods",
+    "name": "AirPods Pro 2 (USB-C)",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 8,
+    "cost": 930000,
+    "price": 1149000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791009693811,
+    "src": "Importación L-52",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1791009693811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791016893811,
+      "title": "Recepción",
+      "detail": "8 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791078813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0051",
+    "sku": "APD-0051",
+    "cat": "AirPods",
+    "name": "AirPods Pro 3",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 2,
+    "cost": 1050000,
+    "price": 1299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1791787293811,
+    "src": "Importación L-53",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1791787293811,
+      "title": "Compra",
+      "detail": "Importación L-53",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791794493811,
+      "title": "Recepción",
+      "detail": "2 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791856413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0052",
+    "sku": "APD-0052",
+    "cat": "AirPods",
+    "name": "AirPods Max (USB-C)",
+    "spec": "",
+    "color": "Azul",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 2,
+    "cost": 2000000,
+    "price": 2499000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789972893811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 1,
+    "tl": [
+     {
+      "t": 1789972893811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789980093811,
+      "title": "Recepción",
+      "detail": "2 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790042013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0053",
+    "sku": "APD-0053",
+    "cat": "AirPods",
+    "name": "AirPods Pro 2 (USB-C)",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Reacondicionado",
+    "serial": "",
+    "qty": 3,
+    "cost": 720000,
+    "price": 949000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790577693811,
+    "src": "Trade-in",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 1,
+    "tl": [
+     {
+      "t": 1790577693811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790584893811,
+      "title": "Recepción",
+      "detail": "3 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790646813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0054",
+    "sku": "APD-0054",
+    "cat": "AirPods",
+    "name": "AirPods 3",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Pre-owned",
+    "serial": "",
+    "qty": 2,
+    "cost": 380000,
+    "price": 499000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1789540893811,
+    "src": "Trade-in",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 1,
+    "tl": [
+     {
+      "t": 1789540893811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789548093811,
+      "title": "Recepción",
+      "detail": "2 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789610013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0055",
+    "sku": "ACC-0055",
+    "cat": "Accesorios",
+    "name": "Cargador MagSafe 15 W",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 14,
+    "cost": 130000,
+    "price": 179000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 5,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "14 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791009693811,
+      "title": "Vendido ×1",
+      "detail": "Valentina Ortiz",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0056",
+    "sku": "ACC-0056",
+    "cat": "Accesorios",
+    "name": "Adaptador de corriente 20 W USB-C",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 20,
+    "cost": 60000,
+    "price": 89000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 8,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "20 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0057",
+    "sku": "ACC-0057",
+    "cat": "Accesorios",
+    "name": "Cable USB-C a USB-C 1 m",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 25,
+    "cost": 42000,
+    "price": 69000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 10,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "25 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792046493811,
+      "title": "Vendido ×2",
+      "detail": "Camila Rojas",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0058",
+    "sku": "ACC-0058",
+    "cat": "Accesorios",
+    "name": "Cable USB-C a Lightning 1 m",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 3,
+    "cost": 42000,
+    "price": 69000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 8,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "3 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0059",
+    "sku": "ACC-0059",
+    "cat": "Accesorios",
+    "name": "Cable MagSafe 3 a USB-C 2 m",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 5,
+    "cost": 150000,
+    "price": 199000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "5 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0060",
+    "sku": "ACC-0060",
+    "cat": "Accesorios",
+    "name": "Funda de silicona iPhone 17 Pro",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 12,
+    "cost": 120000,
+    "price": 199000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 5,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "12 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791700893811,
+      "title": "Vendido ×1",
+      "detail": "Camila Rojas",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0061",
+    "sku": "ACC-0061",
+    "cat": "Accesorios",
+    "name": "Funda transparente MagSafe iPhone 16",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 9,
+    "cost": 100000,
+    "price": 169000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 5,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "9 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0062",
+    "sku": "ACC-0062",
+    "cat": "Accesorios",
+    "name": "Vidrio templado iPhone 17",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 30,
+    "cost": 20000,
+    "price": 59000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 10,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "30 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791700893811,
+      "title": "Vendido ×1",
+      "detail": "Camila Rojas",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0063",
+    "sku": "ACC-0063",
+    "cat": "Accesorios",
+    "name": "Vidrio templado iPhone 16 / 15",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 4,
+    "cost": 18000,
+    "price": 49000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 10,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "4 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0064",
+    "sku": "ACC-0064",
+    "cat": "Accesorios",
+    "name": "Apple Pencil Pro",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 6,
+    "cost": 500000,
+    "price": 649000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 2,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "6 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0065",
+    "sku": "ACC-0065",
+    "cat": "Accesorios",
+    "name": "Apple Pencil (USB-C)",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 5,
+    "cost": 290000,
+    "price": 379000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 2,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "5 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791268893811,
+      "title": "Vendido ×1",
+      "detail": "Valentina Ortiz",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0066",
+    "sku": "ACC-0066",
+    "cat": "Accesorios",
+    "name": "Magic Keyboard iPad Air 11\"",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 3,
+    "cost": 1000000,
+    "price": 1299000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 1,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "3 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0067",
+    "sku": "ACC-0067",
+    "cat": "Accesorios",
+    "name": "Smart Folio iPad Air 11\"",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 6,
+    "cost": 210000,
+    "price": 299000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 2,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "6 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0068",
+    "sku": "ACC-0068",
+    "cat": "Accesorios",
+    "name": "AirTag (paquete x4)",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 7,
+    "cost": 310000,
+    "price": 399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "7 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0069",
+    "sku": "ACC-0069",
+    "cat": "Accesorios",
+    "name": "Adaptador multipuerto USB-C",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 6,
+    "cost": 220000,
+    "price": 299000,
+    "warr": 6,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 3,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "6 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790577693811,
+      "title": "Vendido ×2",
+      "detail": "Tienda Digital SAS",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0070",
+    "sku": "ACC-0070",
+    "cat": "Accesorios",
+    "name": "Magic Mouse",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 4,
+    "cost": 350000,
+    "price": 449000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 2,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "4 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790577693811,
+      "title": "Vendido ×2",
+      "detail": "Tienda Digital SAS",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0071",
+    "sku": "ACC-0071",
+    "cat": "Accesorios",
+    "name": "Batería MagSafe",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 5,
+    "cost": 340000,
+    "price": 449000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 2,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "5 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0072",
+    "sku": "ACC-0072",
+    "cat": "Accesorios",
+    "name": "Estuche AirPods Pro 2",
+    "spec": "",
+    "color": "",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 15,
+    "cost": 35000,
+    "price": 79000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1790491293811,
+    "src": "Importación L-49",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 5,
+    "tl": [
+     {
+      "t": 1790491293811,
+      "title": "Compra",
+      "detail": "Importación L-49",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790498493811,
+      "title": "Recepción",
+      "detail": "15 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790560413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792046493811,
+      "title": "Vendido ×1",
+      "detail": "Camila Rojas",
+      "tone": "ok",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   },
+   {
+    "id": "I-0073",
+    "sku": "IPH-0073",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro Max",
+    "spec": "256 GB",
+    "color": "Titanio negro",
+    "cond": "Nuevo",
+    "serial": "359110010110017",
+    "qty": 1,
+    "cost": 5750000,
+    "price": 6799000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1789108893811,
+    "src": "Importación L-50",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789108893811,
+      "title": "Compra",
+      "detail": "Importación L-50",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789116093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789178013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791700893811,
+      "title": "Vendido",
+      "detail": "Camila Rojas · contado · Tarjeta · FV-1012",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791700953811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1012 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791701013811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0074",
+    "sku": "IPH-0074",
+    "cat": "iPhone",
+    "name": "iPhone 17 Pro",
+    "spec": "256 GB",
+    "color": "Plata",
+    "cond": "Nuevo",
+    "serial": "359110020111385",
+    "qty": 1,
+    "cost": 4950000,
+    "price": 5799000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1789281693811,
+    "src": "Importación L-50",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1789281693811,
+      "title": "Compra",
+      "detail": "Importación L-50",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789288893811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789350813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791873693811,
+      "title": "Vendido",
+      "detail": "Juan Pablo Gómez · contado · Transferencia · FV-1013",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791873753811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1013 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791873813811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0075",
+    "sku": "IPH-0075",
+    "cat": "iPhone",
+    "name": "iPhone 16",
+    "spec": "128 GB",
+    "color": "Negro",
+    "cond": "Nuevo",
+    "serial": "358220020112753",
+    "qty": 1,
+    "cost": 2900000,
+    "price": 3399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788244893811,
+    "src": "Importación L-47",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788244893811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788252093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788314013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791009693811,
+      "title": "Vendido",
+      "detail": "Valentina Ortiz · contado · Efectivo · FV-1008",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791009753811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1008 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791009813811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     },
+     {
+      "t": 1792046493811,
+      "title": "Reclamo de garantía abierto",
+      "detail": "La batería se descarga rápido",
+      "tone": "warn",
+      "by": "Anderson"
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0076",
+    "sku": "IPH-0076",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro",
+    "spec": "256 GB",
+    "color": "Titanio natural",
+    "cond": "Pre-owned",
+    "serial": "357330010114122",
+    "qty": 1,
+    "cost": 2650000,
+    "price": 3199000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1787899293811,
+    "src": "Trade-in",
+    "batt": 90,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1787899293811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787906493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787968413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789886493811,
+      "title": "Vendido",
+      "detail": "Andrés Felipe Mejía · contado · Nequi · FV-1005",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789886553811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1005 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1789886613811,
+      "title": "Garantía activada",
+      "detail": "3 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0077",
+    "sku": "IPH-0077",
+    "cat": "iPhone",
+    "name": "iPhone 14",
+    "spec": "128 GB",
+    "color": "Rojo",
+    "cond": "Pre-owned",
+    "serial": "356440010115499",
+    "qty": 1,
+    "cost": 1350000,
+    "price": 1749000,
+    "warr": 3,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788676893811,
+    "src": "Trade-in",
+    "batt": 85,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788676893811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788684093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788746013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791441693811,
+      "title": "Vendido",
+      "detail": "Laura Restrepo · contado · Daviplata · FV-1010",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791441753811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1010 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791441813811,
+      "title": "Garantía activada",
+      "detail": "3 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0078",
+    "sku": "IPH-0078",
+    "cat": "iPhone",
+    "name": "iPhone 17",
+    "spec": "256 GB",
+    "color": "Verde",
+    "cond": "Nuevo",
+    "serial": "359110030116861",
+    "qty": 1,
+    "cost": 3550000,
+    "price": 4199000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1786516893811,
+    "src": "Importación L-46",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1786516893811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786524093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1786586013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789368093811,
+      "title": "Vendido",
+      "detail": "Sebastián Cárdenas · contado · Tarjeta · FV-1004",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789368153811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1004 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1789368213811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0079",
+    "sku": "IPH-0079",
+    "cat": "iPhone",
+    "name": "iPhone 13",
+    "spec": "128 GB",
+    "color": "Rosado",
+    "cond": "Usado",
+    "serial": "355550010118235",
+    "qty": 1,
+    "cost": 900000,
+    "price": 1249000,
+    "warr": 1,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1787380893811,
+    "src": "Trade-in",
+    "batt": 80,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1787380893811,
+      "title": "Trade-in recibido",
+      "detail": "Trade-in",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787388093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787450013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789972893811,
+      "title": "Vendido",
+      "detail": "Daniela Vargas · contado · Efectivo · FV-1006",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789972953811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1006 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1789973013811,
+      "title": "Garantía activada",
+      "detail": "1 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0080",
+    "sku": "IPH-0080",
+    "cat": "iPhone",
+    "name": "iPhone 16 Pro",
+    "spec": "256 GB",
+    "color": "Titanio natural",
+    "cond": "Nuevo",
+    "serial": "358220010119602",
+    "qty": 1,
+    "cost": 4050000,
+    "price": 4749000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1785220893811,
+    "src": "Importación L-45",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1785220893811,
+      "title": "Compra",
+      "detail": "Importación L-45",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1785228093811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1785290013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787726493811,
+      "title": "Vendido",
+      "detail": "Mateo Herrera · contado · Transferencia · FV-1003",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1787726553811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1003 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1787726613811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0081",
+    "sku": "IPH-0081",
+    "cat": "iPhone",
+    "name": "iPhone 15 Pro",
+    "spec": "256 GB",
+    "color": "Titanio blanco",
+    "cond": "Nuevo",
+    "serial": "357330010120970",
+    "qty": 1,
+    "cost": 3300000,
+    "price": 3999000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1760251293811,
+    "src": "Importación L-12",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1760251293811,
+      "title": "Compra",
+      "detail": "Importación L-12",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1760258493811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1760320413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1762843293811,
+      "title": "Vendido",
+      "detail": "Isabela Duarte · contado · Tarjeta · FV-1001",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1762843353811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1001 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1762843413811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0082",
+    "sku": "IPD-0082",
+    "cat": "iPad",
+    "name": "iPad 10.ª gen 64 GB Wi-Fi",
+    "spec": "",
+    "color": "Rosa",
+    "cond": "Nuevo",
+    "serial": "F1C7QG1EX358",
+    "qty": 1,
+    "cost": 1450000,
+    "price": 1749000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788763293811,
+    "src": "Importación L-47",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788763293811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788770493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788832413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791268893811,
+      "title": "Vendido",
+      "detail": "Valentina Ortiz · contado · Tarjeta · FV-1009",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791268953811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1009 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791269013811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0083",
+    "sku": "MAC-0083",
+    "cat": "Mac",
+    "name": "MacBook Air 13\" M3 8/256",
+    "spec": "",
+    "color": "Medianoche",
+    "cond": "Nuevo",
+    "serial": "F0L305SZX277",
+    "qty": 1,
+    "cost": 3450000,
+    "price": 4099000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788417693811,
+    "src": "Importación L-46",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788417693811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788424893811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788486813811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790577693811,
+      "title": "Vendido",
+      "detail": "Tienda Digital SAS · contado · Transferencia · FV-1007",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1790577753811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1007 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1790577813811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0084",
+    "sku": "MAC-0084",
+    "cat": "Mac",
+    "name": "MacBook Pro 14\" M4 16/512",
+    "spec": "",
+    "color": "Plata",
+    "cond": "Nuevo",
+    "serial": "F1SZDXJOX196",
+    "qty": 1,
+    "cost": 6200000,
+    "price": 7399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1783579293811,
+    "src": "Importación L-46",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1783579293811,
+      "title": "Compra",
+      "detail": "Importación L-46",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1783586493811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1783648413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1785739293811,
+      "title": "Vendido",
+      "detail": "Carlos Ramírez · contado · Tarjeta · FV-1002",
+      "tone": "ok",
+      "by": "Angelica"
+     },
+     {
+      "t": 1785739353811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1002 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1785739413811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0085",
+    "sku": "AWT-0085",
+    "cat": "Apple Watch",
+    "name": "Apple Watch Series 10 46 mm",
+    "spec": "GPS",
+    "color": "Plata",
+    "cond": "Nuevo",
+    "serial": "F11UNNB9X115",
+    "qty": 1,
+    "cost": 1850000,
+    "price": 2249000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788936093811,
+    "src": "Importación L-47",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788936093811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788943293811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1789005213811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791528093811,
+      "title": "Vendido",
+      "detail": "Laura Restrepo · contado · Nequi · FV-1011",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791528153811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1011 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791528213811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0086",
+    "sku": "AWT-0086",
+    "cat": "Apple Watch",
+    "name": "Apple Watch SE (2.ª gen) 44 mm",
+    "spec": "GPS",
+    "color": "Estelar",
+    "cond": "Nuevo",
+    "serial": "F0APXD2UX034",
+    "qty": 1,
+    "cost": 1100000,
+    "price": 1349000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1788676893811,
+    "src": "Importación L-47",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788676893811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788684093811,
+      "title": "Recepción",
+      "detail": "Equipo recibido y revisado",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788746013811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791960093811,
+      "title": "Vendido",
+      "detail": "Daniela Vargas · contado · Efectivo · FV-1014",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791960153811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1014 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1791960213811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0087",
+    "sku": "IPH-0087",
+    "cat": "iPhone",
+    "name": "iPhone 16 Pro Max",
+    "spec": "256 GB",
+    "color": "Titanio negro",
+    "cond": "Nuevo",
+    "serial": "358220030129193",
+    "qty": 1,
+    "cost": 4650000,
+    "price": 5399000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "Vendido",
+    "acq": 1791182493811,
+    "src": "Importación L-52",
+    "batt": 100,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1791182493811,
+      "title": "Compra",
+      "detail": "Importación L-52",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791189693811,
+      "title": "Recepción · IMEI verificado",
+      "detail": "Base negativa: limpio · iCloud: libre · Operador: libre",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1791251613811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792046493811,
+      "title": "Vendido",
+      "detail": "Camila Rojas · contado · Tarjeta · FV-1015",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792046553811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1015 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1792046613811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "unit"
+   },
+   {
+    "id": "I-0088",
+    "sku": "APD-0088",
+    "cat": "AirPods",
+    "name": "AirPods Pro 2 (USB-C)",
+    "spec": "",
+    "color": "Blanco",
+    "cond": "Nuevo",
+    "serial": "",
+    "qty": 0,
+    "cost": 930000,
+    "price": 1099000,
+    "warr": 12,
+    "branch": "Tienda principal",
+    "status": "En vitrina",
+    "acq": 1788763293811,
+    "src": "Importación L-47",
+    "batt": null,
+    "notes": "",
+    "repairs": 0,
+    "min": 0,
+    "tl": [
+     {
+      "t": 1788763293811,
+      "title": "Compra",
+      "detail": "Importación L-47",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788770493811,
+      "title": "Recepción",
+      "detail": "1 unidades ingresadas",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1788832413811,
+      "title": "En vitrina",
+      "detail": "Tienda principal",
+      "tone": "",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792132893811,
+      "title": "Vendido",
+      "detail": "Mateo Herrera · contado · Transferencia · FV-1016",
+      "tone": "ok",
+      "by": "Anderson"
+     },
+     {
+      "t": 1792132953811,
+      "title": "Comprobante de venta",
+      "detail": "FV-1016 emitido con serial/IMEI y garantía",
+      "tone": "",
+      "by": ""
+     },
+     {
+      "t": 1792133013811,
+      "title": "Garantía activada",
+      "detail": "12 meses",
+      "tone": "ok",
+      "by": ""
+     }
+    ],
+    "hold": null,
+    "track": "qty"
+   }
+  ],
+  "sales": [
+   {
+    "id": "S-0001",
+    "no": "FV-1001",
+    "t": 1762843293811,
+    "client": "c9",
+    "by": "u3",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 3999000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0081",
+      "name": "iPhone 15 Pro · 256 GB",
+      "color": "Titanio blanco",
+      "cond": "Nuevo",
+      "serial": "357330010120970",
+      "qty": 1,
+      "price": 3999000,
+      "cost": 3300000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 3999000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0002",
+    "no": "FV-1002",
+    "t": 1785739293811,
+    "client": "c10",
+    "by": "u2",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 7399000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0084",
+      "name": "MacBook Pro 14\" M4 16/512",
+      "color": "Plata",
+      "cond": "Nuevo",
+      "serial": "F1SZDXJOX196",
+      "qty": 1,
+      "price": 7399000,
+      "cost": 6200000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 7399000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0003",
+    "no": "FV-1003",
+    "t": 1787726493811,
+    "client": "c8",
+    "by": "u3",
+    "method": "Transferencia",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Transferencia",
+      "amount": 4749000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0080",
+      "name": "iPhone 16 Pro · 256 GB",
+      "color": "Titanio natural",
+      "cond": "Nuevo",
+      "serial": "358220010119602",
+      "qty": 1,
+      "price": 4749000,
+      "cost": 4050000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 4749000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0004",
+    "no": "FV-1004",
+    "t": 1789368093811,
+    "client": "c6",
+    "by": "u3",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 4199000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0078",
+      "name": "iPhone 17 · 256 GB",
+      "color": "Verde",
+      "cond": "Nuevo",
+      "serial": "359110030116861",
+      "qty": 1,
+      "price": 4199000,
+      "cost": 3550000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 4199000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0005",
+    "no": "FV-1005",
+    "t": 1789886493811,
+    "client": "c4",
+    "by": "u3",
+    "method": "Nequi",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Nequi",
+      "amount": 3199000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0076",
+      "name": "iPhone 15 Pro · 256 GB",
+      "color": "Titanio natural",
+      "cond": "Pre-owned",
+      "serial": "357330010114122",
+      "qty": 1,
+      "price": 3199000,
+      "cost": 2650000,
+      "warr": 3,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 3199000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0006",
+    "no": "FV-1006",
+    "t": 1789972893811,
+    "client": "c7",
+    "by": "u3",
+    "method": "Efectivo",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Efectivo",
+      "amount": 1249000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0079",
+      "name": "iPhone 13 · 128 GB",
+      "color": "Rosado",
+      "cond": "Usado",
+      "serial": "355550010118235",
+      "qty": 1,
+      "price": 1249000,
+      "cost": 900000,
+      "warr": 1,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 1249000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0007",
+    "no": "FV-1007",
+    "t": 1790577693811,
+    "client": "c11",
+    "by": "u3",
+    "method": "Transferencia",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Transferencia",
+      "amount": 5595000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0083",
+      "name": "MacBook Air 13\" M3 8/256",
+      "color": "Medianoche",
+      "cond": "Nuevo",
+      "serial": "F0L305SZX277",
+      "qty": 1,
+      "price": 4099000,
+      "cost": 3450000,
+      "warr": 12,
+      "ret": 0
+     },
+     {
+      "item": "I-0069",
+      "name": "Adaptador multipuerto USB-C",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 2,
+      "price": 299000,
+      "cost": 220000,
+      "warr": 6,
+      "ret": 0
+     },
+     {
+      "item": "I-0070",
+      "name": "Magic Mouse",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 2,
+      "price": 449000,
+      "cost": 350000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 5595000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0008",
+    "no": "FV-1008",
+    "t": 1791009693811,
+    "client": "c3",
+    "by": "u3",
+    "method": "Efectivo",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Efectivo",
+      "amount": 3578000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0075",
+      "name": "iPhone 16 · 128 GB",
+      "color": "Negro",
+      "cond": "Nuevo",
+      "serial": "358220020112753",
+      "qty": 1,
+      "price": 3399000,
+      "cost": 2900000,
+      "warr": 12,
+      "ret": 0
+     },
+     {
+      "item": "I-0055",
+      "name": "Cargador MagSafe 15 W",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 179000,
+      "cost": 130000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 3578000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0009",
+    "no": "FV-1009",
+    "t": 1791268893811,
+    "client": "c3",
+    "by": "u3",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 2128000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0082",
+      "name": "iPad 10.ª gen 64 GB Wi-Fi",
+      "color": "Rosa",
+      "cond": "Nuevo",
+      "serial": "F1C7QG1EX358",
+      "qty": 1,
+      "price": 1749000,
+      "cost": 1450000,
+      "warr": 12,
+      "ret": 0
+     },
+     {
+      "item": "I-0065",
+      "name": "Apple Pencil (USB-C)",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 379000,
+      "cost": 290000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 2128000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0010",
+    "no": "FV-1010",
+    "t": 1791441693811,
+    "client": "c5",
+    "by": "u3",
+    "method": "Daviplata",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Daviplata",
+      "amount": 1749000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0077",
+      "name": "iPhone 14 · 128 GB",
+      "color": "Rojo",
+      "cond": "Pre-owned",
+      "serial": "356440010115499",
+      "qty": 1,
+      "price": 1749000,
+      "cost": 1350000,
+      "warr": 3,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 1749000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0011",
+    "no": "FV-1011",
+    "t": 1791528093811,
+    "client": "c5",
+    "by": "u3",
+    "method": "Nequi",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Nequi",
+      "amount": 2249000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0085",
+      "name": "Apple Watch Series 10 46 mm · GPS",
+      "color": "Plata",
+      "cond": "Nuevo",
+      "serial": "F11UNNB9X115",
+      "qty": 1,
+      "price": 2249000,
+      "cost": 1850000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 2249000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0012",
+    "no": "FV-1012",
+    "t": 1791700893811,
+    "client": "c1",
+    "by": "u3",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 7057000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0073",
+      "name": "iPhone 17 Pro Max · 256 GB",
+      "color": "Titanio negro",
+      "cond": "Nuevo",
+      "serial": "359110010110017",
+      "qty": 1,
+      "price": 6799000,
+      "cost": 5750000,
+      "warr": 12,
+      "ret": 0
+     },
+     {
+      "item": "I-0060",
+      "name": "Funda de silicona iPhone 17 Pro",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 199000,
+      "cost": 120000,
+      "warr": 3,
+      "ret": 0
+     },
+     {
+      "item": "I-0062",
+      "name": "Vidrio templado iPhone 17",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 59000,
+      "cost": 20000,
+      "warr": 1,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 7057000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0013",
+    "no": "FV-1013",
+    "t": 1791873693811,
+    "client": "c2",
+    "by": "u3",
+    "method": "Transferencia",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Transferencia",
+      "amount": 5799000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0074",
+      "name": "iPhone 17 Pro · 256 GB",
+      "color": "Plata",
+      "cond": "Nuevo",
+      "serial": "359110020111385",
+      "qty": 1,
+      "price": 5799000,
+      "cost": 4950000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 5799000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0014",
+    "no": "FV-1014",
+    "t": 1791960093811,
+    "client": "c7",
+    "by": "u3",
+    "method": "Efectivo",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Efectivo",
+      "amount": 1349000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0086",
+      "name": "Apple Watch SE (2.ª gen) 44 mm · GPS",
+      "color": "Estelar",
+      "cond": "Nuevo",
+      "serial": "F0APXD2UX034",
+      "qty": 1,
+      "price": 1349000,
+      "cost": 1100000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 1349000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0015",
+    "no": "FV-1015",
+    "t": 1792046493811,
+    "client": "c1",
+    "by": "u3",
+    "method": "Tarjeta",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Tarjeta",
+      "amount": 5616000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0087",
+      "name": "iPhone 16 Pro Max · 256 GB",
+      "color": "Titanio negro",
+      "cond": "Nuevo",
+      "serial": "358220030129193",
+      "qty": 1,
+      "price": 5399000,
+      "cost": 4650000,
+      "warr": 12,
+      "ret": 0
+     },
+     {
+      "item": "I-0072",
+      "name": "Estuche AirPods Pro 2",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 79000,
+      "cost": 35000,
+      "warr": 3,
+      "ret": 0
+     },
+     {
+      "item": "I-0057",
+      "name": "Cable USB-C a USB-C 1 m",
+      "color": "",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 2,
+      "price": 69000,
+      "cost": 42000,
+      "warr": 6,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 5616000,
+    "prepaid": 0,
+    "notes": ""
+   },
+   {
+    "id": "S-0016",
+    "no": "FV-1016",
+    "t": 1792132893811,
+    "client": "c8",
+    "by": "u3",
+    "method": "Transferencia",
+    "mode": "contado",
+    "payments": [
+     {
+      "method": "Transferencia",
+      "amount": 1099000
+     }
+    ],
+    "lines": [
+     {
+      "item": "I-0088",
+      "name": "AirPods Pro 2 (USB-C)",
+      "color": "Blanco",
+      "cond": "Nuevo",
+      "serial": "",
+      "qty": 1,
+      "price": 1099000,
+      "cost": 930000,
+      "warr": 12,
+      "ret": 0
+     }
+    ],
+    "disc": 0,
+    "total": 1099000,
+    "prepaid": 0,
+    "notes": ""
+   }
+  ],
+  "orders": [
+   {
+    "id": "T-031",
+    "item": "I-0017",
+    "job": "Cambio de batería",
+    "st": "En reparación",
+    "cost": 180000,
+    "tech": "Anderson",
+    "t": 1791960093811
+   },
+   {
+    "id": "T-030",
+    "item": "I-0016",
+    "job": "Cambio de pantalla",
+    "st": "Esperando repuesto",
+    "cost": 420000,
+    "tech": "Anderson",
+    "t": 1791700893811
+   },
+   {
+    "id": "T-029",
+    "item": "I-0020",
+    "job": "Cambio de batería",
+    "st": "Listo",
+    "cost": 160000,
+    "tech": "Anderson",
+    "t": 1791873693811
+   },
+   {
+    "id": "T-032",
+    "item": "I-0023",
+    "job": "Diagnóstico Face ID",
+    "st": "Diagnóstico",
+    "cost": 0,
+    "tech": "Anderson",
+    "t": 1792132893811
+   }
+  ],
+  "purchases": [
+   {
+    "id": "L-053",
+    "sup": "Miami Tech",
+    "desc": "Lote iPhone 17 Pro Max / Pro",
+    "qty": 12,
+    "usd": 820,
+    "trm": 4050,
+    "freight": 1.5,
+    "arancel": 0,
+    "iva": 19,
+    "st": "En tránsito",
+    "t": 1792132893811
+   },
+   {
+    "id": "L-052",
+    "sup": "Miami Tech",
+    "desc": "Lote iPhone 17 / iPad / MacBook",
+    "qty": 8,
+    "usd": 890,
+    "trm": 4020,
+    "freight": 1.5,
+    "arancel": 0,
+    "iva": 19,
+    "st": "Recibido",
+    "t": 1791182493811
+   },
+   {
+    "id": "L-049",
+    "sup": "Global Mobile FL",
+    "desc": "Lote iPhone 16 y accesorios",
+    "qty": 10,
+    "usd": 698,
+    "trm": 3985,
+    "freight": 1.6,
+    "arancel": 0,
+    "iva": 19,
+    "st": "Recibido",
+    "t": 1790404893811
+   }
+  ],
+  "holdHist": [],
+  "claims": [
+   {
+    "id": "G-001",
+    "sale": "S-0008",
+    "line": 0,
+    "t": 1792046493811,
+    "note": "La batería se descarga rápido",
+    "status": "Abierto"
+   }
+  ],
+  "feed": [
+   {
+    "id": 1,
+    "t": 1792217853811,
+    "type": "apartado",
+    "ic": "💬",
+    "x": "Recordatorio de saldo enviado a <b>Isabela Duarte</b>: su apartado vence mañana",
+    "by": "Sistema"
+   },
+   {
+    "id": 2,
+    "t": 1792212093811,
+    "type": "reprice",
+    "ic": "🏷️",
+    "x": "Repricing: <b>9 precios</b> ajustados por TRM $4.050 → $4.110",
+    "by": "Sistema"
+   },
+   {
+    "id": 3,
+    "t": 1792204893811,
+    "type": "aged",
+    "ic": "⏳",
+    "x": "Alerta al dueño: <b>iPhone 14 · Usado</b> lleva 72 días en inventario",
+    "by": "Sistema"
+   },
+   {
+    "id": 4,
+    "t": 1792197693811,
+    "type": "fe",
+    "ic": "🧾",
+    "x": "Comprobante <b>FV-1016</b> emitido y enviado al cliente",
+    "by": "Sistema"
+   },
+   {
+    "id": 5,
+    "t": 1792186893811,
+    "type": "owner",
+    "ic": "🚨",
+    "x": "Verificación IMEI: <b>1 equipo bloqueado</b> por reporte de hurto",
+    "by": "Sistema"
+   },
+   {
+    "id": 6,
+    "t": 1792140093811,
+    "type": "reorder",
+    "ic": "📈",
+    "x": "Reposición sugerida: <b>Cable USB-C a Lightning</b> quedó con 3 unidades",
+    "by": "Sistema"
+   },
+   {
+    "id": 7,
+    "t": 1792125693811,
+    "type": "caja",
+    "ic": "💰",
+    "x": "Cierre de caja Sede Norte cuadrado · diferencia $0",
+    "by": "Sistema"
+   },
+   {
+    "id": 8,
+    "t": 1792111293811,
+    "type": "wa",
+    "ic": "💬",
+    "x": "Cliente consultó <b>iPhone 17 Pro</b> por WhatsApp · equipo apartado con abono",
+    "by": "Sistema"
+   },
+   {
+    "id": 9,
+    "t": 1792107693811,
+    "type": "pub",
+    "ic": "📣",
+    "x": "<b>iPhone 17 Pro Max</b> publicado en catálogo de WhatsApp Business",
+    "by": "Sistema"
+   },
+   {
+    "id": 10,
+    "t": 1792046493811,
+    "type": "post",
+    "ic": "⭐",
+    "x": "Solicitud de reseña enviada a <b>Camila Rojas</b> (día 7)",
+    "by": "Sistema"
+   },
+   {
+    "id": 11,
+    "t": 1792039293811,
+    "type": "recompra",
+    "ic": "🔁",
+    "x": "Oferta de recompra enviada a <b>Isabela Duarte</b>",
+    "by": "Sistema"
+   },
+   {
+    "id": 12,
+    "t": 1792032093811,
+    "type": "apartado",
+    "ic": "🔒",
+    "x": "Apartado de <b>Carlos Ramírez</b> recibió abono de $500.000",
+    "by": "Sistema"
+   },
+   {
+    "id": 13,
+    "t": 1791967293811,
+    "type": "apartado",
+    "ic": "💬",
+    "x": "Recordatorio de saldo enviado a <b>Carlos Ramírez</b> (vence en 3 días)",
+    "by": "Sistema"
+   },
+   {
+    "id": 14,
+    "t": 1791960093811,
+    "type": "fe",
+    "ic": "🧾",
+    "x": "Comprobante <b>FV-1015</b> emitido y enviado al cliente",
+    "by": "Sistema"
+   },
+   {
+    "id": 15,
+    "t": 1791873693811,
+    "type": "wa",
+    "ic": "💬",
+    "x": "Consulta por <b>AirPods Pro 3</b> respondida automáticamente",
+    "by": "Sistema"
+   },
+   {
+    "id": 16,
+    "t": 1791859293811,
+    "type": "aged",
+    "ic": "⏳",
+    "x": "Rebaja sugerida del 5% para <b>iPhone 16 · Rosado</b>",
+    "by": "Sistema"
+   },
+   {
+    "id": 17,
+    "t": 1791787293811,
+    "type": "owner",
+    "ic": "🚨",
+    "x": "Descuento del 12% detectado en venta · alerta enviada al dueño",
+    "by": "Sistema"
+   }
+  ],
+  "autos": {
+   "reprice": true,
+   "aged": true,
+   "wa": true,
+   "reorder": true,
+   "owner": true,
+   "apartado": true,
+   "post": true,
+   "recompra": true,
+   "fe": true,
+   "caja": true,
+   "pub": true
+  }
+ },
+ "TEST_IMEI": {
+  "clean": "359110017000013",
+  "hurto": "359110029000019",
+  "extravio": "358220019000027",
+  "icloud": "357330019000033",
+  "operador": "358220029000041"
+ },
+ "REG": {
+  "359110029000019": {
+   "neg": "Reportado como HURTADO · operador Claro · 12 sep"
+  },
+  "358220019000027": {
+   "neg": "Reportado como EXTRAVIADO · operador Tigo · 03 sep"
+  },
+  "357330019000033": {
+   "icloud": true
+  },
+  "358220029000041": {
+   "carrier": "Bloqueado a operador Movistar"
+  }
+ },
+ "CATALOG": [
+  {
+   "cat": "iPhone",
+   "name": "iPhone 17 Pro Max",
+   "retail": 6899000,
+   "tac": "35911001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 17 Pro",
+   "retail": 5899000,
+   "tac": "35911002"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 17",
+   "retail": 4199000,
+   "tac": "35911003"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 16 Pro Max",
+   "retail": 5599000,
+   "tac": "35822003"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 16 Pro",
+   "retail": 4799000,
+   "tac": "35822001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 16",
+   "retail": 3499000,
+   "tac": "35822002"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 15 Pro Max",
+   "retail": 4599000,
+   "tac": "35733003"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 15 Pro",
+   "retail": 3999000,
+   "tac": "35733001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 15",
+   "retail": 2999000,
+   "tac": "35733002"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 14 Pro",
+   "retail": 3299000,
+   "tac": "35644002"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 14",
+   "retail": 2299000,
+   "tac": "35644001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 13",
+   "retail": 1799000,
+   "tac": "35555001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone 12",
+   "retail": 1399000,
+   "tac": "35466001"
+  },
+  {
+   "cat": "iPhone",
+   "name": "iPhone SE (3.ª gen)",
+   "retail": 1499000,
+   "tac": "35377001"
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad 10.ª gen 64 GB Wi-Fi",
+   "retail": 1799000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad 11.ª gen 128 GB Wi-Fi",
+   "retail": 2099000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad 9.ª gen 64 GB Wi-Fi",
+   "retail": 1399000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad mini 7 128 GB",
+   "retail": 2699000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad Air 11\" M3 128 GB",
+   "retail": 3299000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad Air 13\" M3 256 GB",
+   "retail": 4399000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad Pro 11\" M4 256 GB",
+   "retail": 5499000
+  },
+  {
+   "cat": "iPad",
+   "name": "iPad Pro 13\" M4 512 GB",
+   "retail": 7899000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Air 13\" M4 16/256",
+   "retail": 4699000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Air 15\" M4 16/512",
+   "retail": 6299000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Air 13\" M3 8/256",
+   "retail": 4199000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Air 13\" M2 8/256",
+   "retail": 3499000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Air 13\" M1 8/256",
+   "retail": 2699000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Pro 14\" M4 16/512",
+   "retail": 7499000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Pro 14\" M4 Pro 24/512",
+   "retail": 9499000
+  },
+  {
+   "cat": "Mac",
+   "name": "MacBook Pro 16\" M4 Pro 24/512",
+   "retail": 11499000
+  },
+  {
+   "cat": "Mac",
+   "name": "iMac 24\" M4 16/256",
+   "retail": 6599000
+  },
+  {
+   "cat": "Mac",
+   "name": "Mac mini M4 16/256",
+   "retail": 3299000
+  },
+  {
+   "cat": "Apple Watch",
+   "name": "Apple Watch Series 10 46 mm",
+   "retail": 2299000
+  },
+  {
+   "cat": "Apple Watch",
+   "name": "Apple Watch Series 10 42 mm",
+   "retail": 2099000
+  },
+  {
+   "cat": "Apple Watch",
+   "name": "Apple Watch Ultra 2 49 mm",
+   "retail": 3999000
+  },
+  {
+   "cat": "Apple Watch",
+   "name": "Apple Watch SE (2.ª gen) 44 mm",
+   "retail": 1399000
+  },
+  {
+   "cat": "Apple Watch",
+   "name": "Apple Watch Series 9 45 mm",
+   "retail": 1899000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods 4",
+   "retail": 749000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods 4 con cancelación de ruido",
+   "retail": 999000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods Pro 2 (USB-C)",
+   "retail": 1149000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods Pro 3",
+   "retail": 1299000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods 3",
+   "retail": 599000
+  },
+  {
+   "cat": "AirPods",
+   "name": "AirPods Max (USB-C)",
+   "retail": 2499000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Cargador MagSafe 15 W",
+   "retail": 179000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Adaptador de corriente 20 W USB-C",
+   "retail": 89000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Cable USB-C a USB-C 1 m",
+   "retail": 69000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Cable USB-C a Lightning 1 m",
+   "retail": 69000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Cable MagSafe 3 a USB-C 2 m",
+   "retail": 199000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Funda de silicona iPhone 17 Pro",
+   "retail": 199000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Funda transparente MagSafe iPhone 16",
+   "retail": 169000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Vidrio templado iPhone 17",
+   "retail": 59000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Vidrio templado iPhone 16 / 15",
+   "retail": 49000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Apple Pencil Pro",
+   "retail": 649000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Apple Pencil (USB-C)",
+   "retail": 379000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Magic Keyboard iPad Air 11\"",
+   "retail": 1299000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Smart Folio iPad Air 11\"",
+   "retail": 299000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "AirTag (paquete x4)",
+   "retail": 399000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Adaptador multipuerto USB-C",
+   "retail": 299000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Magic Mouse",
+   "retail": 449000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Batería MagSafe",
+   "retail": 449000
+  },
+  {
+   "cat": "Accesorios",
+   "name": "Estuche AirPods Pro 2",
+   "retail": 79000
+  }
+ ],
+ "PERMS": [
+  [
+   "inv_view",
+   "Ver inventario"
+  ],
+  [
+   "inv_edit",
+   "Crear y editar productos"
+  ],
+  [
+   "inv_delete",
+   "Eliminar productos"
+  ],
+  [
+   "cost_view",
+   "Ver costos y márgenes"
+  ],
+  [
+   "sell",
+   "Registrar ventas"
+  ],
+  [
+   "discount",
+   "Dar descuentos sobre el límite"
+  ],
+  [
+   "refund",
+   "Hacer devoluciones"
+  ],
+  [
+   "credit",
+   "Gestionar apartados y abonos"
+  ],
+  [
+   "tradein",
+   "Recibir trade-in"
+  ],
+  [
+   "workshop",
+   "Gestionar taller"
+  ],
+  [
+   "purchase",
+   "Gestionar compras"
+  ],
+  [
+   "clients",
+   "Gestionar clientes"
+  ],
+  [
+   "reports",
+   "Ver reportes"
+  ],
+  [
+   "users",
+   "Gestionar usuarios y permisos"
+  ],
+  [
+   "settings",
+   "Cambiar configuración y logo"
+  ],
+  [
+   "dev",
+   "Herramientas de desarrollador (restaurar y restablecer datos)"
+  ]
+ ],
+ "DEFAULT_ROLES": {
+  "dev": {
+   "name": "Desarrollador",
+   "locked": true,
+   "perms": [
+    "inv_view",
+    "inv_edit",
+    "inv_delete",
+    "cost_view",
+    "sell",
+    "discount",
+    "refund",
+    "credit",
+    "tradein",
+    "workshop",
+    "purchase",
+    "clients",
+    "reports",
+    "users",
+    "settings",
+    "dev"
+   ]
+  },
+  "owner": {
+   "name": "Propietario/a",
+   "perms": [
+    "inv_view",
+    "inv_edit",
+    "inv_delete",
+    "cost_view",
+    "sell",
+    "discount",
+    "refund",
+    "credit",
+    "tradein",
+    "workshop",
+    "purchase",
+    "clients",
+    "reports",
+    "users",
+    "settings"
+   ]
+  },
+  "employee": {
+   "name": "Empleado/a de tienda",
+   "perms": [
+    "inv_view",
+    "sell",
+    "credit",
+    "tradein",
+    "clients",
+    "workshop"
+   ]
+  }
+ },
+ "AUTOS": [
+  {
+   "id": "reprice",
+   "ic": "🏷️",
+   "n": "Repricing por TRM y mercado",
+   "imp": "Alto",
+   "d": "Cuando cambia el dólar o la competencia, recalcula precios y protege el margen mínimo."
+  },
+  {
+   "id": "aged",
+   "ic": "⏳",
+   "n": "Alerta de inventario envejecido",
+   "imp": "Alto",
+   "d": "Detecta equipos que llevan demasiados días en vitrina y propone rebaja o traslado de sede."
+  },
+  {
+   "id": "wa",
+   "ic": "💬",
+   "n": "Venta por WhatsApp",
+   "imp": "Alto",
+   "d": "Responde disponibilidad, precio y foto, y aparta el equipo con abono. Atiende 24/7."
+  },
+  {
+   "id": "reorder",
+   "ic": "📈",
+   "n": "Reposición sugerida",
+   "imp": "Alto",
+   "d": "Detecta accesorios y modelos con stock bajo y arma la orden de compra al proveedor."
+  },
+  {
+   "id": "owner",
+   "ic": "🚨",
+   "n": "Alertas al dueño",
+   "imp": "Alto",
+   "d": "Descuentos fuera de rango, ventas bajo costo, IMEI duplicado o reportado, devoluciones."
+  },
+  {
+   "id": "apartado",
+   "ic": "🔒",
+   "n": "Apartados con abonos",
+   "imp": "Alto",
+   "d": "Bloquea el equipo con abono, avisa por WhatsApp el saldo antes de que venza y lo libera solo si no completan el pago."
+  },
+  {
+   "id": "post",
+   "ic": "⭐",
+   "n": "Postventa automática",
+   "imp": "Medio",
+   "d": "Día 7 reseña, día 30 accesorios, y aviso antes de que venza la garantía."
+  },
+  {
+   "id": "recompra",
+   "ic": "🔁",
+   "n": "Recompra y trade-in",
+   "imp": "Medio",
+   "d": "A los 12–18 meses ofrece recibir el equipo del cliente por uno nuevo."
+  },
+  {
+   "id": "fe",
+   "ic": "🧾",
+   "n": "Comprobantes de venta",
+   "imp": "Medio",
+   "d": "Cada venta genera su comprobante con IMEI/serial y garantía. (La factura electrónica DIAN se integra con el sistema real.)"
+  },
+  {
+   "id": "caja",
+   "ic": "💰",
+   "n": "Cierre de caja diario",
+   "imp": "Medio",
+   "d": "Resume ventas del día por método de pago y sede para cuadrar la caja."
+  },
+  {
+   "id": "pub",
+   "ic": "📣",
+   "n": "Publicación automática",
+   "imp": "Medio",
+   "d": "Los equipos nuevos en vitrina se publican en catálogo, WhatsApp Business y Marketplace."
+  }
+ ]
+}
