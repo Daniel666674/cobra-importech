@@ -70,6 +70,8 @@ export const settings = pgTable("settings", {
   agedDays: integer("aged_days").notNull().default(45),
   holdDays: integer("hold_days").notNull().default(5),
   apartadoMinPct: integer("apartado_min_pct").notNull().default(20),
+  /** Celular del dueño (solo números, con indicativo) para enviarle alertas por WhatsApp. */
+  ownerPhone: text("owner_phone").notNull().default(""),
 });
 
 export const roles = pgTable("roles", {
@@ -225,4 +227,12 @@ export const holdHistory = pgTable("hold_history", {
   client: text("client").notNull().default(""),
   abono: integer("abono").notNull().default(0),
   outcome: text("outcome").notNull(),
+});
+
+/** Modelo según el TAC (8 primeros dígitos del IMEI). Se aprende al ingresar equipos o se importa desde un CSV. */
+export const tacModels = pgTable("tac_models", {
+  tac: text("tac").primaryKey(),
+  name: text("name").notNull(),
+  t: ms("t").notNull(),
+  by: text("by").notNull().default(""),
 });

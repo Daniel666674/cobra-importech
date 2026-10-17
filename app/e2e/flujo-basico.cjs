@@ -34,6 +34,7 @@ const B='http://localhost:3101';
  await p.locator('section[aria-label="Verificación oficial"] button:has-text("Reportado")').click();
  ok(await p.locator('button:has-text("Guardar en inventario")').isDisabled(),'reportado bloquea guardar');
  await p.locator('section[aria-label="Verificación oficial"] button:has-text("Limpio")').first().click();
+ if(await p.locator('input[type=checkbox]').count())await p.locator('input[type=checkbox]').check();
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-0002/,{timeout:30000});
  r=await p.innerText('body');ok(/Limpio/.test(r)&&/Angelica/.test(r)&&/Consulta oficial/.test(r),'ficha con verificación oficial e historial');
  // 4) venta

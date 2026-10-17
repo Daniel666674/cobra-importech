@@ -64,6 +64,7 @@ export const settingsInput = z.object({
   phone: z.string().default(""), email: z.string().default(""), footer: z.string().default(""), brand: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#1F2937"),
   maxDisc: z.coerce.number().int().min(0).max(100), minMargin: z.coerce.number().int().min(0).max(100), trm: z.coerce.number().int().min(1),
   agedDays: z.coerce.number().int().min(1), holdDays: z.coerce.number().int().min(1).max(60), apartadoMinPct: z.coerce.number().int().min(1).max(100),
+  ownerPhone: z.string().regex(/^\d{10,13}$/, "El celular del dueño debe tener solo números (10 a 13 dígitos)").or(z.literal("")).default(""),
 });
 export async function saveSettings(db: Db, a: Actor, raw: unknown) {
   need(a, "settings");

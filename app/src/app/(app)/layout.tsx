@@ -16,6 +16,7 @@ const NAV: (NavItem & { perm?: string })[] = [
   { href: "/ingreso", label: "Ingresar producto", icon: "➕", perm: "inv_edit" },
   { href: "/venta", label: "Nueva venta", icon: "🧾", perm: "sell" },
   { href: "/ventas", label: "Ventas", icon: "📑", perm: "sell" },
+  { href: "/retomas", label: "Retomas", icon: "🔄", perm: "tradein" },
   { href: "/apartados", label: "Apartados", icon: "🔒", perm: "credit" },
   { href: "/garantias", label: "Garantías", icon: "🛡️", perm: "sell" },
   { href: "/clientes", label: "Clientes", icon: "👥", perm: "clients" },

@@ -8,6 +8,13 @@
       "when": 1792219532117,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792223737033,
+      "tag": "0001_tac_y_whatsapp",
+      "breakpoints": true
     }
   ]
 }

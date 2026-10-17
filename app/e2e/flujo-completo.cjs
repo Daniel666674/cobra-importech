@@ -11,6 +11,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  const addPhone=async(imei,name,price)=>{await p.goto(B+'/ingreso');await p.fill('#imei',imei);await p.click('#verify-btn');await p.waitForSelector('section[aria-label="Verificación oficial"]',{timeout:20000});
   await p.fill('#i-name',name);await p.fill('#i-spec','128 GB');await p.fill('#i-cost',String(Math.round(price*0.7)));await p.fill('#i-price',String(price));
   await p.locator('section[aria-label="Verificación oficial"] button:has-text("Limpio")').click();await p.locator('section[aria-label="Verificación oficial"] button:has-text("Sin bloqueo")').click();
+  if(await p.locator('input[type=checkbox]').count())await p.locator('input[type=checkbox]').check();
   await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-/,{timeout:30000});return p.url().split('/').pop()};
  const A=await addPhone(w('35822002100001'),'iPhone 16',3500000),Bn=await addPhone(w('35822002100002'),'iPhone 15',2800000);
  ok(A==='I-0001'&&Bn==='I-0002','dos iPhone ingresados');

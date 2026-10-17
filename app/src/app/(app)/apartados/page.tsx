@@ -7,6 +7,7 @@ import { fdate, fmt } from "@/lib/format";
 import { holdBal, holdLeft } from "@/lib/hold";
 import { uname } from "@/lib/items";
 import { requireMe } from "@/server/session";
+import { waLink } from "@/lib/whatsapp";
 import { HoldActions } from "./hold-actions";
 
 export default async function Apartados() {
@@ -42,6 +43,7 @@ export default async function Apartados() {
                   <div className="note">{h.pays.length} abono(s) · vence {fdate(h.expires)}</div>
                 </div>
                 <HoldActions itemId={it.id} balance={holdBal(it.price, h)} />
+                {c?.phone && <a className="btn sm" target="_blank" rel="noopener noreferrer" href={waLink(c.phone, `Hola ${c.name.split(" ")[0]}, te recordamos que tu apartado ${h.no} (${uname(it)}) tiene un saldo de ${fmt(holdBal(it.price, h))} y vence el ${fdate(h.expires)}.`)}>💬 Recordar por WhatsApp</a>}
               </div>
             );
           })}

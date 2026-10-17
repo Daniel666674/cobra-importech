@@ -1,5 +1,3 @@
-import { CATALOG } from "./catalog";
-
 export function luhnOk(s: string): boolean {
   if (!/^\d{15}$/.test(s)) return false;
   let sum = 0;
@@ -14,17 +12,14 @@ export function luhnOk(s: string): boolean {
   return sum % 10 === 0;
 }
 
-/** Modelo según el TAC (8 primeros dígitos). Solo conoce los modelos del catálogo. */
-export function modelByTac(imei: string) {
-  return CATALOG.find((m) => m.tac === imei.slice(0, 8)) ?? null;
-}
-
 export type StepState = "ok" | "warn" | "fail" | "skip";
 export type Step = { label: string; state: StepState; detail: string };
 export type Verdict = "clean" | "review" | "blocked";
 export type ImeiFacts = {
   /** Equipo ya existente con el mismo IMEI (otro que no sea el que se re-verifica). */
   existing?: { id: string; name: string; status: string } | null;
+  /** Modelo aprendido o importado para este TAC (tiene prioridad sobre el catálogo). */
+  tacName?: string | null;
   /** Motivo si el IMEI está en la lista interna de bloqueados. */
   blocked?: string | null;
 };
@@ -54,10 +49,10 @@ export function checkImei(imei: string, facts: ImeiFacts = {}): ImeiResult {
   let verdict: Verdict = "clean";
   let reason: ImeiResult["reason"] = null;
   P(L[0], "ok", "15 dígitos · dígito verificador correcto");
-  const model = modelByTac(imei);
-  if (model) P(L[1], "ok", "Identificado: " + model.name);
+  const known = facts.tacName ?? null;
+  if (known) P(L[1], "ok", "Identificado: " + known);
   else {
-    P(L[1], "warn", `TAC ${imei.slice(0, 8)} no reconocido · selecciona el modelo manualmente`);
+    P(L[1], "warn", `TAC ${imei.slice(0, 8)} aún no reconocido · elige el modelo; el sistema lo recordará para la próxima vez`);
     verdict = "review";
   }
   if (facts.existing) {
@@ -70,7 +65,7 @@ export function checkImei(imei: string, facts: ImeiFacts = {}): ImeiResult {
     verdict = "blocked";
     reason = reason ?? "neg";
   } else P(L[3], "ok", "No está en la lista interna de bloqueados");
-  return { steps, verdict, modelName: model?.name ?? null, reason };
+  return { steps, verdict, modelName: known, reason };
 }
 
 export type OfficialSource = "crc" | "apple";

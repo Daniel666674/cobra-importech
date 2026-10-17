@@ -41,6 +41,12 @@ En desarrollo ninguna es obligatoria. Todo lo demás (nombre, logo, reglas) se c
 
 No se automatizan captchas ni se consultan esas páginas desde el servidor.
 
+## Retomas, modelos por TAC y WhatsApp
+
+- **Retomas** (`/retomas`): cotiza con «valor de referencia × % por condición − defectos» (guía editable en `src/lib/tradein.ts`), exige verificación oficial del IMEI y los datos de quien entrega el equipo, y lo ingresa como «Trade-in».
+- **Modelo por TAC**: el catálogo ya no trae TAC (los de la demo eran ficticios). El sistema aprende el modelo de cada TAC al ingresar equipos, y en *Configuración* se puede importar un CSV (por ejemplo el de tacdb.osmocom.org, licencia CC-BY-SA; solo se guardan los de Apple). Mientras un TAC no se conoce, el ingreso pide aprobación del propietario/a.
+- **WhatsApp**: abre WhatsApp con el mensaje ya escrito (recordatorio de apartado al cliente; resumen de alertas al dueño si se configura su celular). La persona confirma el envío; no hay envío automático (eso requiere la API de WhatsApp Business y credenciales).
+
 ## Despliegue
 
 Ver [DEPLOY.md](./DEPLOY.md).

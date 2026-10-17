@@ -16,7 +16,7 @@ export const COND_CHIP: Record<string, string> = {
 };
 const STOR: Record<number, number> = { 128: -400000, 256: 0, 512: 1000000, 1024: 2000000 };
 
-export type CatalogEntry = { cat: Cat; name: string; retail: number; tac?: string };
+export type CatalogEntry = { cat: Cat; name: string; retail: number };
 /** Catálogo de referencia (modelos y precio de lista). Editable desde el código; no es inventario. */
 export const CATALOG = catalog as CatalogEntry[];
 const BY_NAME = new Map(CATALOG.map((c) => [c.name, c]));

@@ -1,12 +1,12 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { items, itemEvents, settings, type ImeiCheck, type OfficialCheck } from "@/db/schema";
+import { items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
 import { officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
-import { AppError, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { blockImei, verifyImei } from "./imei";
 
 export const itemInput = z.object({
@@ -47,8 +47,9 @@ export async function createItem(
   raw: unknown,
   opts: { official?: unknown; ownerApproved?: boolean } = {},
 ) {
-  need(a, "inv_edit");
   const input = itemInput.parse(raw);
+  // Las retomas las puede recibir quien tenga el permiso de trade-in, aunque no edite el inventario.
+  if (!(input.src === "Trade-in" && can(a, "tradein"))) need(a, "inv_edit");
   const isPhone = input.cat === "iPhone";
   const track = input.cat === "AirPods" || input.cat === "Accesorios" ? "qty" : "unit";
   let check: ImeiCheck | null = null;
@@ -95,6 +96,7 @@ export async function createItem(
       for (const k of ["crc", "apple"] as const)
         await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
     await addEvent(tx, id, a, "En vitrina", branch);
+    if (isPhone && input.name) await tx.insert(tacModels).values({ tac: input.serial.slice(0, 8), name: input.name, t: Date.now(), by: a.name }).onConflictDoNothing();
     await logFeed(tx, a, "owner", "📦", `Nuevo ingreso: <b>${esc(uname(row))}</b>${track === "qty" ? " ×" + row.qty : ""} por ${esc(a.name)}`);
     return row;
   });
@@ -186,3 +188,30 @@ export async function itemsByIds(db: Db, ids: string[]) {
   return db.select().from(items).where(inArray(items.id, ids));
 }
 export { and };
+
+/**
+ * Importa modelos por TAC desde un CSV (por ejemplo el de la base abierta de Osmocom: tacdb.osmocom.org).
+ * Acepta «tac,nombre» o «tac,marca,nombre…»; solo se guardan filas de Apple.
+ */
+export async function importTacCsv(db: Db, a: Actor, text: string) {
+  need(a, "settings");
+  if (text.length > 30_000_000) throw new AppError("El archivo es muy grande", "invalid");
+  const rows: { tac: string; name: string; t: number; by: string }[] = [];
+  const seen = new Set<string>();
+  for (const line of text.split(/\r?\n/)) {
+    const cells = line.split(/[,;\t]/).map((c) => c.replace(/^"|"$/g, "").trim());
+    const tac = cells[0]?.replace(/\D/g, "");
+    if (!tac || tac.length !== 8 || seen.has(tac)) continue;
+    const rest = cells.slice(1).filter(Boolean);
+    if (!/apple|iphone/i.test(rest.join(" "))) continue;
+    const name = rest.join(" ").replace(/^apple\s+(inc\.?)?\s*/i, "").trim();
+    if (!name) continue;
+    seen.add(tac);
+    rows.push({ tac, name, t: Date.now(), by: a.name });
+  }
+  for (let i = 0; i < rows.length; i += 500)
+    await db.insert(tacModels).values(rows.slice(i, i + 500)).onConflictDoUpdate({ target: tacModels.tac, set: { name: sqlExcluded("name") } });
+  await logFeed(db, a, "owner", "📚", `Modelos por TAC importados: <b>${rows.length}</b> por ${esc(a.name)}`);
+  return rows.length;
+}
+const sqlExcluded = (col: string) => sql.raw(`excluded."${col}"`);

@@ -1,5 +1,6 @@
 "use server";
 import { act } from "@/server/act";
+import { importTacCsv } from "@/server/inventory";
 import { createUser, saveLogo, saveRolePerms, saveSettings, updateUser } from "@/server/admin";
 
 export async function createUserAction(data: unknown) {
@@ -16,4 +17,7 @@ export async function saveSettingsAction(data: unknown) {
 }
 export async function saveLogoAction(dataUrl: string) {
   return act((db, a) => saveLogo(db, a, dataUrl), ["/"]);
+}
+export async function importTacAction(text: string) {
+  return act((db, a) => importTacCsv(db, a, text), ["/ingreso"]);
 }

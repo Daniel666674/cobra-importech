@@ -6,6 +6,8 @@ import { hasPerm } from "@/server/auth";
 import { requireMe } from "@/server/session";
 import { dashboard } from "@/server/reports";
 import { recentFeed } from "@/server/admin";
+import { settings } from "@/db/schema";
+import { waLink } from "@/lib/whatsapp";
 
 const TONE = { bad: "bad", warn: "warn", info: "info" } as const;
 
@@ -15,6 +17,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const db = await getDb();
   const d = await dashboard(db);
   const feed = hasPerm(me, "reports") ? await recentFeed(db, 12) : [];
+  const [cfg] = await db.select().from(settings).limit(1);
+  const summary = `Resumen ${cfg.name}\nVentas hoy: ${fmt(d.kpi.todayTotal)} · 30 días: ${fmtM(d.kpi.monthTotal)}\n` + (d.alerts.length ? d.alerts.map((a) => "• " + a.title).join("\n") : "Sin alertas.");
   const delta = d.kpi.prevTotal ? Math.round(((d.kpi.monthTotal - d.kpi.prevTotal) / d.kpi.prevTotal) * 100) : null;
   const max = Math.max(1, ...d.days.map((x) => x.total));
   const canCost = hasPerm(me, "cost_view");
@@ -47,7 +51,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </div>
         </div>
         <div className="card p-4">
-          <h2 className="font-semibold mb-3">Alertas</h2>
+          <div className="mb-3 flex items-center justify-between gap-2"><h2 className="font-semibold">Alertas</h2>{cfg.ownerPhone && hasPerm(me, "reports") && (
+            <a className="btn sm" target="_blank" rel="noopener noreferrer" href={waLink(cfg.ownerPhone, summary)}>💬 Enviar al dueño</a>
+          )}</div>
           {d.alerts.length === 0 ? <p className="note">Todo en orden.</p> : (
             <ul className="space-y-2.5">
               {d.alerts.map((a) => (

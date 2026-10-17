@@ -7,7 +7,7 @@ import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import { ScanDialog } from "@/components/scan-dialog";
 import { CATS, type Cat } from "@/lib/catalog";
 import type { ScanRead } from "@/lib/scan-parse";
-import { modelByTac, officialGate, type ImeiResult } from "@/lib/imei";
+import { officialGate, type ImeiResult } from "@/lib/imei";
 
 const ICON: Record<Cat, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
 const STEP: Record<string, string> = { ok: "✓", warn: "!", fail: "✕", skip: "–" };
@@ -36,10 +36,8 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
       const r = await verifyImeiAction(clean);
       if (!r.ok) { setErr(r.error); return; }
       setRes({ ...r.data, imei: clean });
-      const model = modelByTac(clean);
       const sc = pending;
       setPending(null);
-      void model;
       setForm({ ...emptyItem("iPhone", warr.Nuevo), name: sc?.name ?? r.data.modelName ?? "", serial: clean, spec: sc?.spec ?? "256 GB", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "100", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
     });
   }

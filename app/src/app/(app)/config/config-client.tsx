@@ -1,9 +1,9 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { saveLogoAction, saveSettingsAction } from "@/app/actions/admin";
+import { importTacAction, saveLogoAction, saveSettingsAction } from "@/app/actions/admin";
 
-type Cfg = { name: string; legal: string; nit: string; address: string; phone: string; email: string; footer: string; brand: string; maxDisc: number; minMargin: number; trm: number; agedDays: number; holdDays: number; apartadoMinPct: number };
+type Cfg = { name: string; legal: string; nit: string; address: string; phone: string; email: string; footer: string; brand: string; maxDisc: number; minMargin: number; trm: number; agedDays: number; holdDays: number; apartadoMinPct: number; ownerPhone: string };
 
 /** Reduce la imagen a un máximo de 256 px y la guarda como PNG (cabe en la base de datos y se imprime bien). */
 async function processLogo(file: File): Promise<string> {
@@ -50,8 +50,13 @@ export function ConfigClient({ cfg, logo }: { cfg: Cfg; logo: string }) {
         <h2 className="font-semibold mb-3">Reglas</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {txt("maxDisc", "Descuento máximo sin autorización (%)", { type: "number" })}{txt("minMargin", "Margen mínimo esperado (%)", { type: "number" })}{txt("trm", "TRM de referencia (COP/USD)", { type: "number" })}
-          {txt("agedDays", "Días para alertar inventario viejo", { type: "number" })}{txt("holdDays", "Días de un apartado", { type: "number" })}{txt("apartadoMinPct", "Abono mínimo del apartado (%)", { type: "number" })}
+          {txt("ownerPhone", "Celular del dueño para alertas por WhatsApp (solo números)", { inputMode: "numeric" })}{txt("agedDays", "Días para alertar inventario viejo", { type: "number" })}{txt("holdDays", "Días de un apartado", { type: "number" })}{txt("apartadoMinPct", "Abono mínimo del apartado (%)", { type: "number" })}
         </div>
+      </div>
+      <div className="card p-4">
+        <h2 className="font-semibold mb-1">Modelos por TAC</h2>
+        <p className="note mb-3">El sistema aprende el modelo de cada TAC al ingresar equipos. Si tienes un CSV con «tac,marca,modelo» (por ejemplo de tacdb.osmocom.org, licencia CC-BY-SA), impórtalo aquí: solo se guardan los de Apple.</p>
+        <label className="btn cursor-pointer">Importar CSV de TAC<input type="file" accept=".csv,text/csv,text/plain" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; start(async () => { const r = await importTacAction(await f.text()); setMsg(r.ok ? { ok: true, t: `${r.data} modelos importados` } : { ok: false, t: r.error }); }); }} /></label>
       </div>
       <button className="btn primary" disabled={busy} onClick={() => start(async () => { const r = await saveSettingsAction(v); setMsg(r.ok ? { ok: true, t: "Configuración guardada" } : { ok: false, t: r.error }); router.refresh(); })}>Guardar configuración</button>
     </div>
