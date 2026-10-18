@@ -1,36 +1,39 @@
 # Despliegue en Vercel y traspaso al cliente
 
-Pasos que **solo puede hacer una persona con las cuentas** (el código ya está listo para ellos).
+El proyecto ya trae `vercel.json` (instala con `npm ci` y construye con `npm run vercel-build`, que aplica las migraciones). Solo faltan los pasos que requieren las cuentas.
 
-## 1. Cuentas (idealmente a nombre del cliente o de un equipo que luego se transfiere)
-- [ ] Equipo (Team) de Vercel «Importech» en plan **Pro** (el plan gratuito es solo para uso no comercial).
-- [ ] Repositorio en GitHub (en la organización del cliente o transferible).
-- [ ] Dominio (opcional pero recomendado), registrado por el cliente.
+## 1. Poner la rama en Vercel (≈10 minutos)
+1. vercel.com → **Add New → Project** → importar `Daniel666674/cobra-importech`.
+   Si no aparece: *Adjust GitHub App Permissions* y dar acceso a ese repositorio.
+2. **Root Directory:** `app`. Lo demás se detecta solo (Next.js).
+3. Antes de pulsar Deploy, abrir *Environment Variables* y agregar `AUTH_SECRET` (texto aleatorio largo).
+   Generarlo: `openssl rand -base64 48` (o un generador de contraseñas de 40+ caracteres).
+4. Deploy. El primer intento falla o avisa si aún no hay base de datos: es normal, sigue el paso 2.
 
-## 2. Proyecto
-- [ ] En Vercel: *Add New → Project* → elegir el repositorio. **Root Directory: `app`** (si el código sigue dentro de `cobra-importech/app`).
-- [ ] Framework: Next.js (se detecta solo). Build command: `npm run vercel-build` (aplica migraciones y construye).
+## 2. Base de datos
+1. En el proyecto: **Storage → Create Database → Neon (Postgres)** → crear y conectar al proyecto (Production y Preview).
+   Vercel agrega `DATABASE_URL` automáticamente.
+2. **Deployments → ⋯ → Redeploy** (sin usar la caché). Ahí se crean las tablas.
 
-## 3. Base de datos
-- [ ] En el proyecto: *Storage → Marketplace → Neon (Postgres)* → crear. Vercel agrega `DATABASE_URL` solo.
-- [ ] Revisar que `DATABASE_URL` exista en *Production* y *Preview*.
+## 3. Primer uso
+1. Abrir la URL (`*.vercel.app`). Aparece «Bienvenido».
+2. **Hazlo tú antes de compartir el enlace**: quien lo abra primero crea la tienda.
+3. Crear el negocio, la propietaria (con PIN) y tu cuenta de desarrollador.
+4. *Configuración*: logo, razón social, NIT, dirección, celular del dueño.
+5. *Usuarios*: crear al personal y revisar los permisos del rol «Empleado/a».
 
-## 4. Secretos
-- [ ] *Settings → Environment Variables*: `AUTH_SECRET` = texto aleatorio largo (por ejemplo `openssl rand -base64 48`).
+## 4. Plan de Vercel
+El plan Hobby es solo para uso no comercial. Para una prueba con la cliente sirve; antes de usarlo en producción, pasar el equipo a **Pro**.
 
-## 5. Primer uso
-- [ ] Abrir la URL → aparece «Bienvenido». Crear negocio, propietario/a (con PIN) y, si se desea, la cuenta de desarrollador.
-- [ ] En *Configuración*: subir el logo y completar razón social, NIT y dirección (salen en los comprobantes).
-- [ ] En *Usuarios*: crear al personal. Revisar los permisos del rol «Empleado/a».
-- [ ] Cargar el inventario real con *Ingresar producto* (o recibiendo compras).
+## 5. Dominio (opcional)
+*Settings → Domains* → agregar, por ejemplo, `inventario.tutienda.co`, y copiar los registros DNS que indique Vercel.
 
-## 6. Traspaso
-- [ ] Vercel: *Settings → Transfer* del proyecto al equipo del cliente (o invitar al cliente como Owner).
-- [ ] Neon: pasar la propiedad del proyecto de base de datos al cliente (o exportar con `pg_dump` e importar en su cuenta).
+## 6. Traspaso al cliente
+- [ ] Vercel: *Settings → Transfer* del proyecto al equipo del cliente (o invitarla como Owner).
+- [ ] Neon: pasar la propiedad de la base al cliente (o `pg_dump` / importar en su cuenta).
 - [ ] GitHub: transferir el repositorio.
-- [ ] Entregar: URL, credenciales de administración, este documento y los datos de facturación de cada servicio.
-- [ ] Anotar en el contrato qué servicios paga el cliente (Vercel, Neon, dominio).
+- [ ] Entregar URL, credenciales de administración y este documento.
+- [ ] Dejar escrito qué servicios paga el cliente (Vercel, Neon, dominio).
 
 ## Copias de seguridad
-- *Configuración → descargar inventario / ventas (CSV)* sirve como respaldo básico.
-- Neon guarda historial de cambios según el plan; confirmar la retención contratada.
+*Configuración → descargar inventario / ventas (CSV)* sirve de respaldo básico. Neon guarda historial de cambios según el plan.
