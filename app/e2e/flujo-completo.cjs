@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');const fs=require('fs');
+const pick=async(p,sel,val)=>{const el=p.locator(sel);if(await el.evaluate(e=>e.tagName)==='SELECT'){const has=await el.locator('option',{hasText:val}).count();const exact=has&&(await el.locator('option').allInnerTexts()).includes(val);if(exact)return el.selectOption(val);await el.selectOption('__otro__');}await p.fill(sel,val)};
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
 const B='http://localhost:3101';
 const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9)d-=9}s+=d}return b+((10-s%10)%10)};
@@ -9,7 +10,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPass','Vitrina#7Luna');await p.fill('#ownerPass2','Vitrina#7Luna');
  await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
  const addPhone=async(imei,name,price)=>{await p.goto(B+'/ingreso');await p.fill('#imei',imei);await p.click('#verify-btn');await p.waitForSelector('section[aria-label="Verificación oficial"]',{timeout:20000});
-  await p.fill('#i-name',name);await p.fill('#i-spec','128 GB');await p.fill('#i-cost',String(Math.round(price*0.7)));await p.fill('#i-price',String(price));
+  await pick(p,'#i-name',name);await pick(p,'#i-spec','128 GB');await p.fill('#i-batt','90');await p.fill('#i-cost',String(Math.round(price*0.7)));await p.fill('#i-price',String(price));
   await p.locator('section[aria-label="Verificación oficial"] button:has-text("Limpio")').click();await p.locator('section[aria-label="Verificación oficial"] button:has-text("Sin bloqueo")').click();
   if(await p.locator('input[type=checkbox]').count())await p.locator('input[type=checkbox]').check();
   await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-/,{timeout:30000});return p.url().split('/').pop()};

@@ -38,7 +38,7 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
       setRes({ ...r.data, imei: clean });
       const sc = pending;
       setPending(null);
-      setForm({ ...emptyItem("iPhone", warr.Nuevo), ally: form.ally, name: sc?.name ?? r.data.modelName ?? "", serial: clean, spec: sc?.spec ?? "256 GB", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "100", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
+      setForm({ ...emptyItem("iPhone", warr.Nuevo), ally: form.ally, name: sc?.name ?? r.data.modelName ?? "", serial: clean, serial2: sc?.imei2 && sc.imei2 !== clean ? sc.imei2 : sc?.imei && sc.imei !== clean ? sc.imei : "", spec: sc?.spec ?? "", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
     });
   }
 

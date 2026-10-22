@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const pick=async(p,sel,val)=>{const el=p.locator(sel);if(await el.evaluate(e=>e.tagName)==='SELECT'){const has=await el.locator('option',{hasText:val}).count();const exact=has&&(await el.locator('option').allInnerTexts()).includes(val);if(exact)return el.selectOption(val);await el.selectOption('__otro__');}await p.fill(sel,val)};
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
 const B='http://localhost:3101';
 const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9)d-=9}s+=d}return b+((10-s%10)%10)};
@@ -11,7 +12,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  // retoma de un iPhone con TAC desconocido
  await p.goto(B+'/retomas');await p.fill('#r-imei',w('49015420500001'));await p.click('button:has-text("Verificar")');await p.waitForSelector(sec,{timeout:20000});
  ok(/aún no reconocido/.test(await p.innerText('body')),'TAC desconocido se avisa');
- await p.fill('#r-name','iPhone 14');await p.fill('#r-spec','128 GB');await p.fill('#r-batt','78');
+ await pick(p,'#r-name','iPhone 14');await pick(p,'#r-spec','128 GB');await p.fill('#r-batt','78');
  await p.fill('#r-ref','2400000');
  const q=await p.innerText('main aside');ok(/6%/.test(q),'batería < 80% aplica descuento automático');
  ok(await p.locator('main aside button:has-text("Aceptar retoma")').isDisabled(),'no deja aceptar sin verificación ni datos del vendedor');

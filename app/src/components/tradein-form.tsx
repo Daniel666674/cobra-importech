@@ -2,7 +2,8 @@
 import { useState, useTransition } from "react";
 import { verifyImeiAction } from "@/app/actions/inventory";
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
-import { CATALOG } from "@/lib/catalog";
+import { CATALOG, COLOR_OPTIONS, SPEC_OPTIONS, type Cat } from "@/lib/catalog";
+import { ComboSelect } from "@/components/combo-select";
 import { fmt } from "@/lib/format";
 import { officialGate, type ImeiResult } from "@/lib/imei";
 import { DEDUCTIONS, TRADEIN_RATE, tradeQuote, type DeductionKey } from "@/lib/tradein";
@@ -96,8 +97,9 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
             <div className="card p-4">
               <h2 className="font-semibold mb-3">Datos del equipo</h2>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="lb" htmlFor="r-name">Modelo</label><input id="r-name" list="r-models" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /><datalist id="r-models">{CATALOG.filter((c) => c.cat === cat).map((c) => <option key={c.name} value={c.name} />)}</datalist></div>
-                {f("spec", "Capacidad")}{f("color", "Color")}
+                <div><label className="lb" htmlFor="r-name">Modelo</label><ComboSelect id="r-name" value={v.name} options={CATALOG.filter((c) => c.cat === cat).map((c) => c.name)} onChange={(x) => setV({ ...v, name: x })} placeholder="Elige el modelo…" /></div>
+                <div><label className="lb" htmlFor="r-spec">Capacidad</label><ComboSelect id="r-spec" value={v.spec} options={SPEC_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, spec: x })} /></div>
+                <div><label className="lb" htmlFor="r-color">Color</label><ComboSelect id="r-color" value={v.color} options={COLOR_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, color: x })} /></div>
                 <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
                 {f("batt", phone ? "Salud de batería (%) *" : "Batería (%)", { type: "number", min: 0, max: 100 })}
                 {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 })}

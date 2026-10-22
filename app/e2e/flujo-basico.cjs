@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const pick=async(p,sel,val)=>{const el=p.locator(sel);if(await el.evaluate(e=>e.tagName)==='SELECT'){const has=await el.locator('option',{hasText:val}).count();const exact=has&&(await el.locator('option').allInnerTexts()).includes(val);if(exact)return el.selectOption(val);await el.selectOption('__otro__');}await p.fill(sel,val)};
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
 const B='http://localhost:3101';
 (async()=>{
@@ -15,7 +16,7 @@ const B='http://localhost:3101';
  await p.goto(B+'/inventario');ok(/No hay productos/.test(await p.innerText('body')),'inventario vacío (sin datos de ejemplo)');
  // 2) accesorio
  await p.goto(B+'/ingreso');await p.click('button:has-text("Accesorios")');
- await p.fill('#i-name','Cargador MagSafe 15 W');await p.fill('#i-qty','10');await p.fill('#i-cost','130000');await p.fill('#i-price','179000');
+ await pick(p,'#i-name','Cargador MagSafe 15 W');await p.fill('#i-qty','10');await p.fill('#i-cost','130000');await p.fill('#i-price','179000');
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-0001/,{timeout:30000});
  ok(/Cargador MagSafe/.test(await p.innerText('h1')),'accesorio creado I-0001');
  // 3) iPhone con verificación oficial
@@ -27,7 +28,7 @@ const B='http://localhost:3101';
  await p.click('text=🔎 Verificar en la fuente oficial');await p.waitForTimeout(700);
  ok((await p.evaluate(()=>navigator.clipboard.readText()))===imei,'copia el IMEI');
  ok(popups.length>=2,'abre CRC y Apple ('+popups.length+' pestañas)');
- await p.fill('#i-name','iPhone 16');await p.fill('#i-spec','128 GB');await p.fill('#i-cost','2500000');await p.fill('#i-price','3499000');
+ await pick(p,'#i-name','iPhone 16');await pick(p,'#i-spec','128 GB');await p.fill('#i-serial2','358220020000024');await p.fill('#i-batt','91');await p.fill('#i-cost','2500000');await p.fill('#i-price','3499000');
  await p.locator('section[aria-label="Verificación oficial"] button:has-text("Limpio")').click();
  ok(await p.locator('button:has-text("Guardar en inventario")').isDisabled(),'sigue deshabilitado con solo CRC');
  await p.locator('section[aria-label="Verificación oficial"] button:has-text("Sin bloqueo")').click();
@@ -37,10 +38,13 @@ const B='http://localhost:3101';
  if(await p.locator('input[type=checkbox]').count())await p.locator('input[type=checkbox]').check();
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-0002/,{timeout:30000});
  r=await p.innerText('body');ok(/Limpio/.test(r)&&/Angelica/.test(r)&&/Consulta oficial/.test(r),'ficha con verificación oficial e historial');
+ ok(/IMEI 2/.test(r)&&r.includes('358220020000024')&&/91%/.test(r),'ficha con IMEI 2 y batería');
+ await p.goto(B+'/inventario?q=000024');ok(/iPhone 16/.test(await p.innerText('main')),'se busca por el IMEI 2');
  // 4) venta
  await p.goto(B+'/venta?item=I-0002');await p.waitForSelector('text=Cobrar',{timeout:20000});
  await p.click('button:has-text("Cobrar")');await p.waitForURL(/\/ventas\/S-0001/,{timeout:30000});
  r=await p.innerText('body');ok(/FV-1001/.test(r)&&/TRES MILLONES CUATROCIENTOS NOVENTA Y NUEVE MIL/.test(r),'comprobante FV-1001 con valor en letras');
+ ok(r.includes('358220020000024')&&/Batería 91%/.test(r),'el comprobante muestra IMEI 2 y batería');
  // 5) apartado de accesorio no; apartado de otro iPhone: ingresar segundo
  await p.goto(B+'/venta');await p.click('button:has-text("Cargador MagSafe")');
  await p.fill('input[aria-label="Valor del descuento"]','10');await p.waitForTimeout(200);

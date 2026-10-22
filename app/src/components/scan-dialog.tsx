@@ -127,7 +127,7 @@ async function decodeCodes(canvas: HTMLCanvasElement, thorough: boolean): Promis
   return [...found];
 }
 
-const LABELS: Record<string, string> = { imei: "IMEI", serial: "Serie", name: "Modelo", spec: "Capacidad", color: "Color", batt: "Batería", part: "N.º de parte", modelno: "N.º de modelo" };
+const LABELS: Record<string, string> = { imei: "IMEI", imei2: "IMEI 2", serial: "Serie", name: "Modelo", spec: "Capacidad", color: "Color", batt: "Batería", part: "N.º de parte", modelno: "N.º de modelo" };
 
 export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: () => void; onUse: (r: ScanRead) => void; defaultTab?: "box" | "screen" }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -147,7 +147,7 @@ export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: ()
   const absorb = useCallback((patch: ScanRead) => { readRef.current = mergeRead({ ...readRef.current }, patch); setRead({ ...readRef.current }); }, []);
   const absorbCodes = useCallback((codes: string[]) => {
     const p: ScanRead = {};
-    for (const raw of codes) { const c = classifyCode(raw); if (c.k === "imei" && !p.imei) p.imei = c.v; else if (c.k === "serial" && !p.serial) p.serial = c.v; else if (c.k === "part") p.part = c.v; else if (c.k === "modelno") p.modelno = c.v; }
+    for (const raw of codes) { const c = classifyCode(raw); if (c.k === "imei" && !p.imei) p.imei = c.v; else if (c.k === "imei" && c.v !== p.imei && !p.imei2) p.imei2 = c.v; else if (c.k === "serial" && !p.serial) p.serial = c.v; else if (c.k === "part") p.part = c.v; else if (c.k === "modelno") p.modelno = c.v; }
     if (Object.keys(p).length) absorb(p);
   }, [absorb]);
 
