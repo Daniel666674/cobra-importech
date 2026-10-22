@@ -4,6 +4,7 @@ import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
 import { createItem, deleteItem, reverifyItem, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
+import { importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
 
 export async function verifyImeiAction(imei: string) {
@@ -32,4 +33,11 @@ export async function deleteItemAction(id: string) {
   const r = await act((db, a) => deleteItem(db, a, id), ["/inventario", "/"]);
   if (r.ok) redirect("/inventario");
   return r;
+}
+
+export async function importInventoryAction(data: unknown) {
+  return act((db, a) => importInventory(db, a, data), ["/inventario", "/"]);
+}
+export async function undoInventoryImportAction(source: string) {
+  return act((db, a) => undoInventoryImport(db, a, source), ["/inventario", "/"]);
 }

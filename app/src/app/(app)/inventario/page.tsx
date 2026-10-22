@@ -19,7 +19,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
   return (
     <>
       <PageHeader title="Inventario" subtitle={`${rows.length} referencias · ${units} unidades`}
-        actions={hasPerm(me, "inv_edit") ? <Link href="/ingreso" className="btn primary">➕ Ingresar producto</Link> : undefined} />
+        actions={hasPerm(me, "inv_edit") ? <div className="flex gap-2"><Link href="/inventario/importar" className="btn">📥 Importar desde Excel</Link><Link href="/ingreso" className="btn primary">➕ Ingresar producto</Link></div> : undefined} />
       <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]" action="/inventario">
         <input name="q" defaultValue={f.q} placeholder="Buscar por nombre, IMEI, serial o SKU" aria-label="Buscar" />
         <select name="cat" defaultValue={f.cat} aria-label="Categoría"><option value="">Todas las categorías</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
