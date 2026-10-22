@@ -304,6 +304,10 @@ export const allies = pgTable("allies", {
   notes: text("notes").notNull().default(""),
   active: boolean("active").notNull().default(true),
   t: ms("t").notNull(),
+  /** Plazo de pago en días (0 = de contado). Lo que pase de ese plazo sale como vencido en la cartera. */
+  terms: integer("terms").notNull().default(0),
+  /** Banco y cuenta de la aliada para transferirle (ej. Bancolombia ahorros 123…). */
+  bank: text("bank").notNull().default(""),
 });
 
 /** Cuenta corriente con cada aliada: deudas (positivas o negativas por devoluciones) y pagos. */
@@ -311,9 +315,15 @@ export const allyMoves = pgTable("ally_moves", {
   id: serial("id").primaryKey(),
   ally: text("ally").notNull().references(() => allies.id),
   t: ms("t").notNull(),
-  kind: text("kind").notNull(), // deuda | pago
+  kind: text("kind").notNull(), // deuda | pago (abono o anticipo)
   amount: integer("amount").notNull(),
   ref: text("ref").notNull().default(""),
   detail: text("detail").notNull().default(""),
   by: text("by").notNull().default(""),
+  /** Pagos: forma de pago (efectivo, transferencia, Nequi…). */
+  method: text("method").notNull().default(""),
+  /** Pagos: número del comprobante de egreso (CE-0001). */
+  no: text("no").notNull().default(""),
+  /** Pago anulado (queda en la historia pero no cuenta). */
+  voided: boolean("voided").notNull().default(false),
 }, (t) => [index("ally_moves_ally").on(t.ally)]);

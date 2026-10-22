@@ -23,7 +23,7 @@ const NAV: (NavItem & { perm?: string })[] = [
   { href: "/garantias", label: "Garantías", icon: "🛡️", perm: "sell" },
   { href: "/clientes", label: "Clientes", icon: "👥", perm: "clients" },
   { href: "/taller", label: "Taller", icon: "🔧", perm: "workshop" },
-  { href: "/aliados", label: "Tiendas aliadas", icon: "🤝", perm: "purchase" },
+  { href: "/cartera", label: "Cartera", icon: "💼", perm: "purchase" },
   { href: "/reportes", label: "Reportes", icon: "📊", perm: "reports" },
   { href: "/usuarios", label: "Usuarios y permisos", icon: "🔐", perm: "users" },
   { href: "/config", label: "Configuración", icon: "⚙️", perm: "settings" },
