@@ -11,6 +11,7 @@ import { hasPerm } from "@/server/auth";
 import { getItem } from "@/server/inventory";
 import { requireMe } from "@/server/session";
 import { ItemActions } from "./item-actions";
+import { ApprovalButtons } from "@/components/approval-buttons";
 
 const TONE: Record<string, string> = { ok: "bg-green-t", warn: "bg-amber-t", bad: "bg-red-t", "": "bg-t3" };
 
@@ -28,7 +29,17 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
     <>
       <p className="mb-2 no-print"><Link href="/inventario" className="note hover:underline">← Inventario</Link></p>
       <PageHeader title={uname(it)} subtitle={`${it.sku}${it.color ? " · " + it.color : ""}`}
-        actions={<><StatusChip status={itemState(it)} /><CondChip cond={it.cond} /></>} />
+        actions={<><StatusChip status={itemState(it)} /><CondChip cond={it.cond} />{it.approval && <span className="chip warn">🕒 {it.approval.kind === "alta" ? "Por aprobar" : "Eliminación pedida"}</span>}</>} />
+      {it.approval && (
+        <div className="card mb-4 flex flex-wrap items-center gap-3 border-amber-t/40 bg-amber-bg/40 p-3">
+          <p className="flex-1 min-w-[220px] text-[13.5px]">
+            {it.approval.kind === "alta"
+              ? <>🕒 <b>Producto nuevo por aprobar</b>: lo ingresó {it.approval.name} el {fdt(it.approval.t)}. No se puede vender hasta que la propietaria lo apruebe.</>
+              : <>🕒 <b>{it.approval.name} pidió eliminarlo</b> el {fdt(it.approval.t)}{it.approval.note ? ` («${it.approval.note}»)` : ""}. Sigue en el inventario hasta que la propietaria lo apruebe.</>}
+          </p>
+          {me.perms.includes("approve") && <ApprovalButtons id={it.id} kind={it.approval.kind} compact />}
+        </div>
+      )}
       <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
         <div className="space-y-4">
           <div className="card p-4">
@@ -87,9 +98,9 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
           </div>
         </div>
         <ItemActions
-          item={{ id: it.id, cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond, qty: it.qty, cost: it.cost, price: it.price, warr: it.warr, batt: it.batt, notes: it.notes, min: it.min, serial2: it.serial2, serial: it.serial, status: it.status, track: it.track, hasHold: !!it.hold }}
+          item={{ id: it.id, cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond, qty: it.qty, cost: it.cost, price: it.price, warr: it.warr, batt: it.batt, notes: it.notes, min: it.min, serial2: it.serial2, serial: it.serial, status: it.status, pendingDel: it.approval?.kind === "baja", track: it.track, hasHold: !!it.hold }}
           sellable={isAvail(it)}
-          can={{ sell: hasPerm(me, "sell"), credit: hasPerm(me, "credit"), edit: hasPerm(me, "inv_edit"), del: hasPerm(me, "inv_delete"), workshop: hasPerm(me, "workshop"), cost: canCost }}
+          can={{ sell: hasPerm(me, "sell"), credit: hasPerm(me, "credit"), edit: hasPerm(me, "inv_edit"), del: hasPerm(me, "inv_delete"), workshop: hasPerm(me, "workshop"), cost: canCost, approve: me.perms.includes("approve") }}
           warr={cfg.warr}
         />
       </div>

@@ -33,6 +33,8 @@ export type SaleLine = {
   /** Tienda aliada dueña del producto (si no es propio). */
   ally?: string;
 };
+/** Solicitud pendiente sobre un producto: nada cambia hasta que la propietaria la apruebe. */
+export type Approval = { kind: "alta" | "baja"; by: string; name: string; t: number; note?: string };
 /** Equipo recibido como parte de pago de una venta. */
 export type TradeIn = { item: string; name: string; serial: string; cond: string; amount: number };
 export type OfficialCheck = {
@@ -164,6 +166,8 @@ export const items = pgTable("items", {
   ally: text("ally").notNull().default(""),
   imeiCheck: jsonb("imei_check").$type<ImeiCheck | null>(),
   hold: jsonb("hold").$type<Hold | null>(),
+  /** Pendiente de aprobación de la propietaria: «alta» (producto nuevo, no se vende) o «baja» (pidieron eliminarlo). */
+  approval: jsonb("approval").$type<Approval | null>(),
 });
 
 export const itemEvents = pgTable("item_events", {

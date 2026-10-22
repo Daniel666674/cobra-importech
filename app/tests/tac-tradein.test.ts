@@ -10,7 +10,7 @@ import { tradeQuote } from "@/lib/tradein";
 import { waLink } from "@/lib/whatsapp";
 import { freshDb } from "./helpers";
 
-const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "settings", "tradein"], locked: false };
+const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "settings", "tradein"], locked: false };
 const emp: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "tradein"], locked: false };
 const ok = { crc: "clean", apple: "clean" };
 let db: Db;

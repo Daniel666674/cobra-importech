@@ -10,7 +10,7 @@ import { withCheck } from "@/lib/imei-test";
 import { freshDb } from "./helpers";
 
 const dev: Actor = { id: "u1", name: "Daniel Acosta", perms: [], locked: true };
-const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "sell", "workshop", "purchase", "clients", "users", "settings"], locked: false };
+const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "sell", "workshop", "purchase", "clients", "users", "settings"], locked: false };
 const emp: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "sell", "workshop", "clients"], locked: false };
 let db: Db;
 beforeAll(async () => { db = await freshDb(); });

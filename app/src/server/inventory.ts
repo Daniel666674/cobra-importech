@@ -8,6 +8,7 @@ import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
 import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { blockImei, verifyImei } from "./imei";
+import { pendingAlta, requestDelete } from "./approvals";
 
 export const itemInput = z.object({
   cat: z.enum(CATS),
@@ -116,7 +117,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
     id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
     color: input.color, cond: input.cond, serial: input.serial, serial2: input.serial2, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
     warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
-    min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "",
+    min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "", approval: pendingAlta(a),
   };
   await tx.insert(items).values(row);
   await addEvent(tx, id, a, how.title ?? (row.src === "Trade-in" ? "Trade-in recibido" : "Ingreso al inventario"), how.detail ?? row.src + (track === "qty" ? " · " + row.qty + " unidades" : ""));
@@ -124,6 +125,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
   if (check)
     for (const k of ["crc", "apple"] as const)
       await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
+  if (row.approval) await logFeed(tx, a, "owner", "🕒", `${esc(a.name)} ingresó <b>${esc(uname(row))}</b> · espera tu aprobación para venderse`);
   await addEvent(tx, id, a, "En vitrina", branch);
   if (ally?.mode === "compra") {
     const amount = row.cost * row.qty;
@@ -169,11 +171,8 @@ export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
 
 export async function deleteItem(db: Db, a: Actor, id: string) {
   need(a, "inv_delete");
-  const [it] = await db.select().from(items).where(eq(items.id, id));
-  if (!it) throw new AppError("Producto no encontrado", "notfound");
-  if (it.status === "Vendido" || it.hold) throw new AppError("No se puede eliminar un equipo vendido o apartado", "conflict");
-  await db.delete(items).where(eq(items.id, id));
-  await logFeed(db, a, "owner", "🗑️", `Producto eliminado: <b>${esc(uname(it))}</b> por ${esc(a.name)}`);
+  // Quien no es la propietaria solo puede pedir la eliminación: el producto sigue igual hasta que ella apruebe.
+  return requestDelete(db, a, id);
 }
 
 export type ItemFilter = { q?: string; cat?: string; cond?: string; status?: string };

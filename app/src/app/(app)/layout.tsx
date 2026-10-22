@@ -7,12 +7,14 @@ import { Nav, type NavItem } from "@/components/nav";
 import { hasPerm } from "@/server/auth";
 import { requireMe } from "@/server/session";
 import { initials } from "@/lib/format";
+import { pendingCount } from "@/server/approvals";
 
 export const dynamic = "force-dynamic";
 
 const NAV: (NavItem & { perm?: string })[] = [
   { href: "/", label: "Inicio", icon: "🏠" },
   { href: "/inventario", label: "Inventario", icon: "📦", perm: "inv_view" },
+  { href: "/aprobaciones", label: "Aprobaciones", icon: "🕒", perm: "inv_view" },
   { href: "/ingreso", label: "Ingresar producto", icon: "➕", perm: "inv_edit" },
   { href: "/venta", label: "Nueva venta", icon: "🧾", perm: "sell" },
   { href: "/ventas", label: "Ventas", icon: "📑", perm: "sell" },
@@ -30,8 +32,9 @@ const NAV: (NavItem & { perm?: string })[] = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMe();
   const db = await getDb();
-  const [[cfg], [{ n: review }]] = await Promise.all([db.select().from(settings).limit(1), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión"))]);
-  const nav = NAV.filter((n) => !n.perm || hasPerm(me, n.perm)).map(({ perm, ...n }) => (perm === "inv_view" ? { ...n, badge: review || undefined } : n));
+  const [[cfg], [{ n: review }], pend] = await Promise.all([db.select().from(settings).limit(1), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión")), pendingCount(db)]);
+  const nav = NAV.filter((n) => !n.perm || hasPerm(me, n.perm)).map(({ perm, ...n }) => (n.href === "/aprobaciones" ? { ...n, badge: pend || undefined } : perm === "inv_view" ? { ...n, badge: review || undefined } : n))
+    .filter((n) => n.href !== "/aprobaciones" || pend > 0 || me.perms.includes("approve"));
   void or;
   const brand = (
     <Link href="/" className="flex items-center gap-2.5 px-1">

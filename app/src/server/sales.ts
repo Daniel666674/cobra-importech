@@ -183,7 +183,7 @@ export async function createHold(db: Db, a: Actor, raw: unknown) {
     const [it] = await tx.select().from(items).where(eq(items.id, input.item)).for("update");
     if (!it) throw new AppError("Producto no encontrado", "notfound");
     if (isQty(it)) throw new AppError("El apartado es para un solo equipo (no accesorios por cantidad)", "invalid");
-    if (it.status !== "En vitrina") throw new AppError("Este equipo no está disponible para apartar", "conflict");
+    if (it.status !== "En vitrina" || it.approval?.kind === "alta") throw new AppError("Este equipo no está disponible para apartar", "conflict");
     const client = await ensureClient(tx, input.client, input.newClient);
     if (!client) throw new AppError("Elige o crea el cliente para apartar", "invalid");
     const min = holdMin(it.price, cfg.apartadoMinPct);

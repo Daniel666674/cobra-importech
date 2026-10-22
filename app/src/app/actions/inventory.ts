@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
+import { approve, approveAll, reject } from "@/server/approvals";
 import { createItem, deleteItem, priceUnpriced, releaseAllReview, reverifyItem, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
 import { existingSerials, importInventory, undoInventoryImport } from "@/server/import-inventory";
@@ -30,8 +31,8 @@ export async function sendToWorkshopAction(data: unknown) {
 }
 
 export async function deleteItemAction(id: string) {
-  const r = await act((db, a) => deleteItem(db, a, id), ["/inventario", "/"]);
-  if (r.ok) redirect("/inventario");
+  const r = await act((db, a) => deleteItem(db, a, id), ["/inventario", "/aprobaciones", "/"]);
+  if (r.ok && r.data === "deleted") redirect("/inventario");
   return r;
 }
 
@@ -50,4 +51,14 @@ export async function existingSerialsAction(serials: string[]) {
 
 export async function priceUnpricedAction(gain: number) {
   return act((db, a) => priceUnpriced(db, a, gain), ["/inventario", "/venta"]);
+}
+
+export async function approveAction(id: string) {
+  return act((db, a) => approve(db, a, id), ["/inventario", "/aprobaciones", "/venta", "/"]);
+}
+export async function rejectAction(id: string, note = "") {
+  return act((db, a) => reject(db, a, id, note), ["/inventario", "/aprobaciones", "/venta", "/"]);
+}
+export async function approveAllAction() {
+  return act((db, a) => approveAll(db, a), ["/inventario", "/aprobaciones", "/venta", "/"]);
 }

@@ -45,7 +45,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
                     <div className="note">{it.sku}{it.color ? ` · ${it.color}` : ""}{isQty(it) ? ` · ${it.qty} uds.` : it.serial ? ` · ••${it.serial.slice(-6)}` : ""}</div>
                   </td>
                   <td><CondChip cond={it.cond} /></td>
-                  <td><StatusChip status={itemState(it)} /></td>
+                  <td><StatusChip status={itemState(it)} />{it.approval && <span className="chip warn ml-1">🕒 {it.approval.kind === "alta" ? "Por aprobar" : "Eliminar pedido"}</span>}</td>
                   <td className="whitespace-nowrap">{fdatey(it.acq)} <span className="note">({daysIn(it)} d)</span></td>
                   {canCost && <td className="num">{fmt(it.cost + it.repairs)}</td>}
                   <td className="num"><b>{fmt(it.price)}</b></td>

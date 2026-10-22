@@ -7,8 +7,8 @@ import { ItemForm, toPayload, type ItemFormValues } from "@/components/item-form
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import type { Cat } from "@/lib/catalog";
 
-type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; track: string; hasHold: boolean };
-type Can = { sell: boolean; credit: boolean; edit: boolean; del: boolean; workshop: boolean; cost: boolean };
+type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; pendingDel: boolean; track: string; hasHold: boolean };
+type Can = { sell: boolean; credit: boolean; edit: boolean; del: boolean; workshop: boolean; cost: boolean; approve: boolean };
 
 export function ItemActions({ item, sellable, can, warr }: { item: Item; sellable: boolean; can: Can; warr: Record<string, number> }) {
   const router = useRouter();
@@ -37,7 +37,7 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
         {can.workshop && !qty && item.status !== "Vendido" && item.status !== "En taller" && <button className="btn w-full" onClick={() => setPanel(panel === "shop" ? "" : "shop")}>🔧 Enviar a taller</button>}
         {can.edit && <button className="btn w-full" onClick={() => setPanel(panel === "edit" ? "" : "edit")}>✏️ Editar</button>}
         {can.del && item.status !== "Vendido" && !item.hasHold && (
-          <button className="btn danger w-full" disabled={busy} onClick={() => { if (confirm("¿Eliminar este producto? No se puede deshacer.")) start(async () => { const r = await deleteItemAction(item.id); if (r && !r.ok) setMsg({ ok: false, t: r.error }); }); }}>🗑️ Eliminar</button>
+          <button className="btn danger w-full" disabled={busy || item.pendingDel} onClick={() => { if (confirm(can.approve ? "¿Eliminar este producto? No se puede deshacer." : "¿Pedir a la propietaria que elimine este producto? Sigue en el inventario hasta que ella apruebe.")) start(async () => { const r = await deleteItemAction(item.id); if (r && !r.ok) setMsg({ ok: false, t: r.error }); else if (r?.ok) { setMsg({ ok: true, t: "Solicitud enviada: la propietaria debe aprobar la eliminación" }); router.refresh(); } }); }}>{item.pendingDel ? "🕒 Eliminación pedida" : can.approve ? "🗑️ Eliminar" : "🗑️ Pedir eliminación"}</button>
         )}
         {msg && <p role="status" className={`chip ${msg.ok ? "ok" : "bad"} !rounded-md !whitespace-normal`}>{msg.t}</p>}
       </div>
