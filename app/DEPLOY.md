@@ -19,7 +19,12 @@ El proyecto ya trae `vercel.json` (instala con `npm ci` y construye con `npm run
 1. Abrir la URL (`*.vercel.app`). Aparece «Bienvenido».
 2. **Hazlo tú antes de compartir el enlace**: quien lo abra primero crea la tienda.
 3. Crear el negocio, la propietaria (con PIN) y tu cuenta de desarrollador.
-4. *Configuración*: logo, razón social, NIT, dirección, celular del dueño.
+4. *Configuración*, pestaña por pestaña:
+   - **Negocio**: logo, razón social, NIT con dígito de verificación, responsabilidad tributaria, dirección, ciudad, WhatsApp, redes.
+   - **Comprobante**: prefijo y siguiente número (si venían de otro sistema, continuar su numeración), título, texto legal. Revisar la vista previa.
+   - **Garantías**: meses por condición y condiciones impresas.
+   - **Ventas y caja**: formas de pago que usan, descuento máximo, apartados, celular del dueño para alertas.
+   - **Importar ventas**: subir el historial (CSV). Revisar el resumen antes de importar; se puede deshacer.
 5. *Usuarios*: crear al personal y revisar los permisos del rol «Empleado/a».
 
 ## 4. Plan de Vercel

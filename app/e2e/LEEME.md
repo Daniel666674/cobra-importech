@@ -10,5 +10,6 @@ node e2e/flujo-basico.cjs      # configuración inicial, verificación oficial, 
 # reinicia el servidor con .data limpio antes de cada archivo:
 node e2e/flujo-completo.cjs    # apartados, garantías, taller, compras, configuración
 node e2e/flujo-retomas.cjs    # retomas, aprendizaje de TAC, importar CSV
+node e2e/flujo-configuracion.cjs # configuración por pestañas, numeración, importar ventas (CSV de Excel)
 node e2e/escaner.cjs           # lectura de una foto de caja con IMEI y serie
 ```

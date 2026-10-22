@@ -1,19 +1,34 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { settings } from "@/db/schema";
+import { counters, settings } from "@/db/schema";
 import { PageHeader } from "@/components/ui";
+import { CONDS, METHODS, enabledMethods } from "@/lib/catalog";
+import { WARR_TERMS } from "@/components/receipt";
+import { importSources } from "@/server/import";
 import { requireMe } from "@/server/session";
 import { ConfigClient } from "./config-client";
 
-export default async function Config() {
+export default async function Config({ searchParams }: PageProps<"/config">) {
   await requireMe("settings");
-  const [cfg] = await (await getDb()).select().from(settings).limit(1);
+  const db = await getDb();
+  const [[cfg], [inv], sources] = await Promise.all([
+    db.select().from(settings).limit(1),
+    db.select().from(counters).where(eq(counters.key, "invoice")),
+    importSources(db),
+  ]);
+  const tab = (await searchParams).tab;
   return (
     <>
-      <PageHeader title="Configuración" subtitle="Datos del negocio, logo y reglas de venta" />
-      <ConfigClient cfg={{ name: cfg.name, legal: cfg.legal, nit: cfg.nit, address: cfg.address, phone: cfg.phone, email: cfg.email, footer: cfg.footer, brand: cfg.brand, maxDisc: cfg.maxDisc, minMargin: cfg.minMargin, trm: cfg.trm, agedDays: cfg.agedDays, holdDays: cfg.holdDays, apartadoMinPct: cfg.apartadoMinPct, ownerPhone: cfg.ownerPhone }} logo={cfg.logo} />
-      <div className="note mt-6">Copia de seguridad: { }
-        <a className="underline" href="/api/export/inventario" download>descargar inventario (CSV)</a> · { }
-        <a className="underline" href="/api/export/ventas" download>descargar ventas (CSV)</a></div>
+      <PageHeader title="Configuración" subtitle="Datos del negocio, comprobante, garantías, caja e importación de datos" />
+      <ConfigClient
+        initialTab={typeof tab === "string" ? tab : "negocio"}
+        cfg={{ ...cfg, logo: undefined }}
+        logo={cfg.logo}
+        numbering={{ prefix: cfg.invPrefix, last: inv?.value ?? 0 }}
+        warranty={{ warr: Object.fromEntries(CONDS.map((c) => [c, cfg.warr[c] ?? 0])), terms: cfg.warrTerms.length ? cfg.warrTerms : WARR_TERMS, custom: cfg.warrTerms.length > 0 }}
+        methods={{ all: [...METHODS], on: enabledMethods(cfg) }}
+        sources={sources.map((s) => ({ ...s, total: Number(s.total), from: Number(s.from), to: Number(s.to) }))}
+      />
     </>
   );
 }

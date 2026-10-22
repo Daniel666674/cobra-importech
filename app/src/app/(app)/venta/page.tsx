@@ -1,3 +1,4 @@
+import { enabledMethods } from "@/lib/catalog";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { clients, items, settings } from "@/db/schema";
@@ -26,7 +27,7 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
       <PosClient
         items={list}
         clients={cl.map((c) => ({ id: c.id, name: c.name, doc: c.doc, phone: c.phone }))}
-        cfg={{ maxDisc: cfg.maxDisc, apartadoMinPct: cfg.apartadoMinPct, holdDays: cfg.holdDays }}
+        cfg={{ maxDisc: cfg.maxDisc, apartadoMinPct: cfg.apartadoMinPct, holdDays: cfg.holdDays, methods: enabledMethods(cfg) }}
         can={{ discount: hasPerm(me, "discount"), cost: hasPerm(me, "cost_view"), credit: hasPerm(me, "credit") }}
         start={{ item: one("item"), mode: one("mode") === "apartado" ? "apartado" : "contado", hold: holdId }}
       />

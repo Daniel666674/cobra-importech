@@ -22,6 +22,13 @@
       "when": 1792528675549,
       "tag": "0002_sesiones",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792667727182,
+      "tag": "0003_importacion_y_configuracion",
+      "breakpoints": true
     }
   ]
 }

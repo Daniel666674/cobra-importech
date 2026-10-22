@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
-import { CATS, METHODS } from "@/lib/catalog";
+import { CATS } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { holdMin } from "@/lib/hold";
 import { isQty } from "@/lib/items";
@@ -16,7 +16,7 @@ type Pay = { method: string; amount: string };
 type Props = {
   items: PosItem[];
   clients: { id: string; name: string; doc: string; phone: string }[];
-  cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number };
+  cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[] };
   can: { discount: boolean; cost: boolean; credit: boolean };
   start: { item: string; mode: "contado" | "apartado"; hold: string };
 };
@@ -38,11 +38,11 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
   const [discType, setDiscType] = useState<"pct" | "cop">("pct");
   const [disc, setDisc] = useState("");
   const [reason, setReason] = useState("");
-  const [pays, setPays] = useState<Pay[]>([{ method: "Efectivo", amount: "" }]);
+  const [pays, setPays] = useState<Pay[]>([{ method: cfg.methods[0], amount: "" }]);
   const [cash, setCash] = useState("");
   const [notes, setNotes] = useState("");
   const [abono, setAbono] = useState("");
-  const [abonoMethod, setAbonoMethod] = useState("Efectivo");
+  const [abonoMethod, setAbonoMethod] = useState(cfg.methods[0]);
   const [err, setErr] = useState("");
   const [busy, startT] = useTransition();
 
@@ -188,7 +188,7 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
           <div>
             <h3 className="font-semibold mb-2">Abono inicial</h3>
             <div className="grid grid-cols-2 gap-2"><input type="number" min={0} step={1000} value={abono} onChange={(e) => setAbono(e.target.value)} placeholder={min ? `Mínimo ${fmt(min)}` : "Valor"} aria-label="Abono" />
-              <select value={abonoMethod} onChange={(e) => setAbonoMethod(e.target.value)} aria-label="Método del abono">{METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
+              <select value={abonoMethod} onChange={(e) => setAbonoMethod(e.target.value)} aria-label="Método del abono">{cfg.methods.map((m) => <option key={m}>{m}</option>)}</select></div>
             <p className="note mt-1">Vence en {cfg.holdDays} días · mínimo {cfg.apartadoMinPct}% ({fmt(min)})</p>
           </div>
         ) : T.due > 0 && (
@@ -197,12 +197,12 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
             <div className="space-y-2">
               {pays.map((p, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{METHODS.map((m) => <option key={m}>{m}</option>)}</select>
+                  <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m}>{m}</option>)}</select>
                   <input type="number" min={0} value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} aria-label="Valor del pago" />
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}
-              <button type="button" className="btn sm" onClick={() => setPays([...pays.map((p, i) => (p.amount === "" ? { ...p, amount: String(resolved[i].amount) } : p)), { method: "Transferencia", amount: "" }])}>+ Dividir pago</button>
+              <button type="button" className="btn sm" onClick={() => setPays([...pays.map((p, i) => (p.amount === "" ? { ...p, amount: String(resolved[i].amount) } : p)), { method: cfg.methods.find((m) => m !== pays[pays.length - 1]?.method) ?? cfg.methods[0], amount: "" }])}>+ Dividir pago</button>
             </div>
             {pays.length === 1 && pays[0].method === "Efectivo" && (
               <div className="mt-2"><input type="number" min={0} value={cash} onChange={(e) => setCash(e.target.value)} placeholder="Efectivo recibido (opcional)" aria-label="Efectivo recibido" />

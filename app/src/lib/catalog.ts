@@ -8,6 +8,8 @@ export const CAT_SKU: Record<Cat, string> = {
 export const CONDS = ["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"] as const;
 export const STATUSES = ["En vitrina", "Apartado", "En taller", "En revisión", "Vendido"] as const;
 export const METHODS = ["Efectivo", "Transferencia", "Tarjeta", "Nequi", "Daviplata", "Enlace Bold"] as const;
+/** Formas de pago habilitadas en Configuración (vacío = todas). */
+export const enabledMethods = (cfg: { methods?: string[] | null }): string[] => (cfg.methods?.length ? METHODS.filter((m) => cfg.methods!.includes(m)) : [...METHODS]);
 export const COND_F: Record<string, number> = {
   Nuevo: 1, Exhibición: 0.92, Reacondicionado: 0.82, "Pre-owned": 0.74, Usado: 0.62,
 };

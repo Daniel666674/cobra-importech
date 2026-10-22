@@ -1,6 +1,8 @@
 import {
   bigint,
   boolean,
+  doublePrecision,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -72,6 +74,21 @@ export const settings = pgTable("settings", {
   apartadoMinPct: integer("apartado_min_pct").notNull().default(20),
   /** Celular del dueño (solo números, con indicativo) para enviarle alertas por WhatsApp. */
   ownerPhone: text("owner_phone").notNull().default(""),
+  city: text("city").notNull().default(""),
+  whatsapp: text("whatsapp").notNull().default(""),
+  web: text("web").notNull().default(""),
+  instagram: text("instagram").notNull().default(""),
+  /** Régimen o responsabilidad tributaria que se imprime bajo el NIT (p. ej. «No responsable de IVA»). */
+  taxNote: text("tax_note").notNull().default(""),
+  /** Texto legal opcional del comprobante (resolución de facturación, etc.). */
+  legalNote: text("legal_note").notNull().default(""),
+  invPrefix: text("inv_prefix").notNull().default("FV-"),
+  invTitle: text("inv_title").notNull().default("Comprobante de venta"),
+  /** Condiciones de garantía del comprobante; vacío = texto por defecto. */
+  warrTerms: jsonb("warr_terms").$type<string[]>().notNull().default([]),
+  /** Formas de pago habilitadas en caja; vacío = todas. */
+  methods: jsonb("methods").$type<string[]>().notNull().default([]),
+  showSignatures: boolean("show_signatures").notNull().default(true),
 });
 
 export const roles = pgTable("roles", {
@@ -150,14 +167,19 @@ export const sales = pgTable("sales", {
   mode: text("mode").notNull().default("contado"),
   payments: jsonb("payments").$type<Payment[]>().notNull(),
   lines: jsonb("lines").$type<SaleLine[]>().notNull(),
-  disc: integer("disc").notNull().default(0),
+  /** Descuento en % con decimales (un descuento en pesos rara vez da un % entero). */
+  disc: doublePrecision("disc").notNull().default(0),
   total: integer("total").notNull(),
   prepaid: integer("prepaid").notNull().default(0),
   notes: text("notes").notNull().default(""),
   discReason: text("disc_reason").notNull().default(""),
   cash: jsonb("cash").$type<{ given: number; change: number } | null>(),
   holdPays: jsonb("hold_pays").$type<{ t: number; amount: number; method: string; no: string }[] | null>(),
-});
+  /** Origen de una venta importada (nombre del archivo); vacío = registrada en el sistema. */
+  source: text("source").notNull().default(""),
+  /** Llave para no importar dos veces la misma venta. */
+  extKey: text("ext_key").notNull().default(""),
+}, (t) => [index("sales_ext_key").on(t.extKey)]);
 
 export const orders = pgTable("orders", {
   id: text("id").primaryKey(),

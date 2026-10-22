@@ -1,7 +1,8 @@
 import { and, count, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { feed, roles, settings, users } from "@/db/schema";
+import { counters, feed, roles, sales, settings, users } from "@/db/schema";
+import { CONDS, METHODS } from "@/lib/catalog";
 import { ALL_PERMS } from "@/lib/perms";
 import { AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { hashPin } from "./auth";
@@ -69,6 +70,17 @@ export const settingsInput = z.object({
   maxDisc: z.coerce.number().int().min(0).max(100), minMargin: z.coerce.number().int().min(0).max(100), trm: z.coerce.number().int().min(1),
   agedDays: z.coerce.number().int().min(1), holdDays: z.coerce.number().int().min(1).max(60), apartadoMinPct: z.coerce.number().int().min(1).max(100),
   ownerPhone: z.string().regex(/^\d{10,13}$/, "El celular del dueño debe tener solo números (10 a 13 dígitos)").or(z.literal("")).default(""),
+  city: z.string().trim().max(80).default(""),
+  whatsapp: z.string().regex(/^\d{10,13}$/, "El WhatsApp de la tienda debe tener solo números (10 a 13 dígitos)").or(z.literal("")).default(""),
+  web: z.string().trim().max(120).default(""),
+  instagram: z.string().trim().max(60).transform((x) => x.replace(/^@/, "")).default(""),
+  taxNote: z.string().trim().max(160).default(""),
+  legalNote: z.string().trim().max(600).default(""),
+  invTitle: z.string().trim().min(3, "Escribe el título del comprobante").max(60).default("Comprobante de venta"),
+  showSignatures: z.boolean().default(true),
+}).superRefine((v, ctx) => {
+  if (v.nit && !/^[\d.]{5,15}(-\d)?$/.test(v.nit)) ctx.addIssue({ code: "custom", message: "El NIT debe tener solo números, puntos y el dígito de verificación (ej. 901.234.567-8)" });
+  if (v.email && !z.email().safeParse(v.email).success) ctx.addIssue({ code: "custom", message: "El correo no es válido" });
 });
 export async function saveSettings(db: Db, a: Actor, raw: unknown) {
   need(a, "settings");
@@ -76,6 +88,42 @@ export async function saveSettings(db: Db, a: Actor, raw: unknown) {
   await db.update(settings).set(v).where(eq(settings.id, 1));
   await logFeed(db, a, "owner", "⚙️", `Configuración actualizada por ${esc(a.name)}`);
 }
+/** Prefijo y siguiente número de comprobante. Nunca se puede retroceder (evita números repetidos). */
+export async function saveNumbering(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = z.object({
+    prefix: z.string().trim().max(10).regex(/^[A-Za-z0-9-]*$/, "El prefijo solo admite letras, números y guion"),
+    next: z.coerce.number().int().min(1).max(99_999_999),
+  }).parse(raw);
+  const [c] = await db.select().from(counters).where(eq(counters.key, "invoice"));
+  const cur = c?.value ?? 0;
+  if (v.next <= cur) throw new AppError(`El siguiente número debe ser mayor a ${cur} (el último usado)`, "invalid");
+  const no = v.prefix + v.next;
+  const [dup] = await db.select({ id: sales.id }).from(sales).where(eq(sales.no, no)).limit(1);
+  if (dup) throw new AppError(`Ya existe una venta con el número ${no}`, "conflict");
+  await db.insert(counters).values({ key: "invoice", value: v.next - 1 }).onConflictDoUpdate({ target: counters.key, set: { value: v.next - 1 } });
+  await db.update(settings).set({ invPrefix: v.prefix }).where(eq(settings.id, 1));
+  await logFeed(db, a, "owner", "🔢", `Numeración de comprobantes: el siguiente será <b>${esc(no)}</b> · ${esc(a.name)}`);
+}
+
+/** Meses de garantía por condición y condiciones impresas en el comprobante. */
+export async function saveWarranty(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = z.object({
+    warr: z.record(z.enum(CONDS), z.coerce.number().int().min(0, "Los meses no pueden ser negativos").max(60, "Máximo 60 meses")),
+    terms: z.array(z.string().trim().max(300)).max(12, "Máximo 12 condiciones").transform((t) => t.filter(Boolean)),
+  }).parse(raw);
+  await db.update(settings).set({ warr: v.warr, warrTerms: v.terms }).where(eq(settings.id, 1));
+  await logFeed(db, a, "owner", "🛡️", `Garantías actualizadas por ${esc(a.name)}`);
+}
+
+/** Formas de pago que aparecen en caja y apartados. */
+export async function saveMethods(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = z.array(z.enum(METHODS)).min(1, "Deja al menos una forma de pago").parse(raw);
+  await db.update(settings).set({ methods: v.length === METHODS.length ? [] : v }).where(eq(settings.id, 1));
+}
+
 const MAX_LOGO = 400_000;
 export async function saveLogo(db: Db, a: Actor, dataUrl: string) {
   need(a, "settings");

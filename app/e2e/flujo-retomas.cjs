@@ -26,9 +26,9 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  ok(/Identificado: iPhone 14/.test(await p.innerText('body')),'el sistema recordó el modelo del TAC');
  // importar CSV de TAC
  const fs=require('fs'),os=require('os');fs.writeFileSync(os.tmpdir()+'/tac.csv','tac,marca,modelo\n35305111,Apple Inc.,iPhone 15 Pro\n35305222,Samsung,Galaxy\n');
- await p.goto(B+'/config');await p.setInputFiles('input[accept*=csv]',os.tmpdir()+'/tac.csv');await p.waitForSelector('text=1 modelos importados',{timeout:20000});ok(true,'importa CSV de TAC (solo Apple)');
+ await p.goto(B+'/config?tab=respaldo');await p.setInputFiles('input[accept*=csv]',os.tmpdir()+'/tac.csv');await p.waitForSelector('text=1 modelos importados',{timeout:20000});ok(true,'importa CSV de TAC (solo Apple)');
  // WhatsApp del dueño
- await p.fill('#c-ownerPhone','3001112222');await p.click('button:has-text("Guardar configuración")');await p.waitForSelector('text=Configuración guardada');
+ await p.goto(B+'/config?tab=caja');await p.fill('#c-ownerPhone','3001112222');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Configuración guardada');
  await p.goto(B+'/');ok(true,'inicio carga con celular del dueño');
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');

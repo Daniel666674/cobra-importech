@@ -32,7 +32,11 @@ export function ReceiptFrame({ cfg, kind, no, t, stamp, children }: { cfg: Cfg; 
             )}
             <div className="text-[12px] leading-relaxed text-gray-600">
               <b className="block text-[16px] text-gray-900">{cfg.name}</b>
-              {cfg.legal} · NIT {cfg.nit}<br />{cfg.address}<br />{cfg.phone} · {cfg.email}
+              {[cfg.legal, cfg.nit && `NIT ${cfg.nit}`].filter(Boolean).join(" · ")}
+              {cfg.taxNote && <><br />{cfg.taxNote}</>}
+              <br />{[cfg.address, cfg.city].filter(Boolean).join(", ")}
+              <br />{[cfg.phone, cfg.whatsapp && `WhatsApp ${cfg.whatsapp}`, cfg.email].filter(Boolean).join(" · ")}
+              {(cfg.web || cfg.instagram) && <><br />{[cfg.web, cfg.instagram && `@${cfg.instagram}`].filter(Boolean).join(" · ")}</>}
             </div>
           </div>
           <div className="text-right">
@@ -45,6 +49,7 @@ export function ReceiptFrame({ cfg, kind, no, t, stamp, children }: { cfg: Cfg; 
         {children}
         <footer className="mt-7 border-t border-gray-200 pt-3 text-center text-[11.5px] text-gray-500">
           {cfg.footer}
+          {cfg.legalNote && <span className="mt-1 block whitespace-pre-line">{cfg.legalNote}</span>}
           <i className="mt-1 block">Comprobante interno de venta. No reemplaza la factura electrónica DIAN. Valores en pesos colombianos (COP).</i>
         </footer>
       </div>
@@ -67,7 +72,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
   const holdPaid = (s.holdPays ?? []).reduce((a, y) => a + y.amount, 0);
   const paidNow = pays.reduce((a, p) => a + p.amount, 0) + holdPaid;
   return (
-    <ReceiptFrame cfg={cfg} kind="Comprobante de venta" no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : ["PAGADA", "ok"]}>
+    <ReceiptFrame cfg={cfg} kind={cfg.invTitle || "Comprobante de venta"} no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : s.mode === "historico" ? ["HISTÓRICA", "warn"] : ["PAGADA", "ok"]}>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Card title="Cliente" rows={[["Nombre", client?.name ?? "Cliente de mostrador"], ["Documento", client?.doc ?? ""], ["Teléfono", client?.phone ?? ""], ["Correo", client?.email ?? ""]]} />
         <Card title="Detalles de la venta" rows={[["Atendió", seller], ["Forma de pago", s.method], ["Descuento", s.disc ? `${+s.disc.toFixed(1)}%${s.discReason ? " · " + s.discReason : ""}` : ""], ["Observaciones", s.notes]]} />
@@ -93,7 +98,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
       <div className="mt-5 grid gap-5 sm:grid-cols-[1.2fr_1fr]">
         <div className="text-[11.5px] text-gray-600">
           <h4 className="mb-1 text-[10.5px] font-bold uppercase tracking-widest text-gray-500">Condiciones de garantía</h4>
-          <ul className="list-disc space-y-1 pl-4">{WARR_TERMS.map((x) => <li key={x}>{x}</li>)}</ul>
+          <ul className="list-disc space-y-1 pl-4">{(cfg.warrTerms?.length ? cfg.warrTerms : WARR_TERMS).map((x) => <li key={x}>{x}</li>)}</ul>
         </div>
         <div className="space-y-1 text-[13px]">
           <div className="flex justify-between"><span>Subtotal</span><span className="tabular-nums">{fmt(subtotal)}</span></div>
@@ -106,10 +111,10 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
         </div>
       </div>
       <p className="mt-4 rounded bg-gray-50 px-3 py-2 text-[12px] font-semibold tracking-wide text-gray-700">{inWords(s.total)}</p>
-      <div className="mt-10 grid grid-cols-2 gap-10 text-center text-[11.5px] text-gray-500">
+      {cfg.showSignatures !== false && <div className="mt-10 grid grid-cols-2 gap-10 text-center text-[11.5px] text-gray-500">
         <div className="border-t border-gray-400 pt-1">Firma del cliente</div>
         <div className="border-t border-gray-400 pt-1">Firma autorizada · {seller.split(" ")[0]}</div>
-      </div>
+      </div>}
     </ReceiptFrame>
   );
 }

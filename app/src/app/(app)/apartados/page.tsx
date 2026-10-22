@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { desc, eq, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db";
-import { clients, holdHistory, items } from "@/db/schema";
+import { clients, holdHistory, items, settings } from "@/db/schema";
+import { enabledMethods } from "@/lib/catalog";
 import { Chip, Empty, PageHeader } from "@/components/ui";
 import { fdate, fmt } from "@/lib/format";
 import { holdBal, holdLeft } from "@/lib/hold";
@@ -13,11 +14,13 @@ import { HoldActions } from "./hold-actions";
 export default async function Apartados() {
   await requireMe("credit");
   const db = await getDb();
-  const [its, cl, hist] = await Promise.all([
+  const [its, cl, hist, [cfg]] = await Promise.all([
     db.select().from(items).where(isNotNull(items.hold)),
     db.select().from(clients),
     db.select().from(holdHistory).orderBy(desc(holdHistory.t)).limit(15),
+    db.select().from(settings).limit(1),
   ]);
+  const methods = enabledMethods(cfg);
   const cn = new Map(cl.map((c) => [c.id, c]));
   const rows = its.filter((i) => i.hold).sort((a, b) => a.hold!.expires - b.hold!.expires);
   void eq;
@@ -42,7 +45,7 @@ export default async function Apartados() {
                   <div className="mt-1.5 flex justify-between text-[13px]"><span>Abonado <b>{fmt(h.abono)}</b></span><span>Saldo <b>{fmt(holdBal(it.price, h))}</b> de {fmt(it.price)}</span></div>
                   <div className="note">{h.pays.length} abono(s) · vence {fdate(h.expires)}</div>
                 </div>
-                <HoldActions itemId={it.id} balance={holdBal(it.price, h)} />
+                <HoldActions itemId={it.id} balance={holdBal(it.price, h)} methods={methods} />
                 {c?.phone && <a className="btn sm" target="_blank" rel="noopener noreferrer" href={waLink(c.phone, `Hola ${c.name.split(" ")[0]}, te recordamos que tu apartado ${h.no} (${uname(it)}) tiene un saldo de ${fmt(holdBal(it.price, h))} y vence el ${fdate(h.expires)}.`)}>💬 Recordar por WhatsApp</a>}
               </div>
             );
