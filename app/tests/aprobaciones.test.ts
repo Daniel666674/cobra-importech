@@ -78,3 +78,17 @@ describe("importar y deshacer", () => {
     expect((await get(f.id)).approval?.kind).toBe("baja");
   });
 });
+
+describe("vender un producto sin precio", () => {
+  it("el precio se escribe en caja y queda guardado; sin precio no se vende", async () => {
+    const it = await createItem(db, owner, acc("Cargador G"));
+    await db.update(items).set({ price: 0 }).where(eq(items.id, it.id));
+    await expect(createSale(db, emp, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: 1 }] })).rejects.toThrow(/precio/);
+    const s = await createSale(db, emp, { lines: [{ item: it.id, qty: 1, price: 60_000 }], payments: [{ method: "Efectivo", amount: 60_000 }] });
+    expect(s.total).toBe(60_000);
+    expect((await get(it.id)).price).toBe(60_000);
+    // con precio ya puesto, el de caja se ignora
+    const s2 = await createSale(db, emp, { lines: [{ item: it.id, qty: 1, price: 1_000 }], payments: [{ method: "Efectivo", amount: 60_000 }] });
+    expect(s2.total).toBe(60_000);
+  });
+});

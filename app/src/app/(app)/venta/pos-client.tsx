@@ -63,7 +63,9 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
 
-  const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it);
+  // Precio escrito en caja para productos sin precio de venta (queda guardado en el producto al cobrar).
+  const [typed, setTyped] = useState<Record<string, string>>({});
+  const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it).map((x) => ({ ...x, it: x.it.price > 0 ? x.it : { ...x.it, price: +(typed[x.it.id] ?? "") || 0 }, noPrice: !(x.it.price > 0) }));
   const T = posTotals([...cart.map((x) => ({ price: x.it.price, cost: x.it.cost, qty: x.l.qty })), ...customs.map((c) => ({ price: +c.price || 0, cost: +c.cost || 0, qty: c.qty }))], { type: discType, value: +disc || 0 }, finishing?.hold?.abono ?? 0);
   const anyItem = cart.length + customs.length > 0;
   const hold = mode === "apartado";
@@ -84,12 +86,14 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
 
   let why = "";
   if (!anyItem) why = "Agrega al menos un producto";
+  else if (cart.some((x) => x.noPrice && !(x.it.price > 0))) why = `Escribe el precio de venta de «${cart.find((x) => x.noPrice && !(x.it.price > 0))!.it.name}»`;
   else if (newC && !nc.name.trim()) why = "Escribe el nombre del cliente nuevo";
   else if (T.pct > 0 && !reason.trim()) why = "Indica el motivo del descuento";
   else if (T.pct > cfg.maxDisc && !can.discount) why = `El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`;
   else if (T.total < T.cost && !can.discount) why = "El total queda por debajo del costo: pide autorización";
   else if (hold) {
     if (cart.length !== 1 || cartHasQty || customs.length) why = "El apartado es para un solo equipo del inventario";
+    else if (cart[0].noPrice) why = "Para apartar, primero ponle precio al equipo en su ficha";
     else if (!client && !newC) why = "Elige o crea el cliente para apartar";
     else if (!(+abono > 0)) why = "Escribe el valor del abono";
     else if (+abono < min) why = `El abono mínimo es ${fmt(min)} (${cfg.apartadoMinPct}%)`;
@@ -130,7 +134,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
         router.push("/apartados");
       } else {
         const r = await createSaleAction({
-          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty })), client: client_, newClient,
+          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice ? { price: x.it.price } : {}) })), client: client_, newClient,
           custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0, batt: c.batt === "" ? null : +c.batt })),
           discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
           tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
@@ -202,9 +206,10 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
             </div>
           ) : (
             <ul className="space-y-2">
-              {cart.map(({ l, it }) => (
-                <li key={l.id} className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
+              {cart.map(({ l, it, noPrice }) => (
+                <li key={l.id} className="flex flex-wrap items-center gap-2">
+                  <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí" : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
+                  {noPrice && <input type="number" min={0} step={10000} className={`!w-32 ${it.price > 0 ? "" : "!border-amber-t"}`} placeholder="Precio venta" aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(e) => setTyped({ ...typed, [it.id]: e.target.value })} autoFocus />}
                   {isQty(it) && <input type="number" aria-label="Cantidad" className="!w-16" min={1} max={it.qty} value={l.qty} onChange={(e) => setQty(l.id, +e.target.value)} />}
                   <b className="tabular-nums w-24 text-right">{fmt(it.price * l.qty)}</b>
                   {!(finishing && finishing.id === l.id) && <button type="button" className="btn sm" aria-label={`Quitar ${it.name}`} onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}>✕</button>}

@@ -19,7 +19,8 @@ const clientNew = z.object({
 });
 
 export const saleInput = z.object({
-  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1) })).default([]),
+  /** `price`: solo para productos sin precio de venta (se escribe en caja y queda guardado en el producto). */
+  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: z.coerce.number().int().min(1).max(1e10).optional() })).default([]),
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
@@ -83,10 +84,13 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const rows = await tx.select().from(items).where(inArray(items.id, ids)).for("update");
     if (rows.length !== ids.length) throw new AppError("Un producto de la venta ya no existe", "notfound");
     const byId = new Map(rows.map((r) => [r.id, r]));
-    const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty }));
-    for (const { it, qty } of lines) {
+    const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty, price: l.price }));
+    const priced: { id: string; price: number }[] = [];
+    for (const { it, qty, price } of lines) {
       if (!isAvail(it) && it.id !== input.holdItem) throw new AppError(`«${uname(it)}» ya no está disponible`, "conflict");
-      if (!(it.price > 0)) throw new AppError(`«${uname(it)}» no tiene precio de venta: pónselo antes de venderlo`, "invalid");
+      // Sin precio de venta: se toma el que se escribió en caja y se guarda en el producto.
+      if (!(it.price > 0) && price) { it.price = price; priced.push({ id: it.id, price }); }
+      if (!(it.price > 0)) throw new AppError(`«${uname(it)}» no tiene precio de venta: escríbelo en la venta`, "invalid");
       if (isQty(it) ? qty > it.qty : qty !== 1) throw new AppError(isQty(it) ? `Solo hay ${it.qty} de «${it.name}»` : `«${uname(it)}» es un equipo único`, "conflict");
     }
     let hold: Hold | null = null;
@@ -120,6 +124,10 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     for (const c of input.custom) if (/iphone/i.test(c.name) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
     for (const c of input.custom)
       saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0 });
+    for (const p of priced) {
+      await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
+      await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);
+    }
     const received = [];
     for (const p of trades) {
       p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");
