@@ -180,7 +180,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
       {tab === "caja" && <>
         <div className="card p-4">
           <h2 className="font-semibold mb-1">Formas de pago</h2>
-          <p className="note mb-3">Las que no marques no aparecen en caja ni en apartados. El <b>recargo</b> se suma a lo que el cliente paga con ese medio (p. ej. Addi 12 %, Vanti 6 %, tarjeta de crédito 7 %).</p>
+          <p className="note mb-3">Las que no marques no aparecen en caja ni en apartados. El <b>recargo</b> se aplica dividiendo: lo que paga con ese medio ÷ (1 − %). Ej.: Addi 12 % → precio ÷ 0,88; Vanti 6 % → ÷ 0,94; crédito 7 % → ÷ 0,93. Solo aparece en caja después de elegir la forma de pago.</p>
           <div className="flex flex-wrap gap-3">
             {methods.all.map((m) => <div key={m} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px]">
               <label className="flex items-center gap-2"><input type="checkbox" className="!w-auto" checked={on.includes(m)} onChange={(e) => setOn(e.target.checked ? methods.all.filter((x) => x === m || on.includes(x)) : on.filter((x) => x !== m))} />{m}</label>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getDb } from "@/db";
 import { CondChip, Empty, PageHeader, StatusChip } from "@/components/ui";
 import { CATS, CONDS, STATUSES } from "@/lib/catalog";
-import { daysIn, itemState, isQty, stockQty, margin, marginPct } from "@/lib/items";
+import { daysIn, itemState, isQty, stockQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
 import { hasPerm } from "@/server/auth";
 import { listItems } from "@/server/inventory";
@@ -34,7 +34,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
       <div className="card overflow-x-auto">
         {rows.length === 0 ? <Empty>No hay productos con esos filtros.</Empty> : (
           <table className="t" id="inv-t">
-            <thead><tr><th>Producto</th><th>Condición</th><th>Estado</th><th className="num">Días</th>{canCost && <th className="num">Costo</th>}<th className="num">Precio</th>{canCost && <th className="num">Margen</th>}</tr></thead>
+            <thead><tr><th>Producto</th><th>Condición</th><th>Estado</th><th className="num">Días</th>{canCost && <th className="num">Costo</th>}<th className="num">Precio</th></tr></thead>
             <tbody>
               {rows.map((it) => (
                 <tr key={it.id} className="hover:bg-gray-bg/60">
@@ -47,7 +47,6 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
                   <td className="num">{daysIn(it)}</td>
                   {canCost && <td className="num">{fmt(it.cost + it.repairs)}</td>}
                   <td className="num"><b>{fmt(it.price)}</b></td>
-                  {canCost && <td className="num">{marginPct(it)}% <span className="note">({fmt(margin(it))})</span></td>}
                 </tr>
               ))}
             </tbody>

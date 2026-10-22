@@ -66,7 +66,6 @@ export type BuildOpts = {
   /** Condición cuando el archivo no la trae. */
   defaultCond?: string;
   /** Si no hay precio de venta: costo + este % (redondeado a 10.000). null = dejarlo sin precio. */
-  markup?: number | null;
 };
 
 const SMALL = new Set(["de", "del", "la", "el", "y", "con", "sin"]);
@@ -124,8 +123,9 @@ export function buildItems(rows: string[][], map: InvMapping, opts: BuildOpts) {
     const priceRaw = get(r, "price");
     let price = priceRaw ? parseNum(priceRaw) : NaN;
     if (!(price > 0)) {
-      if (priceRaw) return issues.push({ row, msg: `Precio de venta no válido: «${priceRaw}»` });
-      price = opts.markup != null && cost > 0 ? Math.ceil((cost * (1 + opts.markup / 100)) / 10_000) * 10_000 : 0;
+      // Texto en la columna de precio (p. ej. «GARANTIA»): entra sin precio y se deja anotado.
+      if (priceRaw) notes.push(`Precio en el archivo: «${priceRaw}»`);
+      price = 0;
     }
     const qRaw = get(r, "qty");
     const n = qRaw ? Math.round(parseNum(qRaw)) : 1;
@@ -191,7 +191,7 @@ export function guessByContent(rows: string[][]): InvMapping {
   take("spec", (v) => /^(32|64|128|256|512|1|2)\s*(gb|tb)?$/i.test(v.trim()));
   take("color", (v) => COLORS.test(v.trim()), 0.5);
   take("batt", (v) => /^\d{2,3}%?$/.test(v) && +v.replace("%", "") >= 40 && +v.replace("%", "") <= 100, 0.6);
-  take("cost", (v) => { const n = parseNum(v.replace(/'/g, ".")); return n >= 50_000 || (n > 0 && /'/.test(v)); }, 0.4);
+  take("price", (v) => { const n = parseNum(v.replace(/'/g, ".")); return n >= 50_000 || (n > 0 && /'/.test(v)); }, 0.4);
   take("notes", (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$|^\d{3,6}$/.test(v), 0.4);
   return map;
 }

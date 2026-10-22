@@ -50,6 +50,13 @@
       "when": 1792701537080,
       "tag": "0006_recargos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792704755817,
+      "tag": "0007_precios_importados",
+      "breakpoints": true
     }
   ]
 }

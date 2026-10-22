@@ -49,7 +49,6 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
   const [busy, setBusy] = useState(false);
   const [header, setHeader] = useState(first?.header ?? true);
   const [defaultCond, setDefaultCond] = useState("Usado");
-  const [markup, setMarkup] = useState("25");
 
   // Se saltan las filas vacías del comienzo (muchos libros de Excel empiezan en la fila 2 o 3).
   const start = useMemo(() => Math.max(0, file?.rows.findIndex((r) => r.some((c) => c && c.trim())) ?? 0), [file]);
@@ -58,7 +57,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
   const headers = useMemo(() => Array.from({ length: width }, (_, i) => (header ? file?.rows[start]?.[i] || `Columna ${letter(i)}` : `Columna ${letter(i)}`)), [file, start, width, header]);
   const body = useMemo(() => file?.rows.slice(header ? start + 1 : start) ?? [], [file, start, header]);
   const firstRow = start + (header ? 2 : 1);
-  const opts = useMemo(() => ({ warr, firstRow, defaultCond, markup: markup.trim() === "" ? null : Math.max(0, +markup || 0) }), [warr, firstRow, defaultCond, markup]);
+  const opts = useMemo(() => ({ warr, firstRow, defaultCond}), [warr, firstRow, defaultCond]);
   const parsed = useMemo(() => (file && map.name !== undefined ? buildItems(body, map, opts) : null), [file, body, map, opts]);
   // IMEI/seriales que ya están en el sistema: se muestran y no se importan (no hay duplicados).
   const [dupes, setDupes] = useState<{ key: string; list: { serial: string; id: string; status: string; name: string }[] }>({ key: "", list: [] });
@@ -154,9 +153,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
         <div className="card p-4 grid gap-3 md:grid-cols-2">
             <div><label className="lb" htmlFor="inv-cond">Condición cuando el archivo no la dice</label>
               <select id="inv-cond" value={defaultCond} onChange={(e) => setDefaultCond(e.target.value)}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select></div>
-            <div><label className="lb" htmlFor="inv-markup">Si no hay precio de venta: costo + margen (%)</label>
-              <input id="inv-markup" type="number" min={0} max={300} value={markup} onChange={(e) => setMarkup(e.target.value)} placeholder="Vacío = sin precio" />
-              <p className="note mt-1">Se redondea a los 10.000 siguientes. Déjalo vacío para ponerle precio a cada uno después (sin precio no se puede vender).</p></div>
+            <p className="note self-end">El valor del archivo es el <b>precio al cliente</b>. El recargo de Addi, Vanti o tarjeta de crédito se agrega solo en caja, al elegir la forma de pago.</p>
         </div>
       )}
       {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos la columna «Producto / modelo» para ver la vista previa.</p>}
