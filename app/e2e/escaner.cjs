@@ -4,7 +4,7 @@ const B='http://localhost:3101';
 (async()=>{
  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']});
  const ctx=await b.newContext({viewport:{width:1280,height:900}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPin','2222');
+ await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPass','Vitrina#7Luna');await p.fill('#ownerPass2','Vitrina#7Luna');
  await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
  await p.goto(B+'/ingreso');await p.click('button:has-text("Escanear")');await p.waitForSelector('[role=dialog]');
  await p.waitForTimeout(1500);ok(await p.locator('video').count()===1,'abre el diálogo con la cámara (cámara de prueba)');

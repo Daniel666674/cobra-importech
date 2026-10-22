@@ -3,6 +3,7 @@ import {
   boolean,
   doublePrecision,
   index,
+  uniqueIndex,
   integer,
   jsonb,
   pgTable,
@@ -108,13 +109,18 @@ export const users = pgTable("users", {
   email: text("email").notNull().default(""),
   role: text("role").notNull().references(() => roles.key),
   active: boolean("active").notNull().default(true),
+  /** Usuario para entrar (minúsculas, único). */
+  username: text("username").notNull().default(""),
+  /** Hash bcrypt de la contraseña (antes era el PIN; el nombre de la columna se conserva). */
   pinHash: text("pin_hash").notNull(),
+  /** Debe cambiar la contraseña antes de usar el sistema (contraseña temporal o PIN antiguo). */
+  mustChange: boolean("must_change").notNull().default(false),
   failed: integer("failed").notNull().default(0),
   lockedUntil: ms("locked_until").notNull().default(0),
   /** Sube al cambiar el PIN o desactivar: invalida las sesiones abiertas. */
   sessionV: integer("session_v").notNull().default(0),
   createdAt: ms("created_at").notNull(),
-});
+}, (t) => [uniqueIndex("users_username").on(t.username)]);
 
 export const clients = pgTable("clients", {
   id: text("id").primaryKey(),

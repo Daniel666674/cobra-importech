@@ -36,6 +36,13 @@
       "when": 1792684670656,
       "tag": "0004_retomas_y_aliadas",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792690213689,
+      "tag": "0005_contrasenas",
+      "breakpoints": true
     }
   ]
 }

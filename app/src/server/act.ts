@@ -16,6 +16,7 @@ export async function act<T>(fn: (db: Db, a: Actor) => Promise<T>, paths: string
   try {
     const me = await getMe();
     if (!me) return { ok: false, error: "Tu sesión terminó. Vuelve a entrar." };
+    if (me.mustChange) return { ok: false, error: "Primero cambia tu contraseña temporal." };
     const data = await fn(await getDb(), toActor(me));
     for (const p of paths) revalidatePath(p, "layout");
     return { ok: true, data };

@@ -52,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <b className="block text-[13px]">{me.name}</b>
             <span className="note">{me.roleName}</span>
           </div>
+          <Link href="/cuenta" className="btn sm" title="Cambiar contraseña">🔑</Link>
           <form action={logout}><button className="btn sm" title="Cerrar sesión">Salir</button></form>
         </div>
       </aside>
@@ -62,6 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <summary className="btn sm list-none">☰ Menú</summary>
             <div className="card absolute right-0 mt-2 w-64 p-3 shadow-lg">
               <Nav items={nav} />
+              <Link href="/cuenta" className="btn sm w-full mt-2">🔑 Cambiar contraseña</Link>
               <form action={logout} className="mt-2 border-t border-line pt-2"><button className="btn sm w-full">Salir · {me.name}</button></form>
             </div>
           </details>

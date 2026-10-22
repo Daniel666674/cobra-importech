@@ -27,6 +27,23 @@ async function readText(f: File) {
   return utf.includes("�") ? new TextDecoder("windows-1252").decode(buf) : utf;
 }
 
+/** Lee la primera hoja con datos de un Excel (.xlsx) y la deja como texto, igual que un CSV. */
+async function readExcel(f: File): Promise<string[][]> {
+  const { default: readXlsxFile } = await import("read-excel-file/browser");
+  const sheets = await readXlsxFile(f);
+  const sheet = sheets.find((s) => s.data.some((r) => r.some((c) => c !== null && String(c).trim() !== ""))) ?? sheets[0];
+  const two = (n: number) => String(n).padStart(2, "0");
+  const cell = (c: unknown) => {
+    if (c === null || c === undefined) return "";
+    // Excel guarda fechas sin zona horaria: se leen como vienen (año-mes-día hora:minuto).
+    if (c instanceof Date) return `${c.getUTCFullYear()}-${two(c.getUTCMonth() + 1)}-${two(c.getUTCDate())} ${two(c.getUTCHours())}:${two(c.getUTCMinutes())}`;
+    return String(c).trim();
+  };
+  return (sheet?.data ?? []).map((r) => r.map(cell)).filter((r) => r.some(Boolean));
+}
+
+const isExcel = async (f: File) => /\.xlsx$/i.test(f.name) || new TextDecoder().decode(await f.slice(0, 2).arrayBuffer()) === "PK";
+
 type Result = { created: number; skipped: number; newClients: number; amount: number };
 
 export function ImportSales({ warr, onDone }: { warr: Record<string, number>; onDone: () => void }) {
@@ -58,7 +75,13 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
   async function pick(f: File) {
     setErr(""); setResult(null); setFailed("");
     if (f.size > 15_000_000) return setErr("El archivo pesa más de 15 MB. Divídelo por años.");
-    const rows = parseCsv(await readText(f));
+    if (/\.xls$/i.test(f.name)) return setErr("Ese es el formato antiguo de Excel (.xls). Ábrelo en Excel y guárdalo como .xlsx o como CSV.");
+    let rows: string[][];
+    try {
+      rows = (await isExcel(f)) ? await readExcel(f) : parseCsv(await readText(f));
+    } catch {
+      return setErr("No se pudo leer el archivo. Si es Excel, guárdalo como .xlsx o CSV e inténtalo de nuevo.");
+    }
     if (rows.length < 2) return setErr("El archivo está vacío o no tiene filas de datos.");
     setFile({ name: f.name, rows });
     const m = guessMapping(rows[0]);
@@ -92,12 +115,12 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
       <div className="card p-4">
         <h2 className="font-semibold mb-1">Importar historial de ventas</h2>
         <p className="note mb-3">
-          Sube el CSV exportado del sistema anterior o de Excel («Guardar como → CSV»). Cada fila es un producto vendido;
+          Sube el archivo de Excel (.xlsx) o CSV exportado del sistema anterior. Cada fila es un producto vendido;
           las filas con el mismo número de factura se agrupan en una venta. No cambia el inventario actual: sirve para reportes,
           clientes y para consultar garantías por IMEI. Puedes subir el mismo archivo otra vez sin duplicar.
           Si los datos están en cuadernos o en un Excel suelto, descarga la plantilla, llénala y súbela.
         </p>
-        <label className="btn primary cursor-pointer">📄 Elegir archivo CSV<input type="file" accept=".csv,.txt,text/csv,text/plain" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ""; }} /></label>
+        <label className="btn primary cursor-pointer">📄 Elegir archivo (Excel o CSV)<input type="file" accept=".xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ""; }} /></label>
         <button type="button" className="btn ml-2" onClick={downloadTemplate}>⬇️ Descargar plantilla</button>
         {file && <span className="note ml-3">{file.name} · {body.length} filas · {headers.length} columnas</span>}
         {err && <p role="alert" className="chip bad !rounded-md mt-3">{err}</p>}

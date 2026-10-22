@@ -1,36 +1,20 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
-import { initials } from "@/lib/format";
+import { PasswordInput } from "@/components/password-input";
 
-export function LoginForm({ users }: { users: { id: string; name: string; role: string }[] }) {
+export function LoginForm() {
   const [state, action, pending] = useActionState(login, null);
-  const [sel, setSel] = useState(users[0]?.id ?? "");
   return (
     <form action={action} className="space-y-4">
-      <input type="hidden" name="user" value={sel} />
-      <div className="grid gap-2">
-        {users.map((u) => (
-          <button
-            type="button"
-            key={u.id}
-            onClick={() => setSel(u.id)}
-            className={`flex items-center gap-3 rounded-lg border p-3 text-left ${sel === u.id ? "border-accent ring-2 ring-accent/30" : "border-line"}`}
-          >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-brand text-white text-xs font-bold">{initials(u.name)}</span>
-            <span>
-              <b className="block">{u.name}</b>
-              <span className="note">{u.role}</span>
-            </span>
-          </button>
-        ))}
-      </div>
       <div>
-        <label className="lb" htmlFor="pin">PIN</label>
-        <input id="pin" name="pin" type="password" inputMode="numeric" autoComplete="current-password" maxLength={6} placeholder="••••" required autoFocus />
+        <label className="lb" htmlFor="username">Usuario</label>
+        <input id="username" name="username" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required autoFocus />
       </div>
+      <PasswordInput id="password" name="password" label="Contraseña" autoComplete="current-password" />
       {state?.error && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{state.error}</p>}
-      <button className="btn primary w-full" disabled={pending || !sel}>{pending ? "Entrando…" : "Entrar"}</button>
+      <button className="btn primary w-full" disabled={pending}>{pending ? "Entrando…" : "Entrar"}</button>
+      <p className="note text-center">¿Olvidaste la contraseña? Pídele al propietario/a que te la restablezca.</p>
     </form>
   );
 }

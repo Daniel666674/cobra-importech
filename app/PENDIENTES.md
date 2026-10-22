@@ -33,7 +33,6 @@ Estado al 22 de octubre de 2026. Orden sugerido: primero lo que bloquea el arran
 
 | # | Qué | Nota |
 |---|---|---|
-| 13 | Login sin la lista pública de usuarios (escribir el nombre) | Hoy la pantalla de entrada muestra nombres y roles a cualquiera. |
 | 14 | Copias automáticas | Hoy son manuales (CSV en Configuración → Respaldo). Neon guarda historial según el plan; agregar una exportación semanal automática. |
 | 15 | Dominio propio (`inventario.importech.co`) | Más confiable que `*.vercel.app` para la clienta. |
 
@@ -46,4 +45,6 @@ Estado al 22 de octubre de 2026. Orden sugerido: primero lo que bloquea el arran
 - Error corregido: las ventas con descuento en pesos fallaban al guardar en Postgres.
 - Retoma como parte de pago en caja: el equipo entra solo al inventario dentro de la misma venta.
 - Tiendas aliadas (consignación o compra): cuánto se les paga, cuánto gana la tienda, cuenta y pagos.
+- Usuario y contraseña (reglas fuertes, temporales al crear/restablecer, cambio obligatorio, login sin lista de usuarios).
+- Importar ventas directamente desde Excel (.xlsx), además de CSV.
 - Compras e importación desactivadas por ahora (la página redirige a Tiendas aliadas; los datos se conservan).

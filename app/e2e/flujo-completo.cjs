@@ -6,7 +6,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
  const ctx=await b.newContext({viewport:{width:1280,height:900}});const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
  p.on('dialog',d=>d.accept());
- await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPin','2222');
+ await p.goto(B+'/setup');await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPass','Vitrina#7Luna');await p.fill('#ownerPass2','Vitrina#7Luna');
  await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
  const addPhone=async(imei,name,price)=>{await p.goto(B+'/ingreso');await p.fill('#imei',imei);await p.click('#verify-btn');await p.waitForSelector('section[aria-label="Verificación oficial"]',{timeout:20000});
   await p.fill('#i-name',name);await p.fill('#i-spec','128 GB');await p.fill('#i-cost',String(Math.round(price*0.7)));await p.fill('#i-price',String(price));

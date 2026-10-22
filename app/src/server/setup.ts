@@ -5,6 +5,8 @@ import { counters, roles, settings, users } from "@/db/schema";
 import { DEFAULT_ROLES } from "./roles";
 import { AppError } from "./core";
 import { hashPin } from "./auth";
+import { PW_MAX, passwordProblem } from "@/lib/password";
+import { usernameSchema } from "./admin";
 
 /** La herramienta está "vacía" hasta que se complete la configuración inicial. */
 export async function needsSetup(db: Db): Promise<boolean> {
@@ -12,21 +14,31 @@ export async function needsSetup(db: Db): Promise<boolean> {
   return n === 0;
 }
 
-const pin = z.string().regex(/^\d{4,6}$/, "El PIN debe tener de 4 a 6 números");
 export const setupInput = z.object({
   business: z.string().trim().min(2, "Escribe el nombre del negocio"),
   ownerName: z.string().trim().min(2, "Escribe el nombre del propietario/a"),
-  ownerPin: pin,
+  ownerUser: usernameSchema,
+  ownerPass: z.string().max(PW_MAX),
+  ownerPass2: z.string().max(PW_MAX),
   devName: z.string().trim().default(""),
-  devPin: z.string().default(""),
+  devUser: z.string().trim().toLowerCase().default(""),
+  devPass: z.string().max(PW_MAX).default(""),
 });
 
 /** Configuración inicial: negocio, roles y el primer usuario (más un desarrollador opcional). Sin datos de ejemplo. */
 export async function runSetup(db: Db, raw: unknown) {
   const v = setupInput.parse(raw);
-  if (v.devName && !pin.safeParse(v.devPin).success) throw new AppError("El PIN del desarrollador debe tener de 4 a 6 números", "invalid");
-  const ownerHash = await hashPin(v.ownerPin);
-  const devHash = v.devName ? await hashPin(v.devPin) : "";
+  if (v.ownerPass !== v.ownerPass2) throw new AppError("La confirmación de la contraseña no coincide", "invalid");
+  const p1 = passwordProblem(v.ownerPass, { name: v.ownerName, username: v.ownerUser, business: v.business });
+  if (p1) throw new AppError(p1, "invalid");
+  if (v.devName) {
+    usernameSchema.parse(v.devUser);
+    if (v.devUser === v.ownerUser) throw new AppError("El desarrollador necesita un usuario distinto al del propietario/a", "invalid");
+    const p2 = passwordProblem(v.devPass, { name: v.devName, username: v.devUser, business: v.business });
+    if (p2) throw new AppError("Desarrollador: " + p2, "invalid");
+  }
+  const ownerHash = await hashPin(v.ownerPass);
+  const devHash = v.devName ? await hashPin(v.devPass) : "";
   return db.transaction(async (tx) => {
     if (!(await needsSetup(tx))) throw new AppError("La configuración inicial ya se hizo", "conflict");
     await tx.insert(settings).values({
@@ -35,8 +47,8 @@ export async function runSetup(db: Db, raw: unknown) {
     });
     await tx.insert(roles).values(Object.entries(DEFAULT_ROLES).map(([key, r]) => ({ key, name: r.name, locked: !!r.locked, perms: r.perms })));
     const now = Date.now();
-    const rows = [{ id: "u1", name: v.ownerName, email: "", role: "owner", active: true, pinHash: ownerHash, createdAt: now }];
-    if (v.devName) rows.push({ id: "u2", name: v.devName, email: "", role: "dev", active: true, pinHash: devHash, createdAt: now });
+    const rows = [{ id: "u1", name: v.ownerName, username: v.ownerUser, email: "", role: "owner", active: true, pinHash: ownerHash, createdAt: now }];
+    if (v.devName) rows.push({ id: "u2", name: v.devName, username: v.devUser, email: "", role: "dev", active: true, pinHash: devHash, createdAt: now });
     await tx.insert(users).values(rows);
     await tx.insert(counters).values([{ key: "user", value: rows.length }, { key: "invoice", value: 1000 }, { key: "hold", value: 0 }, { key: "receipt", value: 0 }]);
     return rows[0].id;
