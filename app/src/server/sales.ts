@@ -2,7 +2,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, clients, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
-import { METHODS, feeFor, surchargeOf } from "@/lib/catalog";
+import { CONDS, METHODS, feeFor, surchargeOf } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
@@ -19,7 +19,14 @@ const clientNew = z.object({
 });
 
 export const saleInput = z.object({
-  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1) })).min(1, "Agrega al menos un producto"),
+  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1) })).default([]),
+  /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
+  custom: z.array(z.object({
+    name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
+    cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), qty: z.coerce.number().int().min(1).max(1000).default(1),
+    price: z.coerce.number().int().min(1, "Escribe el precio del producto fuera de inventario"), cost: z.coerce.number().int().min(0).default(0),
+    warr: z.coerce.number().int().min(0).max(60).default(0),
+  })).max(20).default([]),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
   discount: z.object({ type: z.enum(["pct", "cop"]), value: z.coerce.number().min(0) }).default({ type: "pct", value: 0 }),
@@ -68,6 +75,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     trades.push(p);
   }
   const tradeTotal = trades.reduce((x, p) => x + p.input.cost, 0);
+  if (!input.lines.length && !input.custom.length) throw new AppError("Agrega al menos un producto", "invalid");
   return db.transaction(async (tx) => {
     const ids = input.lines.map((l) => l.item);
     if (new Set(ids).size !== ids.length) throw new AppError("Hay productos repetidos en la venta", "invalid");
@@ -86,7 +94,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       if (!hi?.hold) throw new AppError("El apartado ya no existe", "conflict");
       hold = hi.hold;
     }
-    const T = posTotals(lines.map(({ it, qty }) => ({ price: it.price, cost: it.cost, qty })), input.discount, hold ? hold.abono : 0);
+    const T = posTotals([...lines.map(({ it, qty }) => ({ price: it.price, cost: it.cost, qty })), ...input.custom.map((c) => ({ price: c.price, cost: c.cost, qty: c.qty }))], input.discount, hold ? hold.abono : 0);
     if (T.pct > 0 && !input.discReason) throw new AppError("Indica el motivo del descuento", "invalid");
     if (T.pct > cfg.maxDisc && !can(a, "discount")) throw new AppError(`El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`, "forbidden");
     if (T.total < T.cost && !can(a, "discount")) throw new AppError("El total queda por debajo del costo: pide autorización", "forbidden");
@@ -108,6 +116,8 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, qty, price: it.price,
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
+    for (const c of input.custom)
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0 });
     const received = [];
     for (const p of trades) {
       p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");

@@ -138,3 +138,17 @@ describe("recargo por forma de pago", () => {
     expect(s3.surcharge).toBe(Math.round(it3.price * 0.06));
   });
 });
+
+describe("producto fuera de inventario", () => {
+  it("se factura sin tocar el inventario, con IMEI y garantía en el comprobante", async () => {
+    const before = (await db.select().from(items)).length;
+    const s = await createSale(db, owner, { custom: [{ name: "iPhone 15 Pro", spec: "256 GB", cond: "Usado", serial: "356000000000000", price: 3_000_000, cost: 2_500_000, warr: 3 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
+    expect(s.total).toBe(3_000_000);
+    expect(s.lines[0]).toMatchObject({ item: "", name: "iPhone 15 Pro · 256 GB", serial: "356000000000000", warr: 3, cost: 2_500_000 });
+    expect((await db.select().from(items)).length).toBe(before);
+    const it = await stockPhone();
+    const s2 = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], custom: [{ name: "Cargador", price: 100_000 }], payments: [{ method: "Efectivo", amount: it.price + 100_000 }] });
+    expect(s2.lines).toHaveLength(2);
+    await expect(createSale(db, owner, { payments: [] })).rejects.toThrow(/al menos un producto/);
+  });
+});
