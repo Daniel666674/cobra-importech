@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
-import { officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
+import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
 import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
@@ -16,6 +16,7 @@ export const itemInput = z.object({
   color: z.string().trim().default(""),
   cond: z.enum(CONDS).default("Nuevo"),
   serial: z.string().trim().default(""),
+  serial2: z.string().trim().default(""),
   qty: z.coerce.number().int().min(0).default(1),
   cost: z.coerce.number().int().min(0, "El costo no puede ser negativo").default(0),
   price: z.coerce.number().int().min(1, "Escribe el precio de venta"),
@@ -42,6 +43,17 @@ function checks(a: Actor, o: OfficialPayload): ImeiCheck {
   return { crc: mk(o.crc), apple: mk(o.apple) };
 }
 
+/** Valida el segundo IMEI: 15 dígitos, dígito de control, distinto del primero y que no esté en otro equipo. */
+export async function checkImei2(db: Db, raw: string, imei1: string, exceptId = "") {
+  const v = raw.replace(/\D/g, "");
+  if (!v) return "";
+  if (v.length !== 15 || !luhnOk(v)) throw new AppError(`El IMEI 2 no es válido: «${raw}»`, "invalid");
+  if (v === imei1) throw new AppError("El IMEI 2 no puede ser igual al IMEI 1", "invalid");
+  const [dup] = await db.select({ id: items.id }).from(items).where(sql`(${items.serial} = ${v} or ${items.serial2} = ${v}) and ${items.id} <> ${exceptId}`).limit(1);
+  if (dup) throw new AppError(`El IMEI 2 ya está registrado en ${dup.id}`, "invalid");
+  return v;
+}
+
 export type PreparedItem = Awaited<ReturnType<typeof prepareItem>>;
 
 /**
@@ -64,6 +76,8 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
     input.src = "Aliada: " + ally.name;
   }
 
+  if (isPhone && input.batt == null) throw new AppError("Escribe la salud de la batería (%) del equipo", "invalid");
+  if (isPhone && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
   if (isPhone) {
     const imei = input.serial.replace(/\D/g, "");
     const res = await verifyImei(db, imei);
@@ -98,7 +112,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
   const id = "I-" + String(n).padStart(4, "0");
   const row = {
     id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
-    color: input.color, cond: input.cond, serial: input.serial, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
+    color: input.color, cond: input.cond, serial: input.serial, serial2: input.serial2, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
     warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
     min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "",
   };
@@ -124,7 +138,7 @@ export async function createItem(db: Db, a: Actor, raw: unknown, opts: { officia
   return db.transaction((tx) => insertItem(tx, a, p));
 }
 
-export const itemPatch = itemInput.pick({ name: true, spec: true, color: true, cond: true, qty: true, cost: true, price: true, warr: true, batt: true, notes: true, min: true }).partial();
+export const itemPatch = itemInput.pick({ serial2: true, name: true, spec: true, color: true, cond: true, qty: true, cost: true, price: true, warr: true, batt: true, notes: true, min: true }).partial();
 
 export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "inv_edit");
@@ -137,6 +151,7 @@ export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
     if (patch.cost != null && patch.cost !== it.cost) ch.push(`Costo ${fmt(it.cost)} → ${fmt(patch.cost)}`);
     if (patch.qty != null && isQty(it) && patch.qty !== it.qty) ch.push(`Cantidad ${it.qty} → ${patch.qty}`);
     if (patch.cond != null && patch.cond !== it.cond) ch.push(`Condición ${it.cond} → ${patch.cond}`);
+    if (patch.serial2 != null) patch.serial2 = await checkImei2(tx, patch.serial2, it.serial, it.id);
     const next = { ...patch };
     if (!isQty(it)) delete next.qty;
     await tx.update(items).set(next).where(eq(items.id, id));
@@ -167,7 +182,7 @@ export async function listItems(db: Db, f: ItemFilter = {}) {
     if (f.cond && it.cond !== f.cond) return false;
     if (f.status === "stock" && !(isQty(it) ? it.qty > 0 : it.status !== "Vendido")) return false;
     if (f.status && f.status !== "stock" && it.status !== f.status) return false;
-    if (q && !(`${it.name} ${it.spec} ${it.color} ${it.serial} ${it.sku} ${it.id}`.toLowerCase().includes(q))) return false;
+    if (q && !(`${it.name} ${it.spec} ${it.color} ${it.serial} ${it.serial2} ${it.sku} ${it.id}`.toLowerCase().includes(q))) return false;
     return true;
   });
 }
@@ -249,6 +264,19 @@ export async function releaseAllReview(db: Db, a: Actor) {
     const rows = await tx.update(items).set({ status: "En vitrina" }).where(eq(items.status, "En revisión")).returning({ id: items.id });
     for (const r of rows) await addEvent(tx, r.id, a, "En vitrina", `Pasado a vitrina por ${a.name} sin consulta oficial registrada en el sistema`, "warn");
     if (rows.length) await logFeed(tx, a, "owner", "✅", `${rows.length} equipos pasados de «En revisión» a vitrina por <b>${esc(a.name)}</b>`);
+    return rows.length;
+  });
+}
+
+/** Pone precio a los productos sin precio de venta: costo + la ganancia en pesos que elija la tienda. */
+export async function priceUnpriced(db: Db, a: Actor, gain: number) {
+  need(a, "inv_edit");
+  const g = z.coerce.number().int().min(1, "Escribe la ganancia en pesos").max(1e9).parse(gain);
+  return db.transaction(async (tx) => {
+    const rows = await tx.update(items).set({ price: sql`${items.cost} + ${g}` })
+      .where(and(eq(items.price, 0), sql`${items.cost} > 0`, inArray(items.status, ["En vitrina", "En revisión"]))).returning({ id: items.id, price: items.price });
+    for (const r of rows) await addEvent(tx, r.id, a, "Precio asignado", `Costo + ${fmt(g)} = ${fmt(r.price)}`);
+    if (rows.length) await logFeed(tx, a, "reprice", "🏷️", `${rows.length} productos sin precio quedaron en costo + ${fmt(g)} · ${esc(a.name)}`);
     return rows.length;
   });
 }

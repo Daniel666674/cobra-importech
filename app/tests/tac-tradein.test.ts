@@ -21,8 +21,8 @@ describe("modelo por TAC", () => {
   const b = withCheck("49015420222222"); // mismo TAC
   it("un TAC desconocido pide aprobación y luego se recuerda", async () => {
     expect((await verifyImei(db, a)).verdict).toBe("review");
-    await expect(createItem(db, owner, { cat: "iPhone", name: "iPhone 14", serial: a, price: 2000000 }, { official: ok })).rejects.toThrow(/aprobación/);
-    await createItem(db, owner, { cat: "iPhone", name: "iPhone 14", serial: a, price: 2000000 }, { official: ok, ownerApproved: true });
+    await expect(createItem(db, owner, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: a, price: 2000000 }, { official: ok })).rejects.toThrow(/aprobación/);
+    await createItem(db, owner, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: a, price: 2000000 }, { official: ok, ownerApproved: true });
     const r = await verifyImei(db, b);
     expect(r.verdict).toBe("clean");
     expect(r.modelName).toBe("iPhone 14");
@@ -44,9 +44,9 @@ describe("retomas", () => {
   });
   it("quien tiene permiso de trade-in puede recibirla sin editar inventario", async () => {
     const imei = withCheck("49015420333333");
-    const r = await createItem(db, emp, { cat: "iPhone", name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado" }, { official: ok });
+    const r = await createItem(db, emp, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado" }, { official: ok });
     expect(r.src).toBe("Trade-in");
-    await expect(createItem(db, emp, { cat: "iPhone", name: "iPhone 14", serial: withCheck("49015420444444"), price: 1, src: "Importación" }, { official: ok })).rejects.toThrow(/permiso/);
+    await expect(createItem(db, emp, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: withCheck("49015420444444"), price: 1, src: "Importación" }, { official: ok })).rejects.toThrow(/permiso/);
     expect((await db.select().from(items).where(eq(items.id, r.id)))[0].cost).toBe(1500000);
   });
 });

@@ -23,6 +23,8 @@ export type SaleLine = {
   color: string;
   cond: string;
   serial: string;
+  serial2?: string;
+  batt?: number | null;
   qty: number;
   price: number;
   cost: number;
@@ -143,6 +145,8 @@ export const items = pgTable("items", {
   color: text("color").notNull().default(""),
   cond: text("cond").notNull().default("Nuevo"),
   serial: text("serial").notNull().default(""),
+  /** Segundo IMEI (equipos con doble SIM / eSIM). */
+  serial2: text("serial2").notNull().default(""),
   qty: integer("qty").notNull().default(1),
   cost: integer("cost").notNull().default(0),
   price: integer("price").notNull().default(0),

@@ -80,8 +80,8 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
             {s.lines.map((l, i) => (
               <tr key={i} className={`border-b border-gray-100 align-top ${lineNet(l) <= 0 ? "text-gray-400 line-through" : ""}`}>
                 <td className="py-2 pr-2">{i + 1}</td>
-                <td><b>{l.name}</b><small className="block text-gray-500">{[l.color, l.cond].filter(Boolean).join(" · ")}</small></td>
-                <td className="font-mono text-[11.5px]">{l.serial || "—"}</td>
+                <td><b>{l.name}</b><small className="block text-gray-500">{[l.color, l.cond, l.batt != null ? `Batería ${l.batt}%` : ""].filter(Boolean).join(" · ")}</small></td>
+                <td className="font-mono text-[11.5px]">{l.serial || "—"}{l.serial2 && <span className="block">{l.serial2}</span>}</td>
                 <td className="text-right">{l.qty}{l.ret ? <small className="block">dev. {l.ret}</small> : null}</td>
                 <td className="text-right tabular-nums">{fmt(l.price)}</td>
                 <td className="text-right font-bold tabular-nums">{fmt(l.price * l.qty)}</td>

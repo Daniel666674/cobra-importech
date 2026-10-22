@@ -9,7 +9,7 @@ import { branchName } from "./inventory";
 
 const item = z.object({
   key: z.string().max(80), cat: z.enum(CATS), name: z.string().trim().min(1).max(200), spec: z.string().max(80).default(""),
-  color: z.string().max(60).default(""), cond: z.enum(CONDS).default("Nuevo"), serial: z.string().max(40).default(""),
+  color: z.string().max(60).default(""), cond: z.enum(CONDS).default("Nuevo"), serial: z.string().max(40).default(""), serial2: z.string().max(40).default(""),
   qty: z.number().int().min(1).max(100000), cost: z.number().int().min(0).max(1e10), price: z.number().int().min(0).max(1e10),
   warr: z.number().int().min(0).max(60), batt: z.number().int().min(0).max(100).nullable(), min: z.number().int().min(0).max(100000),
   notes: z.string().max(1000).default(""),
@@ -49,7 +49,7 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
       const status = it.cat === "iPhone" ? "En revisión" : "En vitrina";
       await tx.insert(items).values({
         id, sku: CAT_SKU[it.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond,
-        serial: it.serial, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr, branch, status, acq: it.acq ?? Date.now(), src,
+        serial: it.serial, serial2: it.serial2, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr, branch, status, acq: it.acq ?? Date.now(), src,
         batt: it.batt, notes: [it.notes, it.serial ? "" : `[${it.key}]`].filter(Boolean).join(" "), repairs: 0, min: track === "qty" ? it.min : 0, track, imeiCheck: null, hold: null,
       });
       await addEvent(tx, id, a, "Ingreso al inventario", `Importado de ${source}`);

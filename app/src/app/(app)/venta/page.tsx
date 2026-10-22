@@ -17,7 +17,7 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
   const holdId = one("hold");
   const list: PosItem[] = all
     .filter((i) => isAvail(i) || i.id === holdId)
-    .map((i) => ({ id: i.id, cat: i.cat, name: i.name, spec: i.spec, color: i.color, cond: i.cond, serial: i.serial, qty: i.qty, price: i.price, cost: i.cost + (i.track === "qty" ? 0 : i.repairs), warr: i.warr, track: i.track, hold: i.id === holdId ? i.hold : null }));
+    .map((i) => ({ id: i.id, cat: i.cat, name: i.name, spec: i.spec, color: i.color, cond: i.cond, serial: i.serial, serial2: i.serial2, qty: i.qty, price: i.price, cost: i.cost + (i.track === "qty" ? 0 : i.repairs), warr: i.warr, track: i.track, hold: i.id === holdId ? i.hold : null }));
   void eq;
   return (
     <>

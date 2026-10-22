@@ -7,7 +7,7 @@ import { ItemForm, toPayload, type ItemFormValues } from "@/components/item-form
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import type { Cat } from "@/lib/catalog";
 
-type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial: string; status: string; track: string; hasHold: boolean };
+type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; track: string; hasHold: boolean };
 type Can = { sell: boolean; credit: boolean; edit: boolean; del: boolean; workshop: boolean; cost: boolean };
 
 export function ItemActions({ item, sellable, can, warr }: { item: Item; sellable: boolean; can: Can; warr: Record<string, number> }) {
@@ -15,7 +15,7 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
   const [panel, setPanel] = useState<"" | "edit" | "verify" | "shop">("");
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [busy, start] = useTransition();
-  const [form, setForm] = useState<ItemFormValues>({ name: item.name, spec: item.spec, color: item.color, cond: item.cond, serial: item.serial, qty: String(item.qty), cost: String(item.cost), price: String(item.price), warr: String(item.warr), src: "", batt: item.batt == null ? "" : String(item.batt), notes: item.notes, min: String(item.min), ally: "" });
+  const [form, setForm] = useState<ItemFormValues>({ name: item.name, spec: item.spec, color: item.color, cond: item.cond, serial: item.serial, serial2: item.serial2, qty: String(item.qty), cost: String(item.cost), price: String(item.price), warr: String(item.warr), src: "", batt: item.batt == null ? "" : String(item.batt), notes: item.notes, min: String(item.min), ally: "" });
   const [off, setOff] = useState<OfficialValue>({});
   const [job, setJob] = useState("");
   const [jobCost, setJobCost] = useState("");

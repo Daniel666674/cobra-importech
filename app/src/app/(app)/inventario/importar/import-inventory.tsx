@@ -49,6 +49,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
   const [busy, setBusy] = useState(false);
   const [header, setHeader] = useState(first?.header ?? true);
   const [defaultCond, setDefaultCond] = useState("Usado");
+  const [gain, setGain] = useState("");
 
   // Se saltan las filas vacías del comienzo (muchos libros de Excel empiezan en la fila 2 o 3).
   const start = useMemo(() => Math.max(0, file?.rows.findIndex((r) => r.some((c) => c && c.trim())) ?? 0), [file]);
@@ -57,7 +58,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
   const headers = useMemo(() => Array.from({ length: width }, (_, i) => (header ? file?.rows[start]?.[i] || `Columna ${letter(i)}` : `Columna ${letter(i)}`)), [file, start, width, header]);
   const body = useMemo(() => file?.rows.slice(header ? start + 1 : start) ?? [], [file, start, header]);
   const firstRow = start + (header ? 2 : 1);
-  const opts = useMemo(() => ({ warr, firstRow, defaultCond}), [warr, firstRow, defaultCond]);
+  const opts = useMemo(() => ({ warr, firstRow, defaultCond, gain: +gain > 0 ? +gain : null }), [warr, firstRow, defaultCond, gain]);
   const parsed = useMemo(() => (file && map.name !== undefined ? buildItems(body, map, opts) : null), [file, body, map, opts]);
   // IMEI/seriales que ya están en el sistema: se muestran y no se importan (no hay duplicados).
   const [dupes, setDupes] = useState<{ key: string; list: { serial: string; id: string; status: string; name: string }[] }>({ key: "", list: [] });
@@ -153,7 +154,9 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
         <div className="card p-4 grid gap-3 md:grid-cols-2">
             <div><label className="lb" htmlFor="inv-cond">Condición cuando el archivo no la dice</label>
               <select id="inv-cond" value={defaultCond} onChange={(e) => setDefaultCond(e.target.value)}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select></div>
-            <p className="note self-end">El valor del archivo es el <b>precio al cliente</b>. El recargo de Addi, Vanti o tarjeta de crédito se agrega solo en caja, al elegir la forma de pago.</p>
+            <div><label className="lb" htmlFor="inv-gain">Ganancia por equipo sobre el costo (COP)</label>
+              <input id="inv-gain" type="number" min={0} step={10000} value={gain} onChange={(e) => setGain(e.target.value)} placeholder="Ej. 300000 · vacío = sin precio" />
+              <p className="note mt-1">El valor del archivo es el <b>costo</b>. Precio de venta = costo + esta ganancia. Si lo dejas vacío, ponle precio a cada uno en «Editar» (sin precio no se puede vender).</p></div>
         </div>
       )}
       {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos la columna «Producto / modelo» para ver la vista previa.</p>}
@@ -176,7 +179,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
           {built.items.length === 0 && <p className="chip ok !rounded-md !whitespace-normal">No hay productos nuevos en este archivo: todo ya está en el inventario.</p>}
           {sum.iphones > 0 && <p className="chip info !rounded-md !whitespace-normal">{sum.iphones} iPhone entrarán «En revisión»: en la ficha de cada uno, «Verificar IMEI de nuevo» registra la consulta oficial y lo pasa a vitrina.</p>}
           {sum.noCost > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noCost} producto(s) sin costo: no tendrán margen en los reportes. Si el archivo tiene costo, asígnalo arriba.</p>}
-          {sum.noPrice > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noPrice} producto(s) quedarán <b>sin precio de venta</b> (no tienen costo para calcularlo): pónselo en su ficha antes de venderlos.</p>}
+          {sum.noPrice > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noPrice} producto(s) quedarán <b>sin precio de venta</b> : escribe la ganancia arriba o pónselo en su ficha antes de venderlos.</p>}
           {built.issues.length > 0 && (
             <details className="rounded-lg border border-red-300 p-2 text-[13px]" open={built.issues.length <= 10}>
               <summary className="cursor-pointer font-semibold text-red-700">{built.issues.length} fila(s) no se importarán</summary>

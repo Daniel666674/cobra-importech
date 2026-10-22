@@ -3,12 +3,12 @@ import { useMemo } from "react";
 import { CATALOG, CONDS, type Cat } from "@/lib/catalog";
 
 export type ItemFormValues = {
-  name: string; spec: string; color: string; cond: string; serial: string; qty: string; cost: string; price: string;
+  name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: string; cost: string; price: string;
   warr: string; src: string; batt: string; notes: string; min: string; ally: string;
 };
 export const emptyItem = (cat: Cat, warr = 12): ItemFormValues => ({
-  name: "", spec: "", color: "", cond: "Nuevo", serial: "", qty: "1", cost: "", price: "", warr: String(warr),
-  src: "Propio", batt: cat === "iPhone" ? "100" : "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0", ally: "",
+  name: "", spec: "", color: "", cond: "Nuevo", serial: "", serial2: "", qty: "1", cost: "", price: "", warr: String(warr),
+  src: "Propio", batt: "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0", ally: "",
 });
 
 type Props = {
@@ -39,7 +39,6 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
     if ("cond" in patch && patch.cond && warrByCond[patch.cond] != null) next.warr = String(warrByCond[patch.cond]);
     onChange(next);
   };
-  const margin = +v.price && +v.cost ? Math.round(((+v.price - +v.cost) / +v.price) * 100) : null;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field id="i-name" label="Producto">
@@ -58,6 +57,11 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
           <input id="i-serial" className="mono" value={v.serial} readOnly={serialLocked} onChange={(e) => set({ serial: e.target.value })} />
         </Field>
       )}
+      {!hideSerial && cat === "iPhone" && (
+        <Field id="i-serial2" label="IMEI 2 (opcional)" hint="Equipos con doble SIM / eSIM">
+          <input id="i-serial2" className="mono" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
+        </Field>
+      )}
       {qtyTrack && (
         <>
           <Field id="i-qty" label="Cantidad"><input id="i-qty" type="number" min={0} value={v.qty} onChange={(e) => set({ qty: e.target.value })} /></Field>
@@ -70,12 +74,17 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
         </Field>
       )}
       {showCost && <Field id="i-cost" label={v.ally ? "Se le paga a la aliada (COP)" : "Costo (COP)"}><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
-      <Field id="i-price" label="Precio de venta (COP)" hint={margin != null ? `${v.ally ? "Gana la tienda" : "Margen"}: $${(+v.price - +v.cost).toLocaleString("es-CO")} (${margin}%)` : undefined}>
+      {showCost && (
+        <Field id="i-gain" label={v.ally ? "Gana la tienda (COP)" : "Ganancia sobre el costo (COP)"} hint="Precio de venta = costo + ganancia">
+          <input id="i-gain" type="number" step={10000} value={+v.price && v.cost !== "" ? String(+v.price - +v.cost) : ""} onChange={(e) => set({ price: e.target.value === "" ? "" : String((+v.cost || 0) + (+e.target.value || 0)) })} />
+        </Field>
+      )}
+      <Field id="i-price" label="Precio de venta (COP)">
         <input id="i-price" type="number" min={0} step={1000} value={v.price} onChange={(e) => { set({ price: e.target.value }); }} />
       </Field>
       <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={0} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
-        <Field id="i-batt" label="Batería (%)"><input id="i-batt" type="number" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
+        <Field id="i-batt" label={cat === "iPhone" ? "Salud de batería (%) *" : "Batería (%)"}><input id="i-batt" type="number" required={cat === "iPhone"} placeholder="Ej. 87" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
       )}
       {!v.ally && <Field id="i-src" label="Origen"><input id="i-src" value={v.src} onChange={(e) => set({ src: e.target.value })} placeholder="Propio, compra local…" /></Field>}
       <div className="sm:col-span-2"><Field id="i-notes" label="Notas"><textarea id="i-notes" rows={2} value={v.notes} onChange={(e) => set({ notes: e.target.value })} /></Field></div>
@@ -84,6 +93,6 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
 }
 
 export const toPayload = (cat: Cat, v: ItemFormValues, extra: Record<string, unknown> = {}) => ({
-  cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: v.serial, qty: v.qty || 1, cost: v.cost || 0,
+  cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: v.serial, serial2: v.serial2, qty: v.qty || 1, cost: v.cost || 0,
   price: v.price, warr: v.warr || 0, src: v.src, batt: v.batt === "" ? null : v.batt, notes: v.notes, min: v.min || 0, ally: v.ally, ...extra,
 });
