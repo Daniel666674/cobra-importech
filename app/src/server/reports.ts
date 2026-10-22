@@ -8,10 +8,7 @@ import { lineNet, saleCost, saleNet, saleVoid } from "@/lib/sales";
 export type Alert = { key: string; level: "bad" | "warn" | "info"; title: string; detail: string; href: string };
 
 export async function dashboard(db: Db, now = Date.now()) {
-  const [st] = await db.select().from(settings).limit(1);
-  const its = await db.select().from(items);
-  const ss = await db.select().from(sales);
-  const cl = await db.select().from(claims);
+  const [[st], its, ss, cl] = await Promise.all([db.select().from(settings).limit(1), db.select().from(items), db.select().from(sales), db.select().from(claims)]);
   const stock = its.filter(inStock);
   const valid = ss.filter((s) => !saleVoid(s));
   const startDay = new Date(new Date(now).toLocaleString("en-US", { timeZone: "America/Bogota" })).setHours(0, 0, 0, 0);

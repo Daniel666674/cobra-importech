@@ -15,9 +15,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const me = await requireMe();
   const sp = await searchParams;
   const db = await getDb();
-  const d = await dashboard(db);
-  const feed = hasPerm(me, "reports") ? await recentFeed(db, 12) : [];
-  const [cfg] = await db.select().from(settings).limit(1);
+  const [d, feed, [cfg]] = await Promise.all([dashboard(db), hasPerm(me, "reports") ? recentFeed(db, 12) : Promise.resolve([]), db.select().from(settings).limit(1)]);
   const summary = `Resumen ${cfg.name}\nVentas hoy: ${fmt(d.kpi.todayTotal)} · 30 días: ${fmtM(d.kpi.monthTotal)}\n` + (d.alerts.length ? d.alerts.map((a) => "• " + a.title).join("\n") : "Sin alertas.");
   const delta = d.kpi.prevTotal ? Math.round(((d.kpi.monthTotal - d.kpi.prevTotal) / d.kpi.prevTotal) * 100) : null;
   const max = Math.max(1, ...d.days.map((x) => x.total));
