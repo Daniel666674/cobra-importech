@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
-import { CATS } from "@/lib/catalog";
+import { CATS, feeFor } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { holdMin } from "@/lib/hold";
 import { isQty } from "@/lib/items";
@@ -77,7 +77,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const resolved = pays.map((p, i) => ({ method: p.method, amount: p.amount === "" ? (i === autoIdx ? Math.max(0, due - fixed) : 0) : +p.amount || 0 }));
   const paid = resolved.reduce((a, p) => a + p.amount, 0);
   const pct = (m: string) => cfg.surcharges[m] ?? 0;
-  const fees = resolved.map((p) => Math.round((p.amount * pct(p.method)) / 100));
+  const fees = resolved.map((p) => feeFor(pct(p.method), p.amount));
   const feeTotal = hold ? 0 : fees.reduce((a, x) => a + x, 0);
   const min = hold ? holdMin(T.total, cfg.apartadoMinPct) : 0;
 
@@ -312,9 +312,9 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
             <div className="space-y-2">
               {pays.map((p, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}{pct(m) ? ` (+${pct(m)}%)` : ""}</option>)}</select>
+                  <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}</option>)}</select>
                   <input type="number" min={0} value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} aria-label="Valor del pago" />
-                  {fees[i] > 0 && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} {pct(p.method)}%: {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
+                  {fees[i] > 0 && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}
@@ -336,7 +336,6 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
           {tradeTotal > 0 && <div className="flex justify-between"><span className="text-t2">Retoma ({trades.length})</span><span className="text-green-t">−{fmt(tradeTotal)}</span></div>}
           {feeTotal > 0 && <div className="flex justify-between"><span className="text-t2">Recargo por forma de pago</span><span className="text-amber-t">+{fmt(feeTotal)}</span></div>}
           <div className="flex justify-between text-lg font-bold"><span>{hold ? "Total del equipo" : "Total a pagar"}</span><span className="tabular-nums">{fmt(hold ? T.total : Math.max(0, due) + feeTotal)}</span></div>
-          {can.cost && cart.length > 0 && <div className="flex justify-between note"><span>Margen de la venta</span><span>{fmt(T.total - T.cost)} · {T.total ? Math.round(((T.total - T.cost) / T.total) * 100) : 0}%</span></div>}
         </div>
         <button type="button" className="btn primary w-full !py-3" disabled={!!why || busy} onClick={confirm}>
           {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : due > 0 ? `Cobrar ${fmt(due + feeTotal)}` : "Emitir comprobante"}
