@@ -237,3 +237,18 @@ export async function importTacCsv(db: Db, a: Actor, text: string) {
   return rows.length;
 }
 const sqlExcluded = (col: string) => sql.raw(`excluded."${col}"`);
+
+/**
+ * Pasa a vitrina todos los equipos «En revisión» sin registrar la consulta oficial uno por uno.
+ * Solo administradores (permiso de usuarios); queda en el historial de cada equipo quién lo aprobó.
+ */
+export async function releaseAllReview(db: Db, a: Actor) {
+  need(a, "inv_edit");
+  need(a, "users");
+  return db.transaction(async (tx) => {
+    const rows = await tx.update(items).set({ status: "En vitrina" }).where(eq(items.status, "En revisión")).returning({ id: items.id });
+    for (const r of rows) await addEvent(tx, r.id, a, "En vitrina", `Pasado a vitrina por ${a.name} sin consulta oficial registrada en el sistema`, "warn");
+    if (rows.length) await logFeed(tx, a, "owner", "✅", `${rows.length} equipos pasados de «En revisión» a vitrina por <b>${esc(a.name)}</b>`);
+    return rows.length;
+  });
+}

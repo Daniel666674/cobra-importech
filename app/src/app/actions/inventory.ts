@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
-import { createItem, deleteItem, reverifyItem, updateItem } from "@/server/inventory";
+import { createItem, deleteItem, releaseAllReview, reverifyItem, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
 import { importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
@@ -40,4 +40,7 @@ export async function importInventoryAction(data: unknown) {
 }
 export async function undoInventoryImportAction(source: string) {
   return act((db, a) => undoInventoryImport(db, a, source), ["/inventario", "/"]);
+}
+export async function releaseAllReviewAction() {
+  return act((db, a) => releaseAllReview(db, a), ["/inventario", "/"]);
 }
