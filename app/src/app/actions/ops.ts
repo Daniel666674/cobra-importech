@@ -1,6 +1,6 @@
 "use server";
 import { act } from "@/server/act";
-import { advanceOrder, cancelOrder, createPurchase, receivePurchase } from "@/server/ops";
+import { advanceOrder, cancelOrder, moveOrder, updateOrder, createPurchase, receivePurchase } from "@/server/ops";
 
 const P = ["/", "/inventario", "/taller", "/compras"];
 
@@ -15,4 +15,10 @@ export async function createPurchaseAction(data: unknown) {
 }
 export async function receivePurchaseAction(poId: string, data: unknown) {
   return act((db, a) => receivePurchase(db, a, poId, data), P);
+}
+export async function moveOrderAction(id: string, st: string) {
+  return act((db, a) => moveOrder(db, a, id, st), P);
+}
+export async function updateOrderAction(id: string, data: unknown) {
+  return act((db, a) => updateOrder(db, a, id, data), P);
 }

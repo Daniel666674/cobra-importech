@@ -25,6 +25,24 @@ describe("taller", () => {
     const after = (await db.select().from(items).where(eq(items.id, it.id)))[0];
     expect(after.status).toBe("En vitrina");
     expect(after.repairs).toBe(it.repairs + 250000);
+    // el costo de la reparación también sube el precio: la ganancia no cambia
+    expect(after.price).toBe(it.price + 250000);
+    expect(after.price - after.cost - after.repairs).toBe(it.price - it.cost - it.repairs);
+  });
+  it("tablero: mover a cualquier etapa y corregir el costo tras el diagnóstico", async () => {
+    const { moveOrder, updateOrder } = await import("@/server/ops");
+    const [it] = await db.select().from(items).where(eq(items.id, "I-0012"));
+    const id = await createOrder(db, emp, { item: it.id, job: "Batería", cost: 0 });
+    expect(await moveOrder(db, emp, id, "En reparación")).toBe("En reparación");
+    expect(await moveOrder(db, emp, id, "Esperando repuesto")).toBe("Esperando repuesto");
+    await expect(moveOrder(db, emp, id, "Otra")).rejects.toThrow();
+    await updateOrder(db, emp, id, { cost: 180000, notes: "Batería al 71 %" });
+    const [o] = await db.select().from(orders).where(eq(orders.id, id));
+    expect(o).toMatchObject({ cost: 180000, notes: "Batería al 71 %", st: "Esperando repuesto" });
+    await moveOrder(db, emp, id, "Listo");
+    expect(await advanceOrder(db, emp, id)).toBe("done");
+    const [after] = await db.select().from(items).where(eq(items.id, it.id));
+    expect(after).toMatchObject({ status: "En vitrina", repairs: it.repairs + 180000, price: it.price + 180000 });
   });
   it("cancela y devuelve el estado previo", async () => {
     const id = await createOrder(db, emp, { item: "I-0011", job: "Diagnóstico", cost: 0 });

@@ -7,7 +7,7 @@ import { ItemForm, toPayload, type ItemFormValues } from "@/components/item-form
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import type { Cat } from "@/lib/catalog";
 
-type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; pendingDel: boolean; track: string; hasHold: boolean };
+type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; pendingDel: boolean; repairs: number; track: string; hasHold: boolean };
 type Can = { sell: boolean; credit: boolean; edit: boolean; del: boolean; workshop: boolean; cost: boolean; approve: boolean };
 
 export function ItemActions({ item, sellable, can, warr }: { item: Item; sellable: boolean; can: Can; warr: Record<string, number> }) {
@@ -45,7 +45,7 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
       {panel === "edit" && (
         <div className="card p-4">
           <h3 className="font-semibold mb-3">Editar producto</h3>
-          <ItemForm cat={item.cat as Cat} values={form} onChange={setForm} warrByCond={warr} hideSerial showCost={can.cost} />
+          <ItemForm cat={item.cat as Cat} values={form} onChange={setForm} warrByCond={warr} hideSerial showCost={can.cost} repairs={item.repairs} />
           <button className="btn primary mt-3" disabled={busy} onClick={() => start(async () => done(await updateItemAction(item.id, { ...toPayload(item.cat as Cat, form), serial: undefined, cat: undefined, src: undefined }), "Cambios guardados"))}>Guardar cambios</button>
         </div>
       )}

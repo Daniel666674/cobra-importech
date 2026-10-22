@@ -36,8 +36,18 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  // taller
  await p.goto(B+`/inventario/${Bn}`);await p.click('button:has-text("Enviar a taller")');await p.fill('#job','Cambio de batería');await p.fill('#jc','180000');await p.click('button:has-text("Crear orden")');await p.waitForSelector('text=Orden de taller creada');
  await p.goto(B+'/taller');ok(/Cambio de batería/.test(await p.innerText('body')),'orden en el tablero del taller');
- for(let i=0;i<4;i++){await p.locator('button:has-text("Avanzar"), button:has-text("Entregar a vitrina")').first().click();await p.waitForTimeout(700)}
- await p.goto(B+`/inventario/${Bn}`);const t=await p.innerText('body');ok(/En vitrina/.test(t)&&/Reparación terminada/.test(t),'el equipo vuelve a vitrina con el costo sumado');
+ ok(await p.locator('section[aria-label^="Etapa"]').count()===4,'tablero kanban con las 4 etapas');
+ ok(await p.locator('section[aria-label="Etapa Diagnóstico"] article').count()===1,'la orden empieza en Diagnóstico');
+ await p.locator('section[aria-label="Etapa Diagnóstico"] article').dragTo(p.locator('section[aria-label="Etapa En reparación"]'));
+ await p.waitForSelector('section[aria-label="Etapa En reparación"] article',{timeout:15000});ok(true,'arrastrar la orden a otra etapa');
+ await p.click('button:has-text("Costo y notas")');await p.fill('input[id^="cost-"]','200000');await p.fill('textarea[id^="notes-"]','Batería al 70 %');await p.click('article button:has-text("Guardar")');
+ await p.waitForSelector('text=Batería al 70 %');let k=await p.innerText('section[aria-label="Etapa En reparación"]');
+ ok(/\$\s?200\.000/.test(k)&&/2\.800\.000 → \$\s?3\.000\.000/.test(k),'el costo corregido se ve en la fórmula del precio');
+ await p.click('button:has-text("Listo ›")');await p.waitForSelector('section[aria-label="Etapa Listo"] article',{timeout:15000});
+ await p.click('button:has-text("Entregar a vitrina")');await p.waitForSelector('text=Arrastra aquí >> nth=3',{timeout:15000});
+ await p.goto(B+`/inventario/${Bn}`);const t=await p.innerText('body');
+ ok(/En vitrina/.test(t)&&/Reparación terminada/.test(t),'el equipo vuelve a vitrina');
+ ok(/3\.000\.000/.test(t)&&/reparaciones \$\s?200\.000/.test(t),'el costo de la reparación se suma al costo real y al precio');
  // (Compras e importación están desactivadas por ahora; ver flujo-retoma-aliadas.cjs para productos de tiendas aliadas)
  // config + logo
  await p.goto(B+'/config');await p.fill('#c-nit','900.123.456-7');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Configuración guardada');
