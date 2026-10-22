@@ -105,9 +105,9 @@ describe("tiendas aliadas", () => {
   it("pagos a la aliada: no más de lo que se debe", async () => {
     const [it] = (await db.select().from(items)).filter((i) => i.ally === consig);
     await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price }] });
-    await expect(payAlly(db, owner, consig, { amount: 2_300_001 })).rejects.toThrow(/supera/);
-    expect(await payAlly(db, owner, consig, { amount: 1_000_000, note: "Abono" })).toBe(1_300_000);
-    expect(await payAlly(db, owner, consig, { amount: 1_300_000 })).toBe(0);
+    await expect(payAlly(db, owner, consig, { amount: 2_300_001 })).rejects.toThrow(/anticipo/);
+    expect(await payAlly(db, owner, consig, { amount: 1_000_000, note: "Abono" })).toMatchObject({ no: "CE-0001", balance: 1_300_000 });
+    expect((await payAlly(db, owner, consig, { amount: 1_300_000 })).balance).toBe(0);
     const d = await allyDetail(db, consig);
     expect(d!.summary).toMatchObject({ balance: 0, paid: 2_300_000, earned: 500_000 });
     expect(d!.sold).toHaveLength(1);
@@ -118,6 +118,41 @@ describe("tiendas aliadas", () => {
     await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price }] });
     expect((await db.select().from(allyMoves)).length).toBe(before);
     expect((await db.select().from(sales).where(eq(sales.id, "x"))).length).toBe(0);
+  });
+});
+
+describe("cartera: anticipos, edades y anulación", () => {
+  let id: string;
+  it("varios anticipos quedan a favor y se cruzan solos con la próxima deuda", async () => {
+    id = await saveAlly(db, owner, null, { name: "TecnoCel Unicentro", mode: "compra", terms: 15 });
+    const a1 = await payAlly(db, owner, id, { amount: 500_000, method: "Nequi", ref: "M123", advance: true });
+    const a2 = await payAlly(db, owner, id, { amount: 300_000, method: "Efectivo", advance: true });
+    expect([a1.balance, a2.balance]).toEqual([-500_000, -800_000]);
+    let [s] = (await allySummary(db)).filter((x) => x.id === id);
+    expect(s).toMatchObject({ balance: 0, advance: 800_000 });
+    await createItem(db, owner, { cat: "Accesorios", name: "Cargadores 20 W", price: 90_000, cost: 50_000, qty: 20, ally: id });
+    [s] = (await allySummary(db)).filter((x) => x.id === id);
+    expect(s).toMatchObject({ balance: 200_000, advance: 0 });
+    expect(s.age).toMatchObject({ d0_30: 200_000, overdue: 0 });
+  });
+  it("sin marcar anticipo no deja pagar de más", async () => {
+    await expect(payAlly(db, owner, id, { amount: 250_000 })).rejects.toThrow(/anticipo/);
+    expect((await payAlly(db, owner, id, { amount: 250_000, advance: true })).balance).toBe(-50_000);
+  });
+  it("edades y vencido: lo pagado se aplica primero a lo más antiguo", async () => {
+    const { aging } = await import("@/server/allies");
+    const d = 864e5, now = Date.UTC(2026, 5, 30);
+    const moves = [{ kind: "deuda", amount: 100, t: now - 100 * d }, { kind: "deuda", amount: 200, t: now - 45 * d }, { kind: "deuda", amount: 300, t: now - 5 * d }, { kind: "pago", amount: 150, t: now - d }];
+    expect(aging(moves, 30, now)).toMatchObject({ d90: 0, d31_60: 150, d0_30: 300, overdue: 150, advance: 0 });
+    expect(aging([...moves, { kind: "pago", amount: 1000, t: now }], 30, now)).toMatchObject({ d0_30: 0, overdue: 0, advance: 550 });
+  });
+  it("solo la propietaria anula un pago; deja de contar", async () => {
+    const { voidAllyPay } = await import("@/server/allies");
+    const [m] = (await db.select().from(allyMoves).where(eq(allyMoves.ally, id))).filter((x) => x.kind === "pago" && x.method === "Nequi");
+    await expect(voidAllyPay(db, { ...owner, perms: owner.perms.filter((p) => p !== "approve") }, m.id, "Error")).rejects.toThrow(/propietaria/);
+    await voidAllyPay(db, owner, m.id, "Se registró dos veces");
+    const [s] = (await allySummary(db)).filter((x) => x.id === id);
+    expect(s).toMatchObject({ balance: 450_000, advance: 0 });
   });
 });
 

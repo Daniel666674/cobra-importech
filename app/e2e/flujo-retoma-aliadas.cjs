@@ -12,13 +12,14 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
 
  // Compras ya no está en el menú; Tiendas aliadas sí
- const nav=await p.innerText('nav');ok(/Tiendas aliadas/.test(nav)&&!/Compras/.test(nav),'menú: Tiendas aliadas en lugar de Compras');
- await p.goto(B+'/compras');ok(p.url().endsWith('/aliados'),'Compras redirige a Tiendas aliadas');
+ const nav=await p.innerText('nav');ok(/Cartera/.test(nav)&&!/Compras|Tiendas aliadas/.test(nav),'menú: Cartera en lugar de Compras / Tiendas aliadas');
+ await p.goto(B+'/compras');ok(p.url().endsWith('/cartera'),'Compras redirige a Cartera');
+ await p.goto(B+'/aliados');ok(p.url().endsWith('/cartera'),'el enlace viejo lleva a Cartera');
 
  // Crear aliada en consignación
  await p.fill('#al-name','Celulares Don Pedro');await p.fill('#al-phone','3005550000');
  await p.click('button:has-text("Crear tienda aliada")');await p.waitForSelector('text=Tienda aliada creada');
- await p.click('a:has-text("Celulares Don Pedro")');await p.waitForURL(/\/aliados\/A/);
+ await p.click('a:has-text("Celulares Don Pedro")');await p.waitForURL(/\/cartera\/A/);
  // Ingresar un producto de la aliada desde su ficha
  await p.click('a:has-text("Ingresar producto de esta tienda")');await p.waitForURL(/\/ingreso\?ally=/);
  await p.click('button:has-text("Accesorios")');
@@ -56,12 +57,17 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  ok(/Retoma recibida en venta/.test(r)&&/Laura Ríos/.test(r)&&/Limpio/.test(r),'ficha con el origen (venta, cliente) y la verificación oficial');
 
  // Cuenta de la aliada
- await p.goto(B+'/aliados');r=await p.innerText('main');
- ok(/\$3\.000\.000/.test(r)&&/\$600\.000/.test(r),'aliadas: se le debe $3.000.000 y la tienda gana $600.000');
- await p.click('a:has-text("Celulares Don Pedro")');await p.waitForURL(/\/aliados\/A/);
- await p.click('button:has-text("Todo")');await p.fill('input[aria-label="Nota del pago"]','Transferencia');await p.click('button:has-text("Registrar pago")');
- await p.waitForSelector('text=Saldo pendiente: $0');ok(true,'pago total registrado');await p.waitForSelector('td:has-text("Transferencia")',{timeout:15000});
- r=await p.innerText('main');ok(/No hay saldo pendiente/.test(r)&&/Transferencia/.test(r),'la cuenta queda en cero con el pago en el historial');
+ await p.goto(B+'/cartera');r=await p.innerText('main');
+ ok(/\$3\.000\.000/.test(r)&&/0–30 d/i.test(r),'cartera: se le debe $3.000.000, por edades');
+ await p.click('a:has-text("Celulares Don Pedro")');await p.waitForURL(/\/cartera\/A/);
+ ok(/\$600\.000/.test(await p.innerText('main')),'la ficha muestra que la tienda gana $600.000');
+ await p.click('button:has-text("Todo")');await p.fill('#pay-ref','000123456');await p.click('button:has-text("Registrar pago")');
+ await p.waitForSelector('text=CE-0001 registrado. Cuenta al día.');ok(true,'pago total con comprobante de egreso CE-0001');
+ // dos anticipos seguidos
+ for(const [v,m] of [['500000','Nequi'],['250000','Efectivo']]){await p.fill('#pay-amount',v);await p.selectOption('#pay-method',m);await p.check('text=Es un anticipo');await p.click('button:has-text("Registrar")');await p.waitForSelector(`text=Anticipo a favor:`);await p.waitForTimeout(500)}
+ r=await p.innerText('main');ok(/anticipo a favor \$\s?750\.000/i.test(r),'varios anticipos: $750.000 a favor de la tienda');
+ await p.click('a:has-text("CE-0001")');await p.waitForURL(/\/cartera\/egreso\//);r=await p.innerText('article');
+ ok(/Comprobante de egreso/i.test(r)&&/000123456/.test(r)&&/TRES MILLONES/.test(r)&&/Recibí conforme/.test(r),'comprobante de egreso imprimible con valor en letras y firma');
 
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');process.exit(fails?1:0);

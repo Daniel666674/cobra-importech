@@ -78,6 +78,13 @@
       "when": 1792708301450,
       "tag": "0010_taller_kanban",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792713238868,
+      "tag": "0011_cartera",
+      "breakpoints": true
     }
   ]
 }
