@@ -64,6 +64,7 @@ const B='http://localhost:3101';
  await p.fill('#current',temp);await p.fill('#next','Caja-Norte#48');await p.fill('#confirm','Caja-Norte#48');await p.click('button:has-text("Guardar contraseña")');await p.waitForURL(B+'/?pw=1');
  await p.click('button:has-text("Salir")');await p.waitForURL('**/login');
  await p.fill('#username','anderson.ruiz');await p.fill('#password','Caja-Norte#48');await p.click('button:has-text("Entrar")');await p.waitForURL(B+'/');
+ {const c=(await ctx.cookies()).find(x=>x.name==='importech_session');ok(c&&c.expires-Date.now()/1000>29*86400,'«mantener la sesión» deja la sesión abierta 30 días');}
  const nav=await p.innerText('nav');ok(/Nueva venta/.test(nav)&&!/Usuarios y permisos|Configuración|Reportes/.test(nav),'empleado: menú reducido');
  await p.goto(B+'/usuarios');ok(p.url().includes('denied')||p.url()===B+'/?denied=1','empleado no entra a usuarios');
  await p.goto(B+'/inventario');ok(!/Costo/.test(await p.innerText('thead')),'empleado no ve costos');

@@ -19,6 +19,14 @@ const B='http://localhost:3101';
  await p.click('button:has-text("Importar 3 productos")');await p.waitForSelector('text=Listo: 3 productos importados',{timeout:30000});
  await p.goto(B+'/inventario');const inv=await p.innerText('main');
  ok(/iPhone 15 Pro/.test(inv)&&/AirPods Pro 2/.test(inv)&&/Cargador 20 W/.test(inv),'los productos aparecen en el inventario');
+ // archivo real de la tienda: sin encabezados, datos desde la fila 3, sin precio de venta
+ await p.goto(B+'/inventario/importar');
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-sin-encabezados.xlsx'));
+ await p.waitForSelector('td:has-text("iPhone 12 Pro Max")',{timeout:20000});
+ let r2=await p.innerText('main');
+ ok(/no trae encabezados/.test(r2),'detecta que el archivo no tiene encabezados');
+ ok(/\b41\b/.test(r2)&&/3 fila\(s\) no se importarán/.test(r2)&&/Fila 3: IMEI no válido/.test(r2),'41 equipos válidos y 3 filas con error (con el número de fila de Excel)');
+ await p.click('button:has-text("Importar 41 productos")');await p.waitForSelector('text=Listo: 41 productos importados',{timeout:60000});
  // un archivo de inventario en el importador de ventas sugiere el lugar correcto
  await p.goto(B+'/config?tab=importar');
  await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-prueba.xlsx'));

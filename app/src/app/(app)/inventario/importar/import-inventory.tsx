@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { importInventoryAction, undoInventoryImportAction } from "@/app/actions/inventory";
 import { fmt } from "@/lib/format";
-import { INV_FIELDS, buildItems, guessInvMapping, type InvKey, type InvMapping } from "@/lib/inventory-import";
+import { CONDS } from "@/lib/catalog";
+import { INV_FIELDS, buildItems, guessByContent, guessInvMapping, hasHeaderRow, type InvKey, type InvMapping } from "@/lib/inventory-import";
 import { readTable } from "@/lib/read-file";
 
 const BATCH = 200;
@@ -34,10 +35,19 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
   const [result, setResult] = useState<Result | null>(null);
   const [failed, setFailed] = useState("");
   const [busy, setBusy] = useState(false);
+  const [header, setHeader] = useState(true);
+  const [defaultCond, setDefaultCond] = useState("Usado");
+  const [markup, setMarkup] = useState("25");
 
-  const headers = file?.rows[0] ?? [];
-  const body = useMemo(() => file?.rows.slice(1) ?? [], [file]);
-  const built = useMemo(() => (file && map.name !== undefined && map.price !== undefined ? buildItems(body, map, { warr }) : null), [file, body, map, warr]);
+  // Se saltan las filas vacías del comienzo (muchos libros de Excel empiezan en la fila 2 o 3).
+  const start = useMemo(() => Math.max(0, file?.rows.findIndex((r) => r.some((c) => c && c.trim())) ?? 0), [file]);
+  const width = useMemo(() => Math.max(0, ...(file?.rows.map((r) => r.length) ?? [0])), [file]);
+  const letter = (i: number) => (i < 26 ? String.fromCharCode(65 + i) : "A" + String.fromCharCode(39 + i));
+  const headers = useMemo(() => Array.from({ length: width }, (_, i) => (header ? file?.rows[start]?.[i] || `Columna ${letter(i)}` : `Columna ${letter(i)}`)), [file, start, width, header]);
+  const body = useMemo(() => file?.rows.slice(header ? start + 1 : start) ?? [], [file, start, header]);
+  const firstRow = start + (header ? 2 : 1);
+  const opts = useMemo(() => ({ warr, firstRow, defaultCond, markup: markup.trim() === "" ? null : Math.max(0, +markup || 0) }), [warr, firstRow, defaultCond, markup]);
+  const built = useMemo(() => (file && map.name !== undefined ? buildItems(body, map, opts) : null), [file, body, map, opts]);
   const sum = useMemo(() => {
     if (!built) return null;
     const its = built.items;
@@ -46,7 +56,7 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
     for (const i of its) byCat.set(i.cat, (byCat.get(i.cat) ?? 0) + u(i));
     return {
       n: its.length, units: its.reduce((a, i) => a + u(i), 0), cost: its.reduce((a, i) => a + i.cost * u(i), 0), price: its.reduce((a, i) => a + i.price * u(i), 0),
-      noCost: its.filter((i) => !i.cost).length, iphones: its.filter((i) => i.cat === "iPhone").length, byCat: [...byCat.entries()],
+      noCost: its.filter((i) => !i.cost).length, noPrice: its.filter((i) => !i.price).length, iphones: its.filter((i) => i.cat === "iPhone").length, byCat: [...byCat.entries()],
     };
   }, [built]);
 
@@ -55,9 +65,12 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
     if (f.size > 15_000_000) return setErr("El archivo pesa más de 15 MB.");
     let rows: string[][];
     try { rows = await readTable(f); } catch (e) { return setErr((e as Error).message); }
-    if (rows.length < 2) return setErr("El archivo está vacío o no tiene filas de datos.");
+    const data = rows.filter((r) => r.some((c) => c && c.trim()));
+    if (data.length < 1) return setErr("El archivo está vacío.");
     setFile({ name: f.name, rows });
-    setMap(guessInvMapping(rows[0]));
+    const h = hasHeaderRow(data);
+    setHeader(h);
+    setMap(h ? guessInvMapping(data[0]) : guessByContent(data));
   }
 
   async function doImport() {
@@ -99,7 +112,12 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
       {file && (
         <div className="card p-4">
           <h2 className="font-semibold mb-1">1. ¿Qué columna es cada dato?</h2>
-          <p className="note mb-3">Ya propusimos una asignación según los encabezados. Revísala; lo marcado con * es obligatorio.</p>
+          <p className="note mb-3">{header ? "Ya propusimos una asignación según los encabezados." : "El archivo no trae encabezados: propusimos cada columna según su contenido (IMEI, modelo, capacidad, color…)."} Revísala; lo marcado con * es obligatorio.</p>
+          <label className="mb-3 flex items-center gap-2 text-[13px]"><input type="checkbox" className="!w-auto" checked={header} onChange={(e) => {
+            const h = e.target.checked; setHeader(h);
+            const data = file.rows.filter((r) => r.some((c) => c && c.trim()));
+            setMap(h ? guessInvMapping(data[0]) : guessByContent(data));
+          }} /> La primera fila tiene los nombres de las columnas</label>
           <div className="grid gap-3 md:grid-cols-2">
             {INV_FIELDS.map((f) => (
               <div key={f.key}>
@@ -109,9 +127,16 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
               </div>
             ))}
           </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 border-t border-line pt-3">
+            <div><label className="lb" htmlFor="inv-cond">Condición cuando el archivo no la dice</label>
+              <select id="inv-cond" value={defaultCond} onChange={(e) => setDefaultCond(e.target.value)}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select></div>
+            <div><label className="lb" htmlFor="inv-markup">Si no hay precio de venta: costo + margen (%)</label>
+              <input id="inv-markup" type="number" min={0} max={300} value={markup} onChange={(e) => setMarkup(e.target.value)} placeholder="Vacío = sin precio" />
+              <p className="note mt-1">Se redondea a los 10.000 siguientes. Déjalo vacío para ponerle precio a cada uno después (sin precio no se puede vender).</p></div>
+          </div>
         </div>
       )}
-      {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos «Producto» y «Precio de venta» para ver la vista previa.</p>}
+      {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos la columna «Producto / modelo» para ver la vista previa.</p>}
 
       {built && sum && (
         <div className="card p-4 space-y-3">
@@ -124,6 +149,7 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
           </div>
           {sum.iphones > 0 && <p className="chip info !rounded-md !whitespace-normal">{sum.iphones} iPhone entrarán «En revisión»: en la ficha de cada uno, «Verificar IMEI de nuevo» registra la consulta oficial y lo pasa a vitrina.</p>}
           {sum.noCost > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noCost} producto(s) sin costo: no tendrán margen en los reportes. Si el archivo tiene costo, asígnalo arriba.</p>}
+          {sum.noPrice > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noPrice} producto(s) quedarán <b>sin precio de venta</b> (no tienen costo para calcularlo): pónselo en su ficha antes de venderlos.</p>}
           {built.issues.length > 0 && (
             <details className="rounded-lg border border-red-300 p-2 text-[13px]" open={built.issues.length <= 10}>
               <summary className="cursor-pointer font-semibold text-red-700">{built.issues.length} fila(s) no se importarán</summary>
@@ -132,12 +158,14 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
           )}
           <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
-              <thead><tr className="text-left note border-b border-line"><th className="py-1">Categoría</th><th>Producto</th><th>Condición</th><th>IMEI / serie</th><th className="text-right">Cant.</th><th className="text-right">Costo</th><th className="text-right">Precio</th></tr></thead>
+              <thead><tr className="text-left note border-b border-line"><th className="py-1">Categoría</th><th>Producto</th><th>Condición</th><th>IMEI / serie</th><th className="text-right">Cant.</th><th className="text-right">Batería</th><th className="text-right">Costo</th><th className="text-right">Precio</th><th>Notas</th></tr></thead>
               <tbody>{built.items.slice(0, 10).map((i) => (
                 <tr key={i.key} className="border-b border-line">
                   <td className="py-1.5">{i.cat}</td><td><b>{i.name}</b>{i.spec && ` · ${i.spec}`}{i.color && <span className="note"> · {i.color}</span>}</td>
                   <td>{i.cond}</td><td className="mono text-[11.5px]">{i.serial || "—"}</td><td className="text-right">{i.qty}</td>
-                  <td className="text-right tabular-nums">{i.cost ? fmt(i.cost) : <span className="note">—</span>}</td><td className="text-right tabular-nums font-semibold">{fmt(i.price)}</td>
+                  <td className="text-right">{i.batt != null ? `${i.batt}%` : "—"}</td>
+                  <td className="text-right tabular-nums">{i.cost ? fmt(i.cost) : <span className="note">—</span>}</td><td className="text-right tabular-nums font-semibold">{i.price ? fmt(i.price) : <span className="chip warn">Sin precio</span>}</td>
+                  <td className="note max-w-[220px] truncate">{i.notes}</td>
                 </tr>
               ))}</tbody>
             </table>

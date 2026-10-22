@@ -140,3 +140,38 @@ describe("contraseñas", () => {
   });
 
 });
+
+describe("mantener la sesión iniciada", () => {
+  it("con «recordar» la sesión dura 30 días; sin él, 12 horas; desactivar al usuario la corta igual", async () => {
+    const { decodeJwt } = await import("jose");
+    const { signSession } = await import("@/server/auth");
+    const long = decodeJwt(await signSession("u3", 0, true));
+    const short = decodeJwt(await signSession("u3", 0));
+    expect(long.exp! - long.iat!).toBe(30 * 24 * 3600);
+    expect(long.r).toBe(1);
+    expect(short.exp! - short.iat!).toBe(12 * 3600);
+    expect(short.r).toBeUndefined();
+    const [u] = await db.select().from(users).where(eq(users.id, "u3"));
+    const tok = await signSession("u3", u.sessionV, true);
+    expect(await meFromToken(tok)).not.toBeNull();
+    await updateUser(db, { id: "u1", name: "Dueño", perms: [], locked: true }, "u3", { active: false });
+    expect(await meFromToken(tok)).toBeNull();
+    await updateUser(db, { id: "u1", name: "Dueño", perms: [], locked: true }, "u3", { active: true });
+  });
+  it("el proxy renueva por 30 días una sesión «recordada» de más de un día", async () => {
+    process.env.AUTH_SECRET = process.env.AUTH_SECRET ?? "prueba-0123456789abcdef0123456789abcdef";
+    const { SignJWT, decodeJwt } = await import("jose");
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+    const key = new TextEncoder().encode(process.env.AUTH_SECRET);
+    const old = Math.floor(Date.now() / 1000) - 3 * 86400;
+    const mk = (r: boolean) => new SignJWT({ v: 0, ...(r ? { r: 1 } : {}) }).setProtectedHeader({ alg: "HS256" }).setSubject("u3").setIssuedAt(old).setExpirationTime(old + 30 * 86400).sign(key);
+    const req = async (t: string) => new NextRequest("http://x/inventario", { headers: { cookie: `importech_session=${t}` } });
+    const res = await proxy(await req(await mk(true)));
+    const fresh = res.cookies.get("importech_session");
+    expect(fresh?.maxAge).toBe(30 * 86400);
+    expect(decodeJwt(fresh!.value).iat!).toBeGreaterThan(old + 86400);
+    const res2 = await proxy(await req(await mk(false)));
+    expect(res2.cookies.get("importech_session")).toBeUndefined();
+  });
+});

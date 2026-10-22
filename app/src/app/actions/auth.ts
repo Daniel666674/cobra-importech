@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { getDb } from "@/db";
-import { clearSessionCookie, getMe, loginWithPassword, setSessionCookie, signSession } from "@/server/auth";
+import { clearSessionCookie, getMe, loginWithPassword, sessionRemembers, setSessionCookie, signSession } from "@/server/auth";
 import { changeOwnPassword } from "@/server/account";
 import { AppError } from "@/server/core";
 import { runSetup } from "@/server/setup";
@@ -11,9 +11,10 @@ export async function login(_prev: { error: string } | null, form: FormData): Pr
   const username = String(form.get("username") ?? "").slice(0, 60);
   const password = String(form.get("password") ?? "").slice(0, 200);
   if (!username || !password) return { error: "Escribe tu usuario y tu contraseña" };
-  const r = await loginWithPassword(username, password);
+  const remember = form.get("remember") === "on";
+  const r = await loginWithPassword(username, password, Date.now(), remember);
   if (!r.ok) return { error: r.error };
-  await setSessionCookie(r.token);
+  await setSessionCookie(r.token, remember);
   redirect("/");
 }
 
@@ -25,7 +26,7 @@ export async function logout() {
 export async function setupAction(_prev: { error: string } | null, form: FormData): Promise<{ error: string } | null> {
   try {
     const id = await runSetup(await getDb(), Object.fromEntries(form));
-    await setSessionCookie(await signSession(id));
+    await setSessionCookie(await signSession(id, 0, true), true);
   } catch (e) {
     if (e instanceof AppError) return { error: e.message };
     if (e instanceof ZodError) return { error: e.issues[0]?.message ?? "Datos no válidos" };
@@ -41,7 +42,8 @@ export async function changePasswordAction(_prev: { error: string } | null, form
   if (!me) redirect("/login");
   try {
     const v = await changeOwnPassword(await getDb(), me.id, { current: String(form.get("current") ?? ""), next: String(form.get("next") ?? ""), confirm: String(form.get("confirm") ?? "") });
-    await setSessionCookie(await signSession(me.id, v));
+    const remember = await sessionRemembers();
+    await setSessionCookie(await signSession(me.id, v, remember), remember);
   } catch (e) {
     if (e instanceof AppError) return { error: e.message };
     if (e instanceof ZodError) return { error: e.issues[0]?.message ?? "Datos no válidos" };
