@@ -27,6 +27,11 @@ const B='http://localhost:3101';
  ok(/Columnas reconocidas automáticamente/.test(r2),'reconoce solo las columnas de un archivo sin encabezados');
  ok(/\b41\b/.test(r2)&&/3 fila\(s\) no se importarán/.test(r2)&&/Fila 3: IMEI no válido/.test(r2),'41 equipos válidos y 3 filas con error (con el número de fila de Excel)');
  await p.click('button:has-text("Importar 41 productos")');await p.waitForSelector('text=Listo: 41 productos importados',{timeout:60000});
+ // el mismo archivo otra vez: nada nuevo, sin duplicados
+ await p.goto(B+'/inventario/importar');
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-sin-encabezados.xlsx'));
+ await p.waitForSelector('text=ya están en el inventario',{timeout:20000});
+ ok(/41 ya están en el inventario/.test(await p.innerText('main'))&&/No hay productos nuevos/.test(await p.innerText('main')),'el mismo archivo otra vez: muestra que ya existen y no duplica');
  // un archivo de inventario en el importador de ventas sugiere el lugar correcto
  await p.goto(B+'/config?tab=importar');
  await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-prueba.xlsx'));

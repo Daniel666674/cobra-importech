@@ -97,3 +97,19 @@ describe("pasar a vitrina en bloque", () => {
     expect((await db.select().from(items)).filter((i) => i.status === "En revisión")).toHaveLength(0);
   });
 });
+
+describe("volver a subir el inventario con productos nuevos", () => {
+  it("solo entran los nuevos; los que existen (aun vendidos) se saltan", async () => {
+    const db = await freshDb();
+    const rows = parseCsv(CSV);
+    const all = buildItems(rows.slice(1), guessInvMapping(rows[0]), { warr: WARR }).items;
+    await importInventory(db, owner, { source: "inv.xlsx", items: all.slice(0, 2) });
+    const [ip] = await db.select().from(items).where(eq(items.serial, I1));
+    await db.update(items).set({ status: "Vendido" }).where(eq(items.id, ip.id));
+    const { existingSerials } = await import("@/server/import-inventory");
+    expect((await existingSerials(db, owner, [I1, I2, "nuevo"])).map((x) => x.serial).sort()).toEqual([I1, I2].sort());
+    const r = await importInventory(db, owner, { source: "inv-v2.xlsx", items: all });
+    expect(r.skipped.map((s) => s.why)).toEqual([expect.stringMatching(/ya vendido/), expect.stringMatching(/ya está/)]);
+    expect((await db.select().from(items).where(eq(items.serial, I1)))).toHaveLength(1);
+  });
+});
