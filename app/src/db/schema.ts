@@ -90,6 +90,8 @@ export const users = pgTable("users", {
   pinHash: text("pin_hash").notNull(),
   failed: integer("failed").notNull().default(0),
   lockedUntil: ms("locked_until").notNull().default(0),
+  /** Sube al cambiar el PIN o desactivar: invalida las sesiones abiertas. */
+  sessionV: integer("session_v").notNull().default(0),
   createdAt: ms("created_at").notNull(),
 });
 

@@ -15,6 +15,13 @@
       "when": 1792223737033,
       "tag": "0001_tac_y_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792528675549,
+      "tag": "0002_sesiones",
+      "breakpoints": true
     }
   ]
 }

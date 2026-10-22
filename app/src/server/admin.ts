@@ -30,6 +30,9 @@ export async function updateUser(db: Db, a: Actor, id: string, raw: unknown) {
   const v = z.object({ role: z.string().optional(), active: z.boolean().optional(), pin: pin.optional() }).parse(raw);
   const [u] = await db.select().from(users).where(eq(users.id, id));
   if (!u) throw new AppError("Usuario no encontrado", "notfound");
+  const [ur] = await db.select().from(roles).where(eq(roles.key, u.role));
+  // El dueño puede desactivar al desarrollador, pero no ponerle PIN para entrar como él.
+  if (v.pin && ur?.locked && !a.locked) throw new AppError("Solo un desarrollador puede cambiar el PIN de ese usuario", "forbidden");
   const set: Partial<typeof users.$inferInsert> = {};
   if (v.role && v.role !== u.role) {
     const [r] = await db.select().from(roles).where(eq(roles.key, v.role));
@@ -45,6 +48,7 @@ export async function updateUser(db: Db, a: Actor, id: string, raw: unknown) {
   }
   if (v.pin) { set.pinHash = await hashPin(v.pin); set.failed = 0; set.lockedUntil = 0; }
   if (!Object.keys(set).length) return;
+  if (set.pinHash || set.active === false) set.sessionV = u.sessionV + 1;
   await db.update(users).set(set).where(eq(users.id, id));
   await logFeed(db, a, "owner", "👤", `Usuario actualizado: <b>${esc(u.name)}</b> por ${esc(a.name)}`);
 }

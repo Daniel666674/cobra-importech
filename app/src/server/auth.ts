@@ -2,14 +2,19 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { roles, users } from "@/db/schema";
+import { esc, logFeed } from "./core";
 
 export const COOKIE = "importech_session";
 const MAX_FAILS = 5;
 const LOCK_MS = 5 * 60_000;
+const MAX_LOCK_MS = 24 * 60 * 60_000;
 const TTL_S = 60 * 60 * 12;
+
+/** Cada bloqueo seguido dura el triple que el anterior: 5 min, 15 min, 45 min… hasta 24 h. */
+export const lockMs = (n: number) => Math.min(LOCK_MS * 3 ** (n - 1), MAX_LOCK_MS);
 
 function secret() {
   const s = process.env.AUTH_SECRET;
@@ -22,26 +27,39 @@ function secret() {
 
 export type Me = { id: string; name: string; role: string; roleName: string; perms: string[]; locked: boolean };
 
-export async function signSession(userId: string) {
-  return new SignJWT({}).setProtectedHeader({ alg: "HS256" }).setSubject(userId).setIssuedAt().setExpirationTime(`${TTL_S}s`).sign(secret());
+export async function signSession(userId: string, v = 0) {
+  return new SignJWT({ v }).setProtectedHeader({ alg: "HS256" }).setSubject(userId).setIssuedAt().setExpirationTime(`${TTL_S}s`).sign(secret());
 }
 
 export type LoginResult = { ok: true; token: string } | { ok: false; error: string };
 
-/** Valida el PIN con bloqueo temporal tras varios intentos fallidos. */
+/**
+ * Valida el PIN con bloqueos crecientes tras varios intentos fallidos.
+ * El intento se registra antes de comparar el PIN y solo si nadie más lo registró a la vez,
+ * así que enviar muchos intentos en paralelo no salta el bloqueo.
+ */
 export async function checkLogin(userId: string, pin: string, now = Date.now()): Promise<LoginResult> {
   const db = await getDb();
   const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!u || !u.active) return { ok: false, error: "Usuario no disponible" };
   if (u.lockedUntil > now) return { ok: false, error: `Demasiados intentos. Prueba en ${Math.ceil((u.lockedUntil - now) / 60000)} min.` };
-  const ok = await bcrypt.compare(pin, u.pinHash);
-  if (!ok) {
-    const failed = u.failed + 1;
-    await db.update(users).set(failed >= MAX_FAILS ? { failed: 0, lockedUntil: now + LOCK_MS } : { failed }).where(eq(users.id, userId));
-    return { ok: false, error: "PIN incorrecto" };
+  const failed = u.failed + 1;
+  const lock = failed % MAX_FAILS === 0 ? now + lockMs(failed / MAX_FAILS) : u.lockedUntil;
+  const claimed = await db
+    .update(users)
+    .set({ failed, lockedUntil: lock })
+    .where(and(eq(users.id, userId), eq(users.failed, u.failed), eq(users.lockedUntil, u.lockedUntil)))
+    .returning({ id: users.id });
+  if (!claimed.length) return { ok: false, error: "Intenta de nuevo" };
+  if (await bcrypt.compare(pin, u.pinHash)) {
+    await db.update(users).set({ failed: 0, lockedUntil: 0 }).where(eq(users.id, userId));
+    return { ok: true, token: await signSession(userId, u.sessionV) };
   }
-  await db.update(users).set({ failed: 0, lockedUntil: 0 }).where(eq(users.id, userId));
-  return { ok: true, token: await signSession(userId) };
+  if (lock !== u.lockedUntil) {
+    await logFeed(db, null, "owner", "🚨", `Alerta: <b>${esc(u.name)}</b> quedó bloqueado/a ${Math.round(lockMs(failed / MAX_FAILS) / 60000)} min por ${failed} PIN incorrectos seguidos`);
+    return { ok: false, error: `PIN incorrecto. Demasiados intentos: prueba en ${Math.ceil((lock - now) / 60000)} min.` };
+  }
+  return { ok: false, error: "PIN incorrecto" };
 }
 
 export async function meFromToken(token: string | undefined): Promise<Me | null> {
@@ -52,7 +70,7 @@ export async function meFromToken(token: string | undefined): Promise<Me | null>
     if (!id) return null;
     const db = await getDb();
     const [u] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    if (!u || !u.active) return null;
+    if (!u || !u.active || (payload.v ?? 0) !== u.sessionV) return null;
     const [r] = await db.select().from(roles).where(eq(roles.key, u.role)).limit(1);
     return { id: u.id, name: u.name, role: u.role, roleName: r?.name ?? u.role, perms: r?.perms ?? [], locked: !!r?.locked };
   } catch {
