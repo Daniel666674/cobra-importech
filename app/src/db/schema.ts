@@ -217,6 +217,10 @@ export const orders = pgTable("orders", {
   tech: text("tech").notNull().default(""),
   prev: text("prev").notNull().default("En vitrina"),
   t: ms("t").notNull(),
+  /** Cuándo entró a la etapa actual (para ver cuántos días lleva ahí). */
+  stT: ms("st_t").notNull().default(0),
+  /** Notas del técnico (diagnóstico, repuesto pedido…). */
+  notes: text("notes").notNull().default(""),
 });
 
 export const purchases = pgTable("purchases", {

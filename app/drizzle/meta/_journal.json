@@ -71,6 +71,13 @@
       "when": 1792707791220,
       "tag": "0009_aprobaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792708301450,
+      "tag": "0010_taller_kanban",
+      "breakpoints": true
     }
   ]
 }

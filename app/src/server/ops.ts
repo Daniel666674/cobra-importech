@@ -69,32 +69,62 @@ export async function createOrder(db: Db, a: Actor, raw: unknown) {
     if (!it) throw new AppError("Equipo no encontrado", "notfound");
     if (isQty(it) || it.status === "Vendido" || it.status === "En taller") throw new AppError("Este equipo no se puede enviar a taller", "conflict");
     const id = "T-" + String(await nextCounter(tx, "order")).padStart(3, "0");
-    await tx.insert(orders).values({ id, item: it.id, job: v.job, st: "Diagnóstico", cost: v.cost, tech: v.tech || a.name.split(" ")[0], prev: it.status, t: Date.now() });
+    await tx.insert(orders).values({ id, item: it.id, job: v.job, st: "Diagnóstico", cost: v.cost, tech: v.tech || a.name.split(" ")[0], prev: it.status, t: Date.now(), stT: Date.now() });
     await tx.update(items).set({ status: "En taller" }).where(eq(items.id, it.id));
     await addEvent(tx, it.id, a, "Entró a taller", v.job, "warn");
     return id;
   });
 }
+type OrderTx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
+/** Termina la reparación: el costo se suma al costo real del equipo y, para no perder la ganancia, también al precio. */
+async function finishOrder(tx: OrderTx, a: Actor, o: typeof orders.$inferSelect) {
+  const [it] = o.item ? await tx.select().from(items).where(eq(items.id, o.item)) : [];
+  if (it) {
+    const price = it.price ? it.price + o.cost : it.price;
+    await tx.update(items).set({ status: "En vitrina", repairs: it.repairs + o.cost, price }).where(eq(items.id, it.id));
+    await addEvent(tx, it.id, a, "Reparación terminada", `${o.job} · costo ${fmt(o.cost)} sumado al costo real (${fmt(it.cost + it.repairs)} → ${fmt(it.cost + it.repairs + o.cost)})${price !== it.price ? ` y al precio (${fmt(it.price)} → ${fmt(price)})` : ""}`, "ok");
+    await addEvent(tx, it.id, a, "En vitrina", it.branch);
+    await logFeed(tx, a, "owner", "🔧", `Reparación terminada: <b>${esc(uname(it))}</b> (${esc(o.job)}) · costo ${fmt(o.cost)}${price !== it.price ? ` · nuevo precio ${fmt(price)}` : ""}`);
+  }
+  await tx.delete(orders).where(eq(orders.id, o.id));
+}
+
 export async function advanceOrder(db: Db, a: Actor, id: string) {
   need(a, "workshop");
   return db.transaction(async (tx) => {
     const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
     if (!o) throw new AppError("Orden no encontrada", "notfound");
-    if (o.st === "Listo") {
-      const [it] = o.item ? await tx.select().from(items).where(eq(items.id, o.item)) : [];
-      if (it) {
-        await tx.update(items).set({ status: "En vitrina", repairs: it.repairs + o.cost }).where(eq(items.id, it.id));
-        await addEvent(tx, it.id, a, "Reparación terminada", `${o.job} · costo ${fmt(o.cost)} sumado al equipo`, "ok");
-        await addEvent(tx, it.id, a, "En vitrina", it.branch);
-        await logFeed(tx, a, "owner", "🔧", `Reparación terminada: <b>${esc(uname(it))}</b> (${esc(o.job)})`);
-      }
-      await tx.delete(orders).where(eq(orders.id, id));
-      return "done";
-    }
+    if (o.st === "Listo") { await finishOrder(tx, a, o); return "done"; }
     const next = ORDER_FLOW[ORDER_FLOW.indexOf(o.st as (typeof ORDER_FLOW)[number]) + 1];
-    await tx.update(orders).set({ st: next }).where(eq(orders.id, id));
+    await tx.update(orders).set({ st: next, stT: Date.now() }).where(eq(orders.id, id));
+    if (o.item) await addEvent(tx, o.item, a, "Taller: " + next, o.job);
     return next;
   });
+}
+
+/** Mueve la orden a cualquier etapa del tablero (arrastrar o ‹ ›). */
+export async function moveOrder(db: Db, a: Actor, id: string, st: string) {
+  need(a, "workshop");
+  const to = z.enum(ORDER_FLOW).parse(st);
+  return db.transaction(async (tx) => {
+    const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
+    if (!o) throw new AppError("Orden no encontrada", "notfound");
+    if (o.st === to) return to;
+    await tx.update(orders).set({ st: to, stT: Date.now() }).where(eq(orders.id, id));
+    if (o.item) await addEvent(tx, o.item, a, "Taller: " + to, `${o.st} → ${to} · ${o.job}`);
+    return to;
+  });
+}
+
+/** Actualiza el costo de la reparación (p. ej. tras el diagnóstico) y las notas del técnico. */
+export async function updateOrder(db: Db, a: Actor, id: string, raw: unknown) {
+  need(a, "workshop");
+  const v = z.object({ cost: z.coerce.number().int().min(0).max(1e9).optional(), notes: z.string().trim().max(500).optional(), tech: z.string().trim().max(60).optional() }).parse(raw);
+  const [o] = await db.select().from(orders).where(eq(orders.id, id));
+  if (!o) throw new AppError("Orden no encontrada", "notfound");
+  await db.update(orders).set(v).where(eq(orders.id, id));
+  if (o.item && v.cost != null && v.cost !== o.cost) await addEvent(db, o.item, a, "Costo de reparación", `${fmt(o.cost)} → ${fmt(v.cost)} · ${o.job}`, "warn");
 }
 export async function cancelOrder(db: Db, a: Actor, id: string) {
   need(a, "workshop");

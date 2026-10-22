@@ -276,9 +276,9 @@ export async function priceUnpriced(db: Db, a: Actor, gain: number) {
   need(a, "inv_edit");
   const g = z.coerce.number().int().min(1, "Escribe la ganancia en pesos").max(1e9).parse(gain);
   return db.transaction(async (tx) => {
-    const rows = await tx.update(items).set({ price: sql`${items.cost} + ${g}` })
+    const rows = await tx.update(items).set({ price: sql`${items.cost} + ${items.repairs} + ${g}` })
       .where(and(eq(items.price, 0), sql`${items.cost} > 0`, inArray(items.status, ["En vitrina", "En revisión"]))).returning({ id: items.id, price: items.price });
-    for (const r of rows) await addEvent(tx, r.id, a, "Precio asignado", `Costo + ${fmt(g)} = ${fmt(r.price)}`);
+    for (const r of rows) await addEvent(tx, r.id, a, "Precio asignado", `Costo + reparaciones + ${fmt(g)} = ${fmt(r.price)}`);
     if (rows.length) await logFeed(tx, a, "reprice", "🏷️", `${rows.length} productos sin precio quedaron en costo + ${fmt(g)} · ${esc(a.name)}`);
     return rows.length;
   });

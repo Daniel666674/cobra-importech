@@ -22,6 +22,8 @@ type Props = {
   hideSerial?: boolean;
   /** Tiendas aliadas activas; si hay, se puede elegir de quién es el producto. */
   allies?: { id: string; name: string }[];
+  /** Costo de reparaciones ya hechas (se suma al costo en la fórmula del precio). */
+  repairs?: number;
 };
 
 const Field = ({ id, label, children, hint }: { id: string; label: string; children: React.ReactNode; hint?: string }) => (
@@ -32,7 +34,8 @@ const Field = ({ id, label, children, hint }: { id: string; label: string; child
   </div>
 );
 
-export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial, allies = [] }: Props) {
+export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial, allies = [], repairs = 0 }: Props) {
+  const base = (+v.cost || 0) + repairs;
   const models = useMemo(() => CATALOG.filter((c) => c.cat === cat), [cat]);
   const qtyTrack = cat === "AirPods" || cat === "Accesorios";
   const set = (patch: Partial<ItemFormValues>) => {
@@ -75,8 +78,8 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       )}
       {showCost && <Field id="i-cost" label={v.ally ? "Se le paga a la aliada (COP)" : "Costo (COP)"}><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
       {showCost && (
-        <Field id="i-gain" label={v.ally ? "Gana la tienda (COP)" : "Ganancia sobre el costo (COP)"} hint="Precio de venta = costo + ganancia">
-          <input id="i-gain" type="number" step={10000} value={+v.price && v.cost !== "" ? String(+v.price - +v.cost) : ""} onChange={(e) => set({ price: e.target.value === "" ? "" : String((+v.cost || 0) + (+e.target.value || 0)) })} />
+        <Field id="i-gain" label={v.ally ? "Gana la tienda (COP)" : "Ganancia sobre el costo (COP)"} hint={repairs ? `Precio = costo $${(+v.cost || 0).toLocaleString("es-CO")} + reparaciones $${repairs.toLocaleString("es-CO")} + ganancia` : "Precio de venta = costo + ganancia"}>
+          <input id="i-gain" type="number" step={10000} value={+v.price && v.cost !== "" ? String(+v.price - base) : ""} onChange={(e) => set({ price: e.target.value === "" ? "" : String(base + (+e.target.value || 0)) })} />
         </Field>
       )}
       <Field id="i-price" label="Precio de venta (COP)">
