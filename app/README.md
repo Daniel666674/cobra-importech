@@ -59,6 +59,13 @@ Al ingresar el producto se elige la aliada; el costo es lo que se le paga y el f
 Cada aliada tiene su cuenta: lo vendido, lo que le corresponde, la ganancia de la tienda, lo que hay en vitrina y los pagos.
 Las devoluciones descuentan lo que se le debía. *Compras e importación están desactivadas por ahora.*
 
+## Importar el inventario inicial
+
+*Inventario → 📥 Importar desde Excel*. Acepta .xlsx o CSV, una fila por producto (los equipos con IMEI/serie, uno por fila;
+los accesorios pueden llevar cantidad). Propone el mapeo de columnas, deduce la categoría del nombre, muestra la vista previa y las
+filas con error. **Los iPhone entran «En revisión»** hasta registrar la consulta oficial en su ficha. Salta IMEI repetidos o
+bloqueados, no duplica al reimportar y se puede deshacer (solo lo que no se ha vendido ni apartado). Hay plantilla descargable.
+
 ## Importar el historial de ventas
 
 *Configuración → Importar ventas*. Acepta el archivo de Excel (.xlsx) directamente, o el CSV de Excel, Siigo, Alegra, Loggro, etc. (separador `,` `;` o tabulador, UTF-8 o Windows-1252).
