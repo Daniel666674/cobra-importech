@@ -6,7 +6,7 @@ import { getDb } from "@/db";
 import { CondChip, Empty, PageHeader, StatusChip } from "@/components/ui";
 import { CATS, CONDS, STATUSES } from "@/lib/catalog";
 import { daysIn, itemState, isQty, stockQty } from "@/lib/items";
-import { fmt } from "@/lib/format";
+import { fdatey, fmt } from "@/lib/format";
 import { hasPerm } from "@/server/auth";
 import { listItems } from "@/server/inventory";
 import { requireMe } from "@/server/session";
@@ -34,7 +34,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
       <div className="card overflow-x-auto">
         {rows.length === 0 ? <Empty>No hay productos con esos filtros.</Empty> : (
           <table className="t" id="inv-t">
-            <thead><tr><th>Producto</th><th>Condición</th><th>Estado</th><th className="num">Días</th>{canCost && <th className="num">Costo</th>}<th className="num">Precio</th></tr></thead>
+            <thead><tr><th>Producto</th><th>Condición</th><th>Estado</th><th>Recibido</th>{canCost && <th className="num">Costo</th>}<th className="num">Precio</th></tr></thead>
             <tbody>
               {rows.map((it) => (
                 <tr key={it.id} className="hover:bg-gray-bg/60">
@@ -44,7 +44,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
                   </td>
                   <td><CondChip cond={it.cond} /></td>
                   <td><StatusChip status={itemState(it)} /></td>
-                  <td className="num">{daysIn(it)}</td>
+                  <td className="whitespace-nowrap">{fdatey(it.acq)} <span className="note">({daysIn(it)} d)</span></td>
                   {canCost && <td className="num">{fmt(it.cost + it.repairs)}</td>}
                   <td className="num"><b>{fmt(it.price)}</b></td>
                 </tr>
