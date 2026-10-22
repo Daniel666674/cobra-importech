@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { importSalesAction } from "@/app/actions/admin";
 import { guessDateOrder, type DateOrder } from "@/lib/csv";
 import { readTable } from "@/lib/read-file";
+import { guessInvMapping, hasHeaderRow } from "@/lib/inventory-import";
+import { ImportInventory } from "../inventario/importar/import-inventory";
 import { fdatey, fmt } from "@/lib/format";
 import { IMPORT_FIELDS, buildSales, impliedDisc, guessMapping, type FieldKey, type Mapping } from "@/lib/sales-import";
 
@@ -24,7 +26,16 @@ const downloadTemplate = () => {
 
 type Result = { created: number; skipped: number; newClients: number; amount: number };
 
+/** ¿El archivo parece de inventario (sin fecha de venta, con modelos/IMEI) y no de ventas? */
+function looksLikeInventory(rows: string[][]) {
+  const data = rows.filter((r) => r.some((c) => c && c.trim()));
+  if (!data.length) return false;
+  if (!hasHeaderRow(data)) return true;
+  return guessMapping(data[0]).date === undefined && guessInvMapping(data[0]).name !== undefined;
+}
+
 export function ImportSales({ warr, onDone }: { warr: Record<string, number>; onDone: () => void }) {
+  const [inventory, setInventory] = useState<{ name: string; rows: string[][] } | null>(null);
   const [file, setFile] = useState<{ name: string; rows: string[][] } | null>(null);
   const [map, setMap] = useState<Mapping>({});
   const [order, setOrder] = useState<DateOrder>("dmy");
@@ -56,6 +67,8 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
     let rows: string[][];
     try { rows = await readTable(f); } catch (e) { return setErr((e as Error).message); }
     if (rows.length < 2) return setErr("El archivo está vacío o no tiene filas de datos.");
+    if (looksLikeInventory(rows)) { setFile(null); setInventory({ name: f.name, rows }); return; }
+    setInventory(null);
     setFile({ name: f.name, rows });
     const m = guessMapping(rows[0]);
     setMap(m);
@@ -99,10 +112,14 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
         {err && <p role="alert" className="chip bad !rounded-md mt-3">{err}</p>}
       </div>
 
+      {inventory && <>
+        <p className="chip info !rounded-md !whitespace-normal block">«{inventory.name}» es un archivo de <b>inventario</b> (productos que hay en la tienda), no de ventas: lo abrimos en el importador de inventario.</p>
+        <ImportInventory key={inventory.name + inventory.rows.length} warr={warr} sources={[]} canUndo={false} initial={inventory} />
+      </>}
       {file && (
-        <div className="card p-4">
-          <h2 className="font-semibold mb-1">1. ¿Qué columna es cada dato?</h2>
-          <p className="note mb-3">Ya propusimos una asignación según los encabezados. Revísala; lo marcado con * es obligatorio.</p>
+        <details className="card p-4" open={!built?.sales.length}>
+          <summary className="cursor-pointer font-semibold">{built?.sales.length ? "✓ Columnas reconocidas automáticamente (toca para revisarlas o ajustarlas)" : "1. ¿Qué columna es cada dato?"}</summary>
+          <p className="note mb-3 mt-2">Ya propusimos una asignación según los encabezados. Revísala; lo marcado con * es obligatorio.</p>
           <div className="grid gap-3 md:grid-cols-2">
             {IMPORT_FIELDS.map((f) => (
               <div key={f.key}>
@@ -118,7 +135,7 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
               </select>
             </div>
           </div>
-        </div>
+        </details>
       )}
 
       {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos «Fecha» y «Producto» para ver la vista previa.{map.date === undefined && <> Si el archivo es de <b>inventario</b> (lo que hay hoy en la tienda) y no de ventas, súbelo en <Link className="underline" href="/inventario/importar">Inventario → Importar desde Excel</Link>.</>}</p>}

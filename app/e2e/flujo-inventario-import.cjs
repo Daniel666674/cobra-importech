@@ -24,13 +24,18 @@ const B='http://localhost:3101';
  await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-sin-encabezados.xlsx'));
  await p.waitForSelector('td:has-text("iPhone 12 Pro Max")',{timeout:20000});
  let r2=await p.innerText('main');
- ok(/no trae encabezados/.test(r2),'detecta que el archivo no tiene encabezados');
+ ok(/Columnas reconocidas automáticamente/.test(r2),'reconoce solo las columnas de un archivo sin encabezados');
  ok(/\b41\b/.test(r2)&&/3 fila\(s\) no se importarán/.test(r2)&&/Fila 3: IMEI no válido/.test(r2),'41 equipos válidos y 3 filas con error (con el número de fila de Excel)');
  await p.click('button:has-text("Importar 41 productos")');await p.waitForSelector('text=Listo: 41 productos importados',{timeout:60000});
  // un archivo de inventario en el importador de ventas sugiere el lugar correcto
  await p.goto(B+'/config?tab=importar');
  await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-prueba.xlsx'));
- await p.waitForSelector('text=Si el archivo es de');ok(true,'el importador de ventas indica dónde subir un archivo de inventario');
+ await p.waitForSelector('text=es un archivo de');ok(true,'el importador de ventas reconoce un archivo de inventario y lo abre en el importador correcto');
+ // el archivo sin encabezados subido por error en ventas: se importa ahí mismo, sin tocar columnas
+ await p.goto(B+'/config?tab=importar');
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-sin-encabezados.xlsx'));
+ await p.waitForSelector('text=Columnas reconocidas automáticamente',{timeout:20000});
+ ok(!(await p.locator('details[open] select').count()),'las columnas quedan ocultas cuando se reconocieron solas');
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');process.exit(fails?1:0);
 })();
