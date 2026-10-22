@@ -26,7 +26,11 @@ export type SaleLine = {
   cost: number;
   warr: number;
   ret: number;
+  /** Tienda aliada dueña del producto (si no es propio). */
+  ally?: string;
 };
+/** Equipo recibido como parte de pago de una venta. */
+export type TradeIn = { item: string; name: string; serial: string; cond: string; amount: number };
 export type OfficialCheck = {
   r: "clean" | "reported" | "blocked" | "locked";
   by: string;
@@ -143,6 +147,8 @@ export const items = pgTable("items", {
   repairs: integer("repairs").notNull().default(0),
   min: integer("min").notNull().default(0),
   track: text("track").notNull().default("unit"),
+  /** Tienda aliada que entregó el producto; vacío = propio. */
+  ally: text("ally").notNull().default(""),
   imeiCheck: jsonb("imei_check").$type<ImeiCheck | null>(),
   hold: jsonb("hold").$type<Hold | null>(),
 });
@@ -175,6 +181,8 @@ export const sales = pgTable("sales", {
   discReason: text("disc_reason").notNull().default(""),
   cash: jsonb("cash").$type<{ given: number; change: number } | null>(),
   holdPays: jsonb("hold_pays").$type<{ t: number; amount: number; method: string; no: string }[] | null>(),
+  /** Equipos recibidos como parte de pago. */
+  tradeins: jsonb("tradeins").$type<TradeIn[]>().notNull().default([]),
   /** Origen de una venta importada (nombre del archivo); vacío = registrada en el sistema. */
   source: text("source").notNull().default(""),
   /** Llave para no importar dos veces la misma venta. */
@@ -260,3 +268,29 @@ export const tacModels = pgTable("tac_models", {
   t: ms("t").notNull(),
   by: text("by").notNull().default(""),
 });
+
+/** Tiendas aliadas: entregan productos y se les paga lo acordado (costo). */
+export const allies = pgTable("allies", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  contact: text("contact").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  doc: text("doc").notNull().default(""),
+  /** consignacion = se le paga cuando se vende; compra = se le debe desde que se recibe. */
+  mode: text("mode").notNull().default("consignacion"),
+  notes: text("notes").notNull().default(""),
+  active: boolean("active").notNull().default(true),
+  t: ms("t").notNull(),
+});
+
+/** Cuenta corriente con cada aliada: deudas (positivas o negativas por devoluciones) y pagos. */
+export const allyMoves = pgTable("ally_moves", {
+  id: serial("id").primaryKey(),
+  ally: text("ally").notNull().references(() => allies.id),
+  t: ms("t").notNull(),
+  kind: text("kind").notNull(), // deuda | pago
+  amount: integer("amount").notNull(),
+  ref: text("ref").notNull().default(""),
+  detail: text("detail").notNull().default(""),
+  by: text("by").notNull().default(""),
+}, (t) => [index("ally_moves_ally").on(t.ally)]);

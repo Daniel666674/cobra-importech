@@ -7,16 +7,19 @@ import { uname } from "@/lib/items";
 /** Corre las verificaciones automáticas de un IMEI contra la base de datos. */
 export async function verifyImei(db: Db, imei: string, ignoreId?: string): Promise<ImeiResult> {
   const clean = imei.replace(/\D/g, "");
-  const [dup] = await db
+  const same = await db
     .select()
     .from(items)
-    .where(ignoreId ? and(eq(items.serial, clean), ne(items.id, ignoreId)) : eq(items.serial, clean))
-    .limit(1);
+    .where(ignoreId ? and(eq(items.serial, clean), ne(items.id, ignoreId)) : eq(items.serial, clean));
+  // Un equipo que la tienda ya vendió puede volver a entrar (por ejemplo, como retoma): no es duplicado.
+  const dup = same.find((i) => i.status !== "Vendido");
+  const sold = same.find((i) => i.status === "Vendido");
   const [bl] = await db.select().from(imeiBlocklist).where(eq(imeiBlocklist.imei, clean)).limit(1);
   const [tac] = clean.length === 15 ? await db.select().from(tacModels).where(eq(tacModels.tac, clean.slice(0, 8))).limit(1) : [];
   return checkImei(clean, {
     tacName: tac?.name ?? null,
     existing: dup ? { id: dup.id, name: uname(dup), status: dup.status } : null,
+    soldBefore: !dup && sold ? { id: sold.id, name: uname(sold) } : null,
     blocked: bl ? `${bl.reason} (registrado por ${bl.by})` : null,
   });
 }

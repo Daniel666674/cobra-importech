@@ -34,7 +34,7 @@ async function processLogo(file: File): Promise<string> {
 const now = Date.now();
 const SAMPLE_SALE = {
   id: "S-0000", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
-  payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000,
+  payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000, tradeins: [],
   lines: [
     { item: "", name: "iPhone 15 Pro 256 GB", color: "Titanio natural", cond: "Nuevo", serial: "356789123456789", qty: 1, price: 4_550_000, cost: 0, warr: 12, ret: 0 },
     { item: "", name: "Cargador USB-C 20 W", color: "", cond: "Nuevo", serial: "", qty: 1, price: 200_000, cost: 0, warr: 3, ret: 0 },
@@ -190,7 +190,6 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
           <div className="grid gap-3 sm:grid-cols-3">
             {field("maxDisc", "Descuento máximo sin autorización (%)", { type: "number", min: 0, max: 100, help: "Por encima, se necesita el permiso «Dar descuentos sobre el límite»" })}
             {field("minMargin", "Margen mínimo esperado (%)", { type: "number", min: 0, max: 100 })}
-            {field("trm", "TRM de referencia (COP/USD)", { type: "number", min: 1, help: "Para calcular el costo de compras en dólares" })}
           </div>
         </div>
         <div className="card p-4">

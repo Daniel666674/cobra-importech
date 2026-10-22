@@ -32,6 +32,23 @@ En desarrollo ninguna es obligatoria. Todo lo demás (nombre, logo, reglas) se c
 - `src/db/schema.ts` tablas; `drizzle/` migraciones (`npm run db:generate` tras cambiar el esquema).
 - `tests/` pruebas automáticas.
 
+## Retomas (equipo como parte de pago)
+
+- **En caja**: «+ Recibir un equipo». Se cotiza y se verifica igual que una retoma suelta (IMEI, CRC y Apple). El valor de la retoma
+  se descuenta del saldo y queda como forma de pago «Retoma» en el comprobante, que muestra el equipo recibido.
+- El equipo **entra solo al inventario** al emitir el comprobante, en la misma operación de la venta: si algo falla, no queda ni la venta ni el equipo.
+  Su costo es el valor de la retoma y el cliente de la venta (con cédula obligatoria) queda como quien lo entregó.
+- Si la retoma vale más que la compra, se registra sola en *Retomas* y se le paga la diferencia al cliente.
+- Un equipo que la tienda vendió antes puede volver a entrar (no se toma como IMEI duplicado).
+
+## Tiendas aliadas
+
+Productos de otras tiendas que se venden aquí. En *Tiendas aliadas* se crea cada una y se elige cuándo se le paga:
+**consignación** (se le debe cuando se vende) o **compra** (se le debe desde que se recibe).
+Al ingresar el producto se elige la aliada; el costo es lo que se le paga y el formulario muestra lo que gana la tienda.
+Cada aliada tiene su cuenta: lo vendido, lo que le corresponde, la ganancia de la tienda, lo que hay en vitrina y los pagos.
+Las devoluciones descuentan lo que se le debía. *Compras e importación están desactivadas por ahora.*
+
 ## Importar el historial de ventas
 
 *Configuración → Importar ventas*. Acepta el CSV de Excel, Siigo, Alegra, Loggro, etc. (separador `,` `;` o tabulador, UTF-8 o Windows-1252).
