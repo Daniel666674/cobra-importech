@@ -84,3 +84,16 @@ describe("importar al sistema", () => {
     expect(left.map((i) => i.name)).toEqual(["Cargador USB-C 20 W"]);
   });
 });
+
+describe("pasar a vitrina en bloque", () => {
+  it("solo administradores; pasa todos los «En revisión» y lo anota", async () => {
+    const db = await freshDb();
+    const { releaseAllReview } = await import("@/server/inventory");
+    const rows = parseCsv(CSV);
+    await importInventory(db, owner, { source: "x.xlsx", items: buildItems(rows.slice(1), guessInvMapping(rows[0]), { warr: WARR }).items });
+    await expect(releaseAllReview(db, owner)).rejects.toThrow(/permiso/);
+    const n = await releaseAllReview(db, { ...owner, perms: [...owner.perms, "users"] });
+    expect(n).toBeGreaterThanOrEqual(2);
+    expect((await db.select().from(items)).filter((i) => i.status === "En revisión")).toHaveLength(0);
+  });
+});

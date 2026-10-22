@@ -1,3 +1,6 @@
+import { count, eq } from "drizzle-orm";
+import { items } from "@/db/schema";
+import { ReleaseReview } from "./release-review";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { CondChip, Empty, PageHeader, StatusChip } from "@/components/ui";
@@ -13,13 +16,14 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
   const sp = await searchParams;
   const one = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v) ?? ""; };
   const f = { q: one("q"), cat: one("cat"), cond: one("cond"), status: one("status") || "stock" };
-  const rows = await listItems(await getDb(), f);
+  const db = await getDb();
+  const [rows, [{ n: review }]] = await Promise.all([listItems(db, f), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión"))]);
   const canCost = hasPerm(me, "cost_view");
   const units = rows.reduce((a, it) => a + stockQty(it), 0);
   return (
     <>
       <PageHeader title="Inventario" subtitle={`${rows.length} referencias · ${units} unidades`}
-        actions={hasPerm(me, "inv_edit") ? <div className="flex gap-2"><Link href="/inventario/importar" className="btn">📥 Importar desde Excel</Link><Link href="/ingreso" className="btn primary">➕ Ingresar producto</Link></div> : undefined} />
+        actions={hasPerm(me, "inv_edit") ? <div className="flex flex-wrap gap-2">{review > 0 && hasPerm(me, "users") && <ReleaseReview count={review} />}<Link href="/inventario/importar" className="btn">📥 Importar desde Excel</Link><Link href="/ingreso" className="btn primary">➕ Ingresar producto</Link></div> : undefined} />
       <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]" action="/inventario">
         <input name="q" defaultValue={f.q} placeholder="Buscar por nombre, IMEI, serial o SKU" aria-label="Buscar" />
         <select name="cat" defaultValue={f.cat} aria-label="Categoría"><option value="">Todas las categorías</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
