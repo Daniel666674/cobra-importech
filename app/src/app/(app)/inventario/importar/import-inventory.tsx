@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { importInventoryAction, undoInventoryImportAction } from "@/app/actions/inventory";
+import { existingSerialsAction, importInventoryAction, undoInventoryImportAction } from "@/app/actions/inventory";
 import { fmt } from "@/lib/format";
 import { CONDS } from "@/lib/catalog";
 import { INV_FIELDS, buildItems, guessByContent, guessInvMapping, hasHeaderRow, type InvKey, type InvMapping } from "@/lib/inventory-import";
@@ -59,7 +59,16 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
   const body = useMemo(() => file?.rows.slice(header ? start + 1 : start) ?? [], [file, start, header]);
   const firstRow = start + (header ? 2 : 1);
   const opts = useMemo(() => ({ warr, firstRow, defaultCond, markup: markup.trim() === "" ? null : Math.max(0, +markup || 0) }), [warr, firstRow, defaultCond, markup]);
-  const built = useMemo(() => (file && map.name !== undefined ? buildItems(body, map, opts) : null), [file, body, map, opts]);
+  const parsed = useMemo(() => (file && map.name !== undefined ? buildItems(body, map, opts) : null), [file, body, map, opts]);
+  // IMEI/seriales que ya están en el sistema: se muestran y no se importan (no hay duplicados).
+  const [dupes, setDupes] = useState<{ key: string; list: { serial: string; id: string; status: string; name: string }[] }>({ key: "", list: [] });
+  const serialKey = parsed ? parsed.items.map((i) => i.serial).filter(Boolean).join(",") : "";
+  if (parsed && dupes.key !== serialKey) {
+    setDupes({ key: serialKey, list: [] });
+    if (serialKey) existingSerialsAction(serialKey.split(",")).then((r) => r.ok && setDupes({ key: serialKey, list: r.data }));
+  }
+  const dupSet = useMemo(() => new Set(dupes.list.map((d) => d.serial)), [dupes]);
+  const built = useMemo(() => (parsed ? { items: parsed.items.filter((i) => !i.serial || !dupSet.has(i.serial)), issues: parsed.issues } : null), [parsed, dupSet]);
   const sum = useMemo(() => {
     if (!built) return null;
     const its = built.items;
@@ -122,8 +131,8 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
       </div>
 
       {file && (
-        <details className="card p-4" open={!built?.items.length}>
-          <summary className="cursor-pointer font-semibold">{built?.items.length ? "✓ Columnas reconocidas automáticamente (toca para revisarlas o ajustarlas)" : "1. ¿Qué columna es cada dato?"}</summary>
+        <details className="card p-4" open={!parsed?.items.length}>
+          <summary className="cursor-pointer font-semibold">{parsed?.items.length ? "✓ Columnas reconocidas automáticamente (toca para revisarlas o ajustarlas)" : "1. ¿Qué columna es cada dato?"}</summary>
           <p className="note mb-3 mt-2">{header ? "Ya propusimos una asignación según los encabezados." : "El archivo no trae encabezados: propusimos cada columna según su contenido (IMEI, modelo, capacidad, color…)."} Revísala; lo marcado con * es obligatorio.</p>
           <label className="mb-3 flex items-center gap-2 text-[13px]"><input type="checkbox" className="!w-auto" checked={header} onChange={(e) => {
             const h = e.target.checked; setHeader(h);
@@ -161,6 +170,13 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
             <div className="rounded-lg border border-line p-2"><span className="note block">Valor al costo</span><b className="text-lg tabular-nums">{fmt(sum.cost)}</b></div>
             <div className="rounded-lg border border-line p-2"><span className="note block">Por categoría</span><span className="text-[12.5px]">{sum.byCat.map(([c, n]) => `${c} ${n}`).join(" · ")}</span></div>
           </div>
+          {dupes.list.length > 0 && (
+            <details className="rounded-lg border border-line p-2 text-[13px]">
+              <summary className="cursor-pointer font-semibold">✓ {dupes.list.length} ya están en el inventario y no se vuelven a importar (sin duplicados)</summary>
+              <ul className="mt-2 max-h-40 overflow-y-auto space-y-0.5">{dupes.list.map((d) => <li key={d.serial}><span className="mono">{d.serial}</span> · {d.name} · {d.id} · {d.status}</li>)}</ul>
+            </details>
+          )}
+          {built.items.length === 0 && <p className="chip ok !rounded-md !whitespace-normal">No hay productos nuevos en este archivo: todo ya está en el inventario.</p>}
           {sum.iphones > 0 && <p className="chip info !rounded-md !whitespace-normal">{sum.iphones} iPhone entrarán «En revisión»: en la ficha de cada uno, «Verificar IMEI de nuevo» registra la consulta oficial y lo pasa a vitrina.</p>}
           {sum.noCost > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noCost} producto(s) sin costo: no tendrán margen en los reportes. Si el archivo tiene costo, asígnalo arriba.</p>}
           {sum.noPrice > 0 && <p className="chip warn !rounded-md !whitespace-normal">{sum.noPrice} producto(s) quedarán <b>sin precio de venta</b> (no tienen costo para calcularlo): pónselo en su ficha antes de venderlos.</p>}

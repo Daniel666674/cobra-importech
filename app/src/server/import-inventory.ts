@@ -32,7 +32,8 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
   const branch = await branchName(db);
   return db.transaction(async (tx) => {
     const serials = list.map((i) => i.serial).filter(Boolean);
-    const taken = new Map(serials.length ? (await tx.select({ s: items.serial, st: items.status, id: items.id }).from(items).where(inArray(items.serial, serials))).filter((x) => x.st !== "Vendido").map((x) => [x.s, x.id]) : []);
+    // Cualquier equipo con ese IMEI/serial (incluso ya vendido) se salta: subir el mismo archivo con productos nuevos no duplica nada.
+    const taken = new Map(serials.length ? (await tx.select({ s: items.serial, st: items.status, id: items.id }).from(items).where(inArray(items.serial, serials))).map((x) => [x.s, x.st === "Vendido" ? `${x.id}, ya vendido` : x.id]) : []);
     const blocked = new Set(serials.length ? (await tx.select({ i: imeiBlocklist.imei }).from(imeiBlocklist).where(inArray(imeiBlocklist.imei, serials))).map((x) => x.i) : []);
     const fromFile = await tx.select().from(items).where(eq(items.src, src));
     const skipped: { name: string; why: string }[] = [];
@@ -81,4 +82,12 @@ export async function undoInventoryImport(db: Db, a: Actor, source: string) {
 export async function inventorySources(db: Db) {
   return db.select({ source: items.src, n: sql<number>`count(*)::int`, units: sql<number>`sum(case when ${items.track} = 'qty' then ${items.qty} else 1 end)::int` })
     .from(items).where(sql`${items.src} like 'Importado: %'`).groupBy(items.src);
+}
+
+/** Para la vista previa: qué IMEI/seriales del archivo ya existen en el sistema. */
+export async function existingSerials(db: Db, a: Actor, serials: string[]) {
+  need(a, "inv_edit");
+  const list = z.array(z.string().max(40)).max(5000).parse(serials).filter(Boolean);
+  if (!list.length) return [];
+  return db.select({ serial: items.serial, id: items.id, status: items.status, name: items.name }).from(items).where(inArray(items.serial, list));
 }

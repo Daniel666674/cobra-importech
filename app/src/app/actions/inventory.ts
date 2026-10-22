@@ -4,7 +4,7 @@ import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
 import { createItem, deleteItem, releaseAllReview, reverifyItem, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
-import { importInventory, undoInventoryImport } from "@/server/import-inventory";
+import { existingSerials, importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
 
 export async function verifyImeiAction(imei: string) {
@@ -43,4 +43,7 @@ export async function undoInventoryImportAction(source: string) {
 }
 export async function releaseAllReviewAction() {
   return act((db, a) => releaseAllReview(db, a), ["/inventario", "/"]);
+}
+export async function existingSerialsAction(serials: string[]) {
+  return act((db, a) => existingSerials(db, a, serials), []);
 }
