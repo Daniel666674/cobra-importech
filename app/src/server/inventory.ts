@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { allies, allyMoves, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
+import { allies, allyMoves, imeiBlocklist, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
@@ -51,6 +51,8 @@ export async function checkImei2(db: Db, raw: string, imei1: string, exceptId = 
   if (v === imei1) throw new AppError("El IMEI 2 no puede ser igual al IMEI 1", "invalid");
   const [dup] = await db.select({ id: items.id }).from(items).where(sql`(${items.serial} = ${v} or ${items.serial2} = ${v}) and ${items.id} <> ${exceptId}`).limit(1);
   if (dup) throw new AppError(`El IMEI 2 ya está registrado en ${dup.id}`, "invalid");
+  const [bl] = await db.select({ r: imeiBlocklist.reason }).from(imeiBlocklist).where(eq(imeiBlocklist.imei, v)).limit(1);
+  if (bl) throw new AppError(`El IMEI 2 está bloqueado: ${bl.r}`, "invalid");
   return v;
 }
 
@@ -142,7 +144,9 @@ export const itemPatch = itemInput.pick({ serial2: true, name: true, spec: true,
 
 export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "inv_edit");
-  const patch = itemPatch.parse(raw);
+  // Solo los campos enviados (los valores por defecto del esquema no deben borrar datos, p. ej. el IMEI 2 o la batería).
+  const sent = raw && typeof raw === "object" ? Object.keys(raw).filter((k) => (raw as Record<string, unknown>)[k] !== undefined) : [];
+  const patch = Object.fromEntries(Object.entries(itemPatch.parse(raw)).filter(([k]) => sent.includes(k))) as z.infer<typeof itemPatch>;
   return db.transaction(async (tx) => {
     const [it] = await tx.select().from(items).where(eq(items.id, id)).for("update");
     if (!it) throw new AppError("Producto no encontrado", "notfound");

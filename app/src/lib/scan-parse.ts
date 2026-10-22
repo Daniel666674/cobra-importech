@@ -1,7 +1,7 @@
 import { CATALOG, catalogEntry } from "./catalog";
 import { luhnOk } from "./imei";
 
-export type ScanRead = { imei?: string; serial?: string; name?: string; spec?: string; batt?: number; color?: string; part?: string; modelno?: string; info?: string[] };
+export type ScanRead = { imei?: string; imei2?: string; serial?: string; name?: string; spec?: string; batt?: number; color?: string; part?: string; modelno?: string; info?: string[] };
 
 const capWords = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const normName = (s: string) => String(s).toLowerCase().replace(/[“”"″]/g, "").replace(/[^a-z0-9]+/g, "");
@@ -25,7 +25,12 @@ export function classifyCode(raw: string): CodeKind {
 export function parseLabelText(raw: string, cat?: string): ScanRead {
   const flat=String(raw||'').replace(/[|]/g,'I').replace(/\s+/g,' ');const out: ScanRead = {};
   /* IMEI: cualquier secuencia de 15 dígitos (con espacios o guiones) que pase la validación */
-  for(const m of flat.matchAll(/(?:\d[\s\-\/]?){15,19}/g)){const d=m[0].replace(/\D/g,'');for(let i=0;i+15<=d.length;i++){const c=d.slice(i,i+15);if(luhnOk(c)){out.imei=c;break}}if(out.imei)break}
+  const imeis: string[] = [];
+  for(const m of flat.matchAll(/(?:\d[\s\-\/]?){15,19}/g)){const d=m[0].replace(/\D/g,'');for(let i=0;i+15<=d.length;i++){const c=d.slice(i,i+15);if(luhnOk(c)){if(!imeis.includes(c))imeis.push(c);break}}}
+  /* Doble SIM: el que viene después de «IMEI2» / «IMEI 2» es el segundo */
+  const m2=/IMEI\s*2\s*[:#.]?\s*((?:\d[\s\-]?){15})/i.exec(flat);const i2=m2?m2[1].replace(/\D/g,''):'';
+  if(i2&&luhnOk(i2)){out.imei2=i2;out.imei=imeis.find(x=>x!==i2)}else{out.imei=imeis[0];if(imeis[1])out.imei2=imeis[1]}
+  if(!out.imei)delete out.imei;if(!out.imei2)delete out.imei2;
   /* Serial */
   let m=/(?:serial(?:\s*(?:number|no\.?|#))?|n\S{0,3}mero\s*de\s*serie|(?:no|n\S{0,2}m)\.?\s*de\s*serie|\bserie|s\/n)\s*[:#.]?\s*([A-Z0-9]{9,13})\b/i.exec(flat);   /* tolera errores típicos del OCR ("NiUmero") */
   if(m&&/[A-Za-z]/.test(m[1])&&/\d/.test(m[1]))out.serial=m[1].toUpperCase();
@@ -70,7 +75,10 @@ export function parseLabelText(raw: string, cat?: string): ScanRead {
 
 export function mergeRead(into: ScanRead, from: ScanRead): ScanRead {
   const a = into as Record<string, unknown>;
-  const b = from as Record<string, unknown>;
+  const b = { ...from } as Record<string, unknown>;
+  // Un segundo IMEI distinto (otro código de la caja u otra foto) va a IMEI 2.
+  if (into.imei && from.imei && from.imei !== into.imei && from.imei !== into.imei2 && !into.imei2 && !from.imei2) { b.imei2 = from.imei; delete b.imei; }
+  if (b.imei2 === into.imei) delete b.imei2;
   return mergeLoose(a, b) as ScanRead;
 }
 function mergeLoose(into: Record<string, unknown>, from: Record<string, unknown>) {Object.keys(from).forEach(k=>{const v=from[k];if(v==null||v==='')return;if(Array.isArray(v)){into[k]=[...new Set([...((into[k] as unknown[]) || []), ...v])];return}if(into[k]==null||into[k]==='')into[k]=v});return into}

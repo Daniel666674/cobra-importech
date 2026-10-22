@@ -32,7 +32,8 @@ export const catalogEntry = (name: string) => BY_NAME.get(name);
 /** Precio sugerido según modelo, capacidad y condición (redondeado a $10.000). */
 export function listPrice(name: string, spec: string, cond: string): number {
   const c = BY_NAME.get(name);
-  let base = c ? c.retail : 0;
+  if (!c?.retail) return 0;
+  let base = c.retail;
   if (c && c.cat === "iPhone") {
     const m = /(\d+)\s*(TB|GB)/i.exec(spec || "");
     if (m) {
@@ -42,3 +43,21 @@ export function listPrice(name: string, spec: string, cond: string): number {
   }
   return Math.round((base * (COND_F[cond] ?? 1)) / 10000) * 10000;
 }
+
+/** Opciones de los menús desplegables (capacidad y color) por categoría. Siempre se puede escribir otro valor. */
+export const SPEC_OPTIONS: Record<Cat, string[]> = {
+  iPhone: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"],
+  iPad: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"],
+  Mac: ["8 GB / 256 GB", "8 GB / 512 GB", "16 GB / 256 GB", "16 GB / 512 GB", "16 GB / 1 TB", "24 GB / 512 GB", "24 GB / 1 TB", "32 GB / 1 TB", "36 GB / 1 TB", "48 GB / 1 TB"],
+  "Apple Watch": ["40 mm", "41 mm", "42 mm", "44 mm", "45 mm", "46 mm", "49 mm"],
+  AirPods: [],
+  Accesorios: [],
+};
+export const COLOR_OPTIONS: Record<Cat, string[]> = {
+  iPhone: ["Negro", "Blanco", "Azul", "Rojo", "Verde", "Rosado", "Morado", "Amarillo", "Medianoche", "Blanco estelar", "Grafito", "Plata", "Dorado", "Azul Sierra", "Azul Pacífico", "Morado oscuro", "Titanio natural", "Titanio negro", "Titanio blanco", "Titanio azul", "Titanio desierto", "Naranja cósmico", "Azul profundo", "Ultramar", "Verde azulado", "Lavanda", "Salvia", "Azul cielo", "Dorado claro"],
+  iPad: ["Gris espacial", "Plata", "Azul", "Rosado", "Amarillo", "Morado", "Blanco estelar", "Negro espacial"],
+  Mac: ["Gris espacial", "Plata", "Medianoche", "Blanco estelar", "Negro espacial", "Azul cielo", "Azul", "Verde", "Rosado", "Amarillo", "Naranja", "Morado"],
+  "Apple Watch": ["Medianoche", "Blanco estelar", "Plata", "Negro azabache", "Oro rosa", "Titanio natural", "Titanio negro", "Rojo"],
+  AirPods: ["Blanco", "Medianoche", "Azul", "Morado", "Naranja", "Blanco estelar"],
+  Accesorios: ["Negro", "Blanco", "Transparente", "Azul", "Rojo", "Rosado", "Verde", "Morado"],
+};

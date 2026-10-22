@@ -1,5 +1,6 @@
 // Configuración por pestañas, vista previa del comprobante, numeración e importación de ventas históricas.
 const { chromium } = require('playwright');
+const pick=async(p,sel,val)=>{const el=p.locator(sel);if(await el.evaluate(e=>e.tagName)==='SELECT'){const has=await el.locator('option',{hasText:val}).count();const exact=has&&(await el.locator('option').allInnerTexts()).includes(val);if(exact)return el.selectOption(val);await el.selectOption('__otro__');}await p.fill(sel,val)};
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
 const B='http://localhost:3101';
 // CSV como lo guarda Excel en Windows: separador «;» y codificación Windows-1252 (tildes en un byte).
@@ -78,7 +79,7 @@ ok(/Sofía Pérez/.test(r)&&/0?5 (de )?nov\.? (de )?2024/.test(r)&&/24 (de )?dic
 
  // Venta nueva: prefijo y formas de pago
  await p.goto(B+'/ingreso');await p.click('button:has-text("Accesorios")');
- await p.fill('#i-name','Cable USB-C');await p.fill('#i-qty','5');await p.fill('#i-cost','30000');await p.fill('#i-price','60000');
+ await pick(p,'#i-name','Cable USB-C');await p.fill('#i-qty','5');await p.fill('#i-cost','30000');await p.fill('#i-price','60000');
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-/,{timeout:30000});
  await p.goto(B+'/venta');await p.click('button:has-text("Cable USB-C")');
  const opts=await p.locator('select[aria-label="Método de pago"] option').allInnerTexts();

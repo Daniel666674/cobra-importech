@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
-import { CATALOG, CONDS, type Cat } from "@/lib/catalog";
+import { CATALOG, COLOR_OPTIONS, CONDS, SPEC_OPTIONS, type Cat } from "@/lib/catalog";
+import { ComboSelect } from "./combo-select";
 
 export type ItemFormValues = {
   name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: string; cost: string; price: string;
@@ -42,13 +43,12 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Field id="i-name" label="Producto">
-        <input id="i-name" list="models" value={v.name} onChange={(e) => set({ name: e.target.value })} placeholder="Ej. iPhone 16 Pro" />
-        <datalist id="models">{models.map((m) => <option key={m.name} value={m.name} />)}</datalist>
+        <ComboSelect id="i-name" value={v.name} options={models.map((m) => m.name)} onChange={(x) => set({ name: x })} placeholder="Elige el modelo…" />
       </Field>
       <Field id="i-spec" label={cat === "iPhone" || cat === "iPad" ? "Capacidad" : "Detalle"}>
-        <input id="i-spec" value={v.spec} onChange={(e) => set({ spec: e.target.value })} placeholder={cat === "iPhone" ? "256 GB" : ""} />
+        <ComboSelect id="i-spec" value={v.spec} options={SPEC_OPTIONS[cat]} onChange={(x) => set({ spec: x })} />
       </Field>
-      <Field id="i-color" label="Color"><input id="i-color" value={v.color} onChange={(e) => set({ color: e.target.value })} /></Field>
+      <Field id="i-color" label="Color"><ComboSelect id="i-color" value={v.color} options={COLOR_OPTIONS[cat]} onChange={(x) => set({ color: x })} /></Field>
       <Field id="i-cond" label="Condición">
         <select id="i-cond" value={v.cond} onChange={(e) => set({ cond: e.target.value })}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select>
       </Field>

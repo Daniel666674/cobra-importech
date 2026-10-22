@@ -1,5 +1,6 @@
 // Tienda aliada en consignación + venta con un iPhone recibido como parte de pago.
 const { chromium } = require('playwright');
+const pick=async(p,sel,val)=>{const el=p.locator(sel);if(await el.evaluate(e=>e.tagName)==='SELECT'){const has=await el.locator('option',{hasText:val}).count();const exact=has&&(await el.locator('option').allInnerTexts()).includes(val);if(exact)return el.selectOption(val);await el.selectOption('__otro__');}await p.fill(sel,val)};
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++};
 const B='http://localhost:3101';
 const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9)d-=9}s+=d}return b+((10-s%10)%10)};
@@ -22,7 +23,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.click('a:has-text("Ingresar producto de esta tienda")');await p.waitForURL(/\/ingreso\?ally=/);
  await p.click('button:has-text("Accesorios")');
  ok(await p.locator('#i-ally').inputValue()!=='','la aliada queda preseleccionada al ingresar');
- await p.fill('#i-name','MacBook Air M2 (consignación)');await p.fill('#i-qty','1');await p.fill('#i-cost','3000000');await p.fill('#i-price','3600000');
+ await pick(p,'#i-name','MacBook Air M2 (consignación)');await p.fill('#i-qty','1');await p.fill('#i-cost','3000000');await p.fill('#i-price','3600000');
  ok(await p.locator('#i-gain').inputValue()==='600000'&&/Gana la tienda/.test(await p.innerText('main')),'muestra cuánto gana la tienda (COP)');
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-/,{timeout:30000});
  ok(/Aliada: Celulares Don Pedro/.test(await p.innerText('main')),'el producto queda con su aliada como origen');
@@ -32,7 +33,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.click('button:has-text("+ Recibir un equipo")');
  const dlg='div[role=dialog]';const sec=dlg+' section[aria-label="Verificación oficial"]';
  await p.fill(dlg+' #r-imei',w('49015420700001'));await p.click(dlg+' button:has-text("Verificar")');await p.waitForSelector(sec,{timeout:20000});
- await p.fill(dlg+' #r-name','iPhone 13');await p.fill(dlg+' #r-spec','128 GB');await p.selectOption(dlg+' #r-cond','Usado');await p.fill(dlg+' #r-ref','2000000');await p.fill(dlg+' #r-batt','85');
+ await pick(p,dlg+' #r-name','iPhone 13');await pick(p,dlg+' #r-spec','128 GB');await p.selectOption(dlg+' #r-cond','Usado');await p.fill(dlg+' #r-ref','2000000');await p.fill(dlg+' #r-batt','85');
  await p.locator(sec+' button:has-text("Limpio")').click();await p.locator(sec+' button:has-text("Sin bloqueo")').click();
  await p.locator(dlg+' aside input[type=checkbox]').check();
  ok(!(await p.locator(dlg+' :text("Quien entrega el equipo")').count()),'en la venta no pide datos de otro vendedor: es el cliente');

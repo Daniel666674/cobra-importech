@@ -2,7 +2,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
-import { CATS, feeFor } from "@/lib/catalog";
+import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor } from "@/lib/catalog";
+import { ComboSelect } from "@/components/combo-select";
 import { fmt } from "@/lib/format";
 import { holdMin } from "@/lib/hold";
 import { isQty } from "@/lib/items";
@@ -222,10 +223,10 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
           {!finishing && !hold && (cf ? (
             <div className="mt-3 space-y-2 rounded-lg border border-dashed border-line p-3">
               <b className="block text-[13px]">Producto fuera de inventario</b>
-              <input placeholder="Modelo (ej. iPhone 15 Pro)" aria-label="Modelo fuera de inventario" value={cf.name} onChange={(e) => setCf({ ...cf, name: e.target.value })} />
+              <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder="Modelo…" />
               <div className="grid grid-cols-2 gap-2">
-                <input placeholder="Capacidad" aria-label="Capacidad" value={cf.spec} onChange={(e) => setCf({ ...cf, spec: e.target.value })} />
-                <input placeholder="Color" aria-label="Color" value={cf.color} onChange={(e) => setCf({ ...cf, color: e.target.value })} />
+                <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS.iPhone} onChange={(x) => setCf({ ...cf, spec: x })} placeholder="Capacidad…" />
+                <ComboSelect ariaLabel="Color" value={cf.color} options={COLOR_OPTIONS.iPhone} onChange={(x) => setCf({ ...cf, color: x })} placeholder="Color…" />
                 <input className="mono" placeholder="IMEI 1 / serial" aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />
                 <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
                 <input type="number" min={0} max={100} placeholder={/iphone/i.test(cf.name) ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />
@@ -346,7 +347,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
         {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{err}</p>}
       </section>
       {scanOpen && <ScanDialog onClose={() => setScanOpen(false)} onUse={(r) => {
-        const codes = [r.imei, r.serial].filter(Boolean).map((x) => x!.toUpperCase());
+        const codes = [r.imei, r.imei2, r.serial].filter(Boolean).map((x) => x!.toUpperCase());
         const hit = items.find((i) => codes.some((c) => (i.serial && i.serial.toUpperCase() === c) || (i.serial2 && i.serial2 === c)));
         if (hit) { add(hit.id); setScanMsg(""); setQ(""); }
         else { setQ(codes[0] ?? ""); setScanMsg(codes.length ? `No hay un equipo disponible con ${codes[0]}: puede estar vendido, apartado o en revisión.` : "No se leyó un IMEI ni un serial. Intenta de nuevo con más luz."); }
