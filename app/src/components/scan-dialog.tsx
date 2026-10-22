@@ -2,6 +2,7 @@
 /* Escáner con cámara: códigos de barras (IMEI/serial de la caja) y lectura de texto (OCR) de la etiqueta o de la
    pantalla Ajustes → General → Información. Todo corre en el dispositivo: las fotos no se envían a ningún servidor. */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { barBoxes, stripOf } from "@/lib/barcode-strip";
 import { classifyCode, mergeRead, parseLabelText, type ScanRead } from "@/lib/scan-parse";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -59,16 +60,42 @@ function zxReader() {
   zx = new ZXing.MultiFormatReader(); zx.setHints(H);
   return zx;
 }
-function zxRegion(src: HTMLCanvasElement, x: number, y: number, w: number, h: number): string | null {
+/** Lee un recorte; `scale` agranda (las cámaras de computador ven el código pequeño) y `rot` lo gira 90° (caja de lado). */
+function zxRegion(src: HTMLCanvasElement, x: number, y: number, w: number, h: number, scale = 1, rot = false): string | null {
   const c = document.createElement("canvas");
-  c.width = Math.round(w); c.height = Math.round(h);
-  c.getContext("2d", { willReadFrequently: true })!.drawImage(src, x, y, w, h, 0, 0, c.width, c.height);
+  const cw = Math.round(w * scale), ch = Math.round(h * scale);
+  c.width = rot ? ch : cw; c.height = rot ? cw : ch;
+  const g = c.getContext("2d", { willReadFrequently: true })!;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+  if (rot) { g.translate(c.width, 0); g.rotate(Math.PI / 2); }
+  g.drawImage(src, x, y, w, h, 0, 0, cw, ch);
   try {
     const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)));
     return zxReader().decodeWithState(bmp).getText();
   } catch { return null; }
 }
 let detector: any = null;
+/** Tira limpia → texto (umbral global: la tira ya viene en blanco y negro). */
+function zxStrip(c: HTMLCanvasElement): string | null {
+  try { return zxReader().decodeWithState(new ZXing.BinaryBitmap(new ZXing.GlobalHistogramBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText(); } catch { return null; }
+}
+/** Zonas de barras del cuadro (también girado, por si la caja está de lado) → tiras limpias. */
+function stripCodes(canvas: HTMLCanvasElement, rotate: boolean, scales: number[]): string[] {
+  let src = canvas;
+  if (rotate) { src = document.createElement("canvas"); src.width = canvas.height; src.height = canvas.width; const g = src.getContext("2d")!; g.translate(src.width, 0); g.rotate(Math.PI / 2); g.drawImage(canvas, 0, 0); }
+  // Las cuentas se hacen sobre un cuadro de máximo 1280 px (rápido), pero el recorte sale del original.
+  const k = Math.min(1, 1280 / Math.max(src.width, src.height));
+  let small = src;
+  if (k < 1) { small = document.createElement("canvas"); small.width = Math.round(src.width * k); small.height = Math.round(src.height * k); small.getContext("2d")!.drawImage(src, 0, 0, small.width, small.height); }
+  const out: string[] = [];
+  for (const b of barBoxes(small).slice(0, 2)) {
+    const box = { x: b.x / k, y: b.y / k, w: b.w / k, h: b.h / k };
+    for (const sc of scales) { const strips = stripOf(src, box, sc); if (!strips) break; for (const st of strips) { const t = zxStrip(st); if (t) { out.push(t); break; } } if (out.length) break; }
+  }
+  return out;
+}
+
+let tick = 0;
 async function decodeCodes(canvas: HTMLCanvasElement, thorough: boolean): Promise<string[]> {
   const found = new Set<string>();
   if ("BarcodeDetector" in window) {
@@ -80,9 +107,23 @@ async function decodeCodes(canvas: HTMLCanvasElement, thorough: boolean): Promis
   }
   try { await loadScript("/vendor/zxing.min.js"); } catch { return [...found]; }
   const W = canvas.width, H = canvas.height;
-  const t = zxRegion(canvas, 0, 0, W, H); if (t) found.add(t);
-  const bands = thorough ? 7 : 4, bh = H / (bands * 0.55);
-  for (let i = 0; i < bands; i++) { const y = Math.min(H - bh, (i * (H - bh)) / (bands - 1 || 1)); const r = zxRegion(canvas, 0, y, W, bh); if (r) found.add(r); }
+  const add = (t: string | null) => { if (t) found.add(t); };
+  // En vivo se alterna una estrategia por cuadro (para no trabar el computador); con «Leer texto» o foto se prueban todas.
+  const step = thorough ? -1 : tick++ % 4;
+  // Primero la tira limpia (lo que más ayuda con webcams); de lado, uno de cada cuatro cuadros.
+  for (const t of stripCodes(canvas, false, [1, 2, 3])) found.add(t);
+  if (step < 0 || step === 3) for (const t of stripCodes(canvas, true, thorough ? [1, 2, 3] : [1, 2])) found.add(t);
+  if (found.size && !thorough) return [...found];
+  if (step < 0 || step === 0) {
+    add(zxRegion(canvas, 0, 0, W, H));
+    const bands = thorough ? 7 : 4, bh = H / (bands * 0.55);
+    for (let i = 0; i < bands; i++) { const y = Math.min(H - bh, (i * (H - bh)) / (bands - 1 || 1)); add(zxRegion(canvas, 0, y, W, bh)); }
+  }
+  // Centro ampliado ×2 y ×3: webcams de 720p con el código lejos o pequeño.
+  if (step < 0 || step === 1) { add(zxRegion(canvas, W * 0.2, H * 0.25, W * 0.6, H * 0.5, 2)); }
+  if (step < 0 || step === 2) { add(zxRegion(canvas, W * 0.3, H * 0.33, W * 0.4, H * 0.34, 3)); }
+  // Caja o etiqueta de lado.
+  if (step < 0 || step === 3) { add(zxRegion(canvas, 0, 0, W, H, 1, true)); add(zxRegion(canvas, W * 0.25, 0, W * 0.5, H, 1.6, true)); }
   return [...found];
 }
 
@@ -96,6 +137,10 @@ export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: ()
   const [status, setStatus] = useState("Apunta la cámara al código de barras de la caja");
   const [camErr, setCamErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cams, setCams] = useState<MediaDeviceInfo[]>([]);
+  const [camId, setCamId] = useState("");
+  const [pick, setPick] = useState("");
+  const [mirror, setMirror] = useState(false);
   const readRef = useRef<ScanRead>({});
   const busyRef = useRef(false);
 
@@ -110,9 +155,20 @@ export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: ()
     let alive = true;
     (async () => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false });
+        // Resolución máxima: en computadores la cámara suele dar 720p si no se pide más, y el IMEI no se alcanza a leer.
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { ...(pick ? { deviceId: { exact: pick } } : { facingMode: { ideal: "environment" } }), width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false,
+        });
         if (!alive) { s.getTracks().forEach((t) => t.stop()); return; }
         stream.current = s;
+        const track = s.getVideoTracks()[0];
+        const caps = (track.getCapabilities?.() ?? {}) as any;
+        if (caps.focusMode?.includes?.("continuous")) await track.applyConstraints({ advanced: [{ focusMode: "continuous" } as any] }).catch(() => {});
+        // Cámara frontal (la del computador): se ve como espejo para que sea fácil apuntar.
+        const fm = track.getSettings().facingMode;
+        setMirror(fm !== "environment");
+        setCams((await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "videoinput"));
+        setCamId(track.getSettings().deviceId ?? "");
         if (video.current) { video.current.srcObject = s; await video.current.play().catch(() => {}); }
       } catch { setCamErr("No se pudo abrir la cámara. Revisa el permiso del navegador o sube una foto."); }
     })();
@@ -124,7 +180,7 @@ export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: ()
       absorbCodes(await decodeCodes(c, false));
     }, 450);
     return () => { alive = false; clearInterval(timer); stream.current?.getTracks().forEach((t) => t.stop()); };
-  }, [absorbCodes]);
+  }, [absorbCodes, pick]);
 
   async function fromCanvas(c: HTMLCanvasElement) {
     busyRef.current = true; setBusy(true);
@@ -154,10 +210,17 @@ export function ScanDialog({ onClose, onUse, defaultTab = "box" }: { onClose: ()
         </div>
         <div className="overflow-y-auto p-3 space-y-3">
           <div className="relative overflow-hidden rounded-lg bg-black">
-            <video ref={video} playsInline muted className="aspect-video w-full object-cover" />
+            <video ref={video} playsInline muted className="aspect-video w-full object-cover" style={mirror ? { transform: "scaleX(-1)" } : undefined} />
+            <div className="pointer-events-none absolute inset-x-[20%] inset-y-[25%] rounded-md border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.25)]" aria-hidden />
             {camErr && <p className="absolute inset-0 grid place-items-center p-4 text-center text-white">{camErr}</p>}
           </div>
           <p className="note" role="status">{status}</p>
+          {mirror && <p className="note">💻 Cámara de computador: pon el código de barras <b>dentro del recuadro</b>, a unos 15–20 cm, quieto y con buena luz. Si no lo lee en unos segundos, pulsa «📸 Leer texto» (lee el IMEI escrito) o toma la foto con el celular y usa «🖼️ Subir foto».</p>}
+          {cams.length > 1 && (
+            <select aria-label="Cámara" value={camId} onChange={(e) => setPick(e.target.value)}>
+              {cams.map((c, i) => <option key={c.deviceId} value={c.deviceId}>{c.label || `Cámara ${i + 1}`}</option>)}
+            </select>
+          )}
           <div className="flex flex-wrap gap-2">
             <button className="btn primary" disabled={busy || !!camErr} onClick={capture}>📸 Leer texto</button>
             <label className="btn cursor-pointer">🖼️ Subir foto<input type="file" accept="image/*" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} /></label>
