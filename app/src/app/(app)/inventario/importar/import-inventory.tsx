@@ -26,16 +26,28 @@ const downloadTemplate = () => {
 
 type Result = { created: number; units: number; review: number; value: number; skipped: { name: string; why: string }[] };
 
-export function ImportInventory({ warr, sources, canUndo }: { warr: Record<string, number>; sources: { source: string; n: number; units: number }[]; canUndo: boolean }) {
+/** Lee las filas y propone el mapeo (con o sin fila de encabezados). */
+export function analyzeInventory(rows: string[][]) {
+  const data = rows.filter((r) => r.some((c) => c && c.trim()));
+  const header = hasHeaderRow(data);
+  return { header, map: header ? guessInvMapping(data[0] ?? []) : guessByContent(data) };
+}
+
+export function ImportInventory({ warr, sources, canUndo, initial }: {
+  warr: Record<string, number>; sources: { source: string; n: number; units: number }[]; canUndo: boolean;
+  /** Archivo ya leído en otra pantalla (p. ej. si lo subieron en el importador de ventas). */
+  initial?: { name: string; rows: string[][] };
+}) {
+  const first = initial ? analyzeInventory(initial.rows) : null;
   const router = useRouter();
-  const [file, setFile] = useState<{ name: string; rows: string[][] } | null>(null);
-  const [map, setMap] = useState<InvMapping>({});
+  const [file, setFile] = useState<{ name: string; rows: string[][] } | null>(initial ?? null);
+  const [map, setMap] = useState<InvMapping>(first?.map ?? {});
   const [err, setErr] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [failed, setFailed] = useState("");
   const [busy, setBusy] = useState(false);
-  const [header, setHeader] = useState(true);
+  const [header, setHeader] = useState(first?.header ?? true);
   const [defaultCond, setDefaultCond] = useState("Usado");
   const [markup, setMarkup] = useState("25");
 
@@ -110,9 +122,9 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
       </div>
 
       {file && (
-        <div className="card p-4">
-          <h2 className="font-semibold mb-1">1. ¿Qué columna es cada dato?</h2>
-          <p className="note mb-3">{header ? "Ya propusimos una asignación según los encabezados." : "El archivo no trae encabezados: propusimos cada columna según su contenido (IMEI, modelo, capacidad, color…)."} Revísala; lo marcado con * es obligatorio.</p>
+        <details className="card p-4" open={!built?.items.length}>
+          <summary className="cursor-pointer font-semibold">{built?.items.length ? "✓ Columnas reconocidas automáticamente (toca para revisarlas o ajustarlas)" : "1. ¿Qué columna es cada dato?"}</summary>
+          <p className="note mb-3 mt-2">{header ? "Ya propusimos una asignación según los encabezados." : "El archivo no trae encabezados: propusimos cada columna según su contenido (IMEI, modelo, capacidad, color…)."} Revísala; lo marcado con * es obligatorio.</p>
           <label className="mb-3 flex items-center gap-2 text-[13px]"><input type="checkbox" className="!w-auto" checked={header} onChange={(e) => {
             const h = e.target.checked; setHeader(h);
             const data = file.rows.filter((r) => r.some((c) => c && c.trim()));
@@ -127,13 +139,15 @@ export function ImportInventory({ warr, sources, canUndo }: { warr: Record<strin
               </div>
             ))}
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 border-t border-line pt-3">
+        </details>
+      )}
+      {file && (
+        <div className="card p-4 grid gap-3 md:grid-cols-2">
             <div><label className="lb" htmlFor="inv-cond">Condición cuando el archivo no la dice</label>
               <select id="inv-cond" value={defaultCond} onChange={(e) => setDefaultCond(e.target.value)}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select></div>
             <div><label className="lb" htmlFor="inv-markup">Si no hay precio de venta: costo + margen (%)</label>
               <input id="inv-markup" type="number" min={0} max={300} value={markup} onChange={(e) => setMarkup(e.target.value)} placeholder="Vacío = sin precio" />
               <p className="note mt-1">Se redondea a los 10.000 siguientes. Déjalo vacío para ponerle precio a cada uno después (sin precio no se puede vender).</p></div>
-          </div>
         </div>
       )}
       {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos la columna «Producto / modelo» para ver la vista previa.</p>}
