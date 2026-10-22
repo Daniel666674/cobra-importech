@@ -42,7 +42,7 @@ describe("tienda nueva y vacía", () => {
     const me = login.ok ? await meFromToken(login.token) : null;
     const a = { id: me!.id, name: me!.name, perms: me!.perms, locked: me!.locked };
     const imei = withCheck("35822002000001");
-    const it = await createItem(db, a, { cat: "iPhone", name: "iPhone 16", spec: "128 GB", serial: imei, cost: 2500000, price: 3499000, warr: 12 }, { official: { crc: "clean", apple: "clean" }, ownerApproved: true });
+    const it = await createItem(db, a, { cat: "iPhone", batt: 90, name: "iPhone 16", spec: "128 GB", serial: imei, cost: 2500000, price: 3499000, warr: 12 }, { official: { crc: "clean", apple: "clean" }, ownerApproved: true });
     const s = await createSale(db, a, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: 3499000 }] });
     expect(s.no).toBe("FV-1001");
     expect(s.id).toBe("S-0001");

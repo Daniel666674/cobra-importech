@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
-import { createItem, deleteItem, releaseAllReview, reverifyItem, updateItem } from "@/server/inventory";
+import { createItem, deleteItem, priceUnpriced, releaseAllReview, reverifyItem, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
 import { existingSerials, importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
@@ -46,4 +46,8 @@ export async function releaseAllReviewAction() {
 }
 export async function existingSerialsAction(serials: string[]) {
   return act((db, a) => existingSerials(db, a, serials), []);
+}
+
+export async function priceUnpricedAction(gain: number) {
+  return act((db, a) => priceUnpriced(db, a, gain), ["/inventario", "/venta"]);
 }

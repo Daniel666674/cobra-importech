@@ -11,9 +11,10 @@ export const INV_FIELDS = [
   { key: "color", label: "Color", syn: ["color", "colour"] },
   { key: "cond", label: "Condición (nuevo, usado…)", syn: ["condicion", "estado", "estado equipo", "condition", "grado"] },
   { key: "serial", label: "IMEI / serial", syn: ["imei", "serial", "serie", "numero serie", "sn", "imei 1", "imei serial", "imei1"] },
+  { key: "serial2", label: "IMEI 2", syn: ["imei 2", "imei2", "segundo imei", "imei dos"] },
   { key: "qty", label: "Cantidad", hint: "Solo para accesorios y AirPods; un equipo con IMEI o serie es siempre 1", syn: ["cantidad", "cant", "unidades", "stock", "existencias", "qty", "und", "inventario"] },
   { key: "cost", label: "Costo unitario", syn: ["costo", "costo unitario", "precio compra", "valor compra", "cost", "precio costo", "costo und"] },
-  { key: "price", label: "Precio de venta", hint: "Si el archivo no lo trae, se calcula desde el costo con el margen que elijas abajo", syn: ["precio", "precio venta", "pvp", "valor venta", "price", "precio publico", "valor", "precio de venta"] },
+  { key: "price", label: "Precio de venta", hint: "Si el archivo no lo trae: costo + la ganancia en pesos que escribas abajo", syn: ["precio", "precio venta", "pvp", "valor venta", "price", "precio publico", "valor", "precio de venta"] },
   { key: "warr", label: "Garantía (meses)", syn: ["garantia", "meses garantia", "garantia meses", "warranty"] },
   { key: "batt", label: "Batería (%)", syn: ["bateria", "salud bateria", "battery", "condicion bateria", "% bateria"] },
   { key: "min", label: "Stock mínimo", syn: ["minimo", "stock minimo", "min"] },
@@ -55,7 +56,7 @@ export function inferCat(cat: string, name: string): Cat {
 }
 
 export type ImportItem = {
-  key: string; cat: Cat; name: string; spec: string; color: string; cond: string; serial: string;
+  key: string; cat: Cat; name: string; spec: string; color: string; cond: string; serial: string; serial2: string;
   qty: number; cost: number; price: number; warr: number; batt: number | null; min: number; notes: string; acq: number | null;
 };
 
@@ -65,7 +66,8 @@ export type BuildOpts = {
   firstRow?: number;
   /** Condición cuando el archivo no la trae. */
   defaultCond?: string;
-  /** Si no hay precio de venta: costo + este % (redondeado a 10.000). null = dejarlo sin precio. */
+  /** Si no hay precio de venta: costo + esta ganancia en pesos. null = dejarlo sin precio. */
+  gain?: number | null;
 };
 
 const SMALL = new Set(["de", "del", "la", "el", "y", "con", "sin"]);
@@ -113,6 +115,9 @@ export function buildItems(rows: string[][], map: InvMapping, opts: BuildOpts) {
       if (seen.has(serial)) return issues.push({ row, msg: `IMEI/serial repetido en el archivo: ${serial}` });
       seen.add(serial);
     }
+    let serial2 = get(r, "serial2").replace(/\D/g, "");
+    if (serial2 && (serial2.length !== 15 || !luhnOk(serial2) || serial2 === serial || seen.has(serial2))) { serial2 = ""; }
+    else if (serial2) seen.add(serial2);
     const notes: string[] = [];
     const costRaw = get(r, "cost");
     let cost = costRaw ? parseNum(costRaw.replace(/'/g, ".")) : 0;
@@ -125,7 +130,7 @@ export function buildItems(rows: string[][], map: InvMapping, opts: BuildOpts) {
     if (!(price > 0)) {
       // Texto en la columna de precio (p. ej. «GARANTIA»): entra sin precio y se deja anotado.
       if (priceRaw) notes.push(`Precio en el archivo: «${priceRaw}»`);
-      price = 0;
+      price = opts.gain != null && opts.gain > 0 && cost > 0 ? cost + opts.gain : 0;
     }
     const qRaw = get(r, "qty");
     const n = qRaw ? Math.round(parseNum(qRaw)) : 1;
@@ -145,7 +150,7 @@ export function buildItems(rows: string[][], map: InvMapping, opts: BuildOpts) {
     const extra = get(r, "notes");
     if (extra) notes.unshift(/^\d+$/.test(extra) ? `Lote ${extra}` : title(extra));
     for (let c = 0; c < copies; c++) items.push({
-      key: serial ? "s:" + serial : `r:${row}${copies > 1 ? "." + (c + 1) : ""}`, cat, name, spec: prettySpec(get(r, "spec")), color: title(get(r, "color")), cond, serial,
+      key: serial ? "s:" + serial : `r:${row}${copies > 1 ? "." + (c + 1) : ""}`, cat, name, spec: prettySpec(get(r, "spec")), color: title(get(r, "color")), cond, serial, serial2,
       qty, cost: Math.round(cost), price: Math.round(price), warr: Number.isNaN(w) ? (opts.warr[cond] ?? 0) : Math.max(0, Math.min(60, Math.round(w))),
       batt, min: Number.isNaN(m) ? (unit ? 0 : 3) : Math.max(0, Math.round(m)), notes: notes.join(" · "),
       acq: Number.isNaN(acqT) || acqT > Date.now() + 86_400_000 ? null : acqT,
@@ -186,12 +191,13 @@ export function guessByContent(rows: string[][]): InvMapping {
     if (best >= 0) map[k] = best;
   };
   take("serial", (v) => /^\d{14,16}$/.test(v.replace(/\s/g, "")) || /^[A-Z0-9]{10,12}$/.test(v));
+  take("serial2", (v) => /^\d{15}$/.test(v.replace(/\s/g, "")), 0.3);
   take("name", (v) => /iphone|ipad|airpods|macbook|imac|watch|cargador|cable|forro|funda|vidrio/i.test(v));
   take("acq", (v) => /^\d{4}-\d{2}-\d{2}/.test(v) || /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(v), 0.5);
   take("spec", (v) => /^(32|64|128|256|512|1|2)\s*(gb|tb)?$/i.test(v.trim()));
   take("color", (v) => COLORS.test(v.trim()), 0.5);
   take("batt", (v) => /^\d{2,3}%?$/.test(v) && +v.replace("%", "") >= 40 && +v.replace("%", "") <= 100, 0.6);
-  take("price", (v) => { const n = parseNum(v.replace(/'/g, ".")); return n >= 50_000 || (n > 0 && /'/.test(v)); }, 0.4);
+  take("cost", (v) => { const n = parseNum(v.replace(/'/g, ".")); return n >= 50_000 || (n > 0 && /'/.test(v)); }, 0.4);
   take("notes", (v) => /^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{3,}$|^\d{3,6}$/.test(v), 0.4);
   return map;
 }

@@ -14,7 +14,7 @@ import { fdatey, initials } from "@/lib/format";
 
 const CAT_ICON: Record<string, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
 
-export type PosItem = { id: string; cat: string; name: string; spec: string; color: string; cond: string; serial: string; qty: number; price: number; cost: number; warr: number; track: string; hold: Hold | null };
+export type PosItem = { id: string; cat: string; name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: number; price: number; cost: number; warr: number; track: string; hold: Hold | null };
 type Line = { id: string; qty: number };
 type Pay = { method: string; amount: string };
 
@@ -57,8 +57,8 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const [scanMsg, setScanMsg] = useState("");
   const [cq, setCq] = useState("");
   const [today] = useState(() => Date.now());
-  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; qty: number; price: string; cost: string; warr: string };
-  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1) };
+  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string };
+  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1) };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
 
@@ -105,7 +105,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
     if (finishing && i.id === finishing.id) return false;
     if (cat && i.cat !== cat) return false;
     const s = q.toLowerCase().trim();
-    return !s || `${i.name} ${i.spec} ${i.color} ${i.serial}`.toLowerCase().includes(s);
+    return !s || `${i.name} ${i.spec} ${i.color} ${i.serial} ${i.serial2}`.toLowerCase().includes(s);
   }).slice(0, 120);
 
   const add = (id: string) => {
@@ -130,7 +130,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
       } else {
         const r = await createSaleAction({
           lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty })), client: client_, newClient,
-          custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0 })),
+          custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0, batt: c.batt === "" ? null : +c.batt })),
           discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
           tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
         });
@@ -226,14 +226,16 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
               <div className="grid grid-cols-2 gap-2">
                 <input placeholder="Capacidad" aria-label="Capacidad" value={cf.spec} onChange={(e) => setCf({ ...cf, spec: e.target.value })} />
                 <input placeholder="Color" aria-label="Color" value={cf.color} onChange={(e) => setCf({ ...cf, color: e.target.value })} />
-                <input className="col-span-2 mono" placeholder="IMEI / serial (opcional)" aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />
+                <input className="mono" placeholder="IMEI 1 / serial" aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />
+                <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
+                <input type="number" min={0} max={100} placeholder={/iphone/i.test(cf.name) ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <input type="number" min={0} step={10000} placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(e) => setCf({ ...cf, price: e.target.value })} />
                 {can.cost && <input type="number" min={0} step={10000} placeholder="Costo (opcional)" aria-label="Costo fuera de inventario" value={cf.cost} onChange={(e) => setCf({ ...cf, cost: e.target.value })} />}
               </div>
               <div className="flex gap-2">
-                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0)} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
+                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
                 <button type="button" className="btn sm" onClick={() => setCf(null)}>Cancelar</button>
               </div>
             </div>
@@ -345,7 +347,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
       </section>
       {scanOpen && <ScanDialog onClose={() => setScanOpen(false)} onUse={(r) => {
         const codes = [r.imei, r.serial].filter(Boolean).map((x) => x!.toUpperCase());
-        const hit = items.find((i) => i.serial && codes.some((c) => i.serial.toUpperCase() === c));
+        const hit = items.find((i) => codes.some((c) => (i.serial && i.serial.toUpperCase() === c) || (i.serial2 && i.serial2 === c)));
         if (hit) { add(hit.id); setScanMsg(""); setQ(""); }
         else { setQ(codes[0] ?? ""); setScanMsg(codes.length ? `No hay un equipo disponible con ${codes[0]}: puede estar vendido, apartado o en revisión.` : "No se leyó un IMEI ni un serial. Intenta de nuevo con más luz."); }
       }} />}

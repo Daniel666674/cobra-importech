@@ -23,7 +23,8 @@ export const saleInput = z.object({
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
-    cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), qty: z.coerce.number().int().min(1).max(1000).default(1),
+    cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), serial2: z.string().trim().max(40).default(""),
+    batt: z.coerce.number().int().min(0).max(100).nullable().default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
     price: z.coerce.number().int().min(1, "Escribe el precio del producto fuera de inventario"), cost: z.coerce.number().int().min(0).default(0),
     warr: z.coerce.number().int().min(0).max(60).default(0),
   })).max(20).default([]),
@@ -113,11 +114,12 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const id = "S-" + String(n).padStart(4, "0");
     const no = (cfg.invPrefix ?? "FV-") + inv;
     const saleLines: SaleLine[] = lines.map(({ it, qty }) => ({
-      item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, qty, price: it.price,
+      item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
+    for (const c of input.custom) if (/iphone/i.test(c.name) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
     for (const c of input.custom)
-      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0 });
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0 });
     const received = [];
     for (const p of trades) {
       p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");

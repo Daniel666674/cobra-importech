@@ -57,6 +57,13 @@
       "when": 1792704755817,
       "tag": "0007_precios_importados",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792705678172,
+      "tag": "0008_imei2_costos",
+      "breakpoints": true
     }
   ]
 }

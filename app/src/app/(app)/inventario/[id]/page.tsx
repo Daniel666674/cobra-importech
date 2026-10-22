@@ -4,9 +4,9 @@ import { getDb } from "@/db";
 import { settings } from "@/db/schema";
 import { Chip, CondChip, PageHeader, StatusChip } from "@/components/ui";
 import { OFFICIAL_LABEL, OFFICIAL_TEXT } from "@/lib/imei";
-import { fdt, fmt } from "@/lib/format";
+import { fdatey, fdt, fmt } from "@/lib/format";
 import { holdBal, holdLeft } from "@/lib/hold";
-import { daysIn, isAvail, isQty, itemState, marginPct, uname } from "@/lib/items";
+import { daysIn, isAvail, isQty, itemState, uname } from "@/lib/items";
 import { hasPerm } from "@/server/auth";
 import { getItem } from "@/server/inventory";
 import { requireMe } from "@/server/session";
@@ -35,10 +35,11 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
               {([
                 ["Precio de venta", fmt(it.price)],
-                ...(canCost ? [["Costo real", fmt(it.cost + it.repairs)], ["Margen", marginPct(it) + "%"]] : []),
+                ...(canCost ? [["Costo real", fmt(it.cost + it.repairs)], ["Ganancia", fmt(it.price - it.cost - it.repairs)]] : []),
                 ["Garantía", it.warr + " meses"],
-                ["Días en inventario", String(daysIn(it))],
+                ["Recibido", `${fdatey(it.acq)} (${daysIn(it)} días)`],
                 [isQty(it) ? "Cantidad" : it.cat === "iPhone" ? "IMEI" : "Serie", isQty(it) ? String(it.qty) : it.serial || "—"],
+                ...(it.serial2 ? [["IMEI 2", it.serial2]] : []),
                 ...(it.batt != null ? [["Batería", it.batt + "%"]] : []),
                 ["Origen", it.src || "—"],
                 ["Sede", it.branch],
@@ -86,7 +87,7 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
           </div>
         </div>
         <ItemActions
-          item={{ id: it.id, cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond, qty: it.qty, cost: it.cost, price: it.price, warr: it.warr, batt: it.batt, notes: it.notes, min: it.min, serial: it.serial, status: it.status, track: it.track, hasHold: !!it.hold }}
+          item={{ id: it.id, cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond, qty: it.qty, cost: it.cost, price: it.price, warr: it.warr, batt: it.batt, notes: it.notes, min: it.min, serial2: it.serial2, serial: it.serial, status: it.status, track: it.track, hasHold: !!it.hold }}
           sellable={isAvail(it)}
           can={{ sell: hasPerm(me, "sell"), credit: hasPerm(me, "credit"), edit: hasPerm(me, "inv_edit"), del: hasPerm(me, "inv_delete"), workshop: hasPerm(me, "workshop"), cost: canCost }}
           warr={cfg.warr}

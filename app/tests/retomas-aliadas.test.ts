@@ -13,7 +13,7 @@ import { freshDb } from "./helpers";
 const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "sell", "discount", "refund", "tradein", "cost_view", "purchase"], locked: false };
 const seller: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "sell"], locked: false };
 const OK = { crc: "clean", apple: "clean" };
-const tradePhone = (imei: string, cost = 1_500_000) => ({ cat: "iPhone", name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost, price: 2_100_000, warr: 1 });
+const tradePhone = (imei: string, cost = 1_500_000) => ({ cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost, price: 2_100_000, warr: 1 });
 
 let db: Db;
 let clientId: string;
@@ -89,7 +89,7 @@ describe("tiendas aliadas", () => {
     expect(s.balance).toBe(210_000);
   });
   it("en consignación se le debe al vender, con la ganancia de la tienda; la devolución lo descuenta", async () => {
-    const it = await createItem(db, owner, { cat: "iPhone", name: "iPhone 14", spec: "128 GB", cond: "Usado", serial: withCheck("35822002100099"), price: 2_800_000, cost: 2_300_000, warr: 1, ally: consig }, { official: OK });
+    const it = await createItem(db, owner, { cat: "iPhone", batt: 90, name: "iPhone 14", spec: "128 GB", cond: "Usado", serial: withCheck("35822002100099"), price: 2_800_000, cost: 2_300_000, warr: 1, ally: consig }, { official: OK });
     let [s] = (await allySummary(db)).filter((x) => x.id === consig);
     expect(s).toMatchObject({ balance: 0, stockUnits: 1, stockCost: 2_300_000 });
     const sale = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], discount: { type: "cop", value: 100_000 }, discReason: "Cliente", payments: [{ method: "Efectivo", amount: 2_700_000 }] });
@@ -142,7 +142,7 @@ describe("recargo por forma de pago", () => {
 describe("producto fuera de inventario", () => {
   it("se factura sin tocar el inventario, con IMEI y garantía en el comprobante", async () => {
     const before = (await db.select().from(items)).length;
-    const s = await createSale(db, owner, { custom: [{ name: "iPhone 15 Pro", spec: "256 GB", cond: "Usado", serial: "356000000000000", price: 3_000_000, cost: 2_500_000, warr: 3 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
+    const s = await createSale(db, owner, { custom: [{ name: "iPhone 15 Pro", spec: "256 GB", batt: 88, cond: "Usado", serial: "356000000000000", price: 3_000_000, cost: 2_500_000, warr: 3 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
     expect(s.total).toBe(3_000_000);
     expect(s.lines[0]).toMatchObject({ item: "", name: "iPhone 15 Pro · 256 GB", serial: "356000000000000", warr: 3, cost: 2_500_000 });
     expect((await db.select().from(items)).length).toBe(before);
