@@ -34,7 +34,7 @@ async function processLogo(file: File): Promise<string> {
 const now = Date.now();
 const SAMPLE_SALE = {
   id: "S-0000", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
-  payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000, tradeins: [],
+  payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000, tradeins: [], surcharge: 0,
   lines: [
     { item: "", name: "iPhone 15 Pro 256 GB", color: "Titanio natural", cond: "Nuevo", serial: "356789123456789", qty: 1, price: 4_550_000, cost: 0, warr: 12, ret: 0 },
     { item: "", name: "Cargador USB-C 20 W", color: "", cond: "Nuevo", serial: "", qty: 1, price: 200_000, cost: 0, warr: 3, ret: 0 },
@@ -46,7 +46,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   initialTab: string; cfg: Cfg; logo: string;
   numbering: { prefix: string; last: number };
   warranty: { warr: Record<string, number>; terms: string[]; custom: boolean };
-  methods: { all: string[]; on: string[] };
+  methods: { all: string[]; on: string[]; surcharges: Record<string, number> };
   sources: Source[];
 }) {
   const router = useRouter();
@@ -56,6 +56,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   const [warr, setWarr] = useState(warranty.warr);
   const [terms, setTerms] = useState(warranty.terms);
   const [on, setOn] = useState(methods.on);
+  const [fees, setFees] = useState<Record<string, string>>(Object.fromEntries(methods.all.map((m) => [m, String(methods.surcharges[m] ?? "")])));
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, start] = useTransition();
   const run = (fn: () => Promise<{ ok: true } | { ok: false; error: string }>, okText: string) => start(async () => {
@@ -179,11 +180,14 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
       {tab === "caja" && <>
         <div className="card p-4">
           <h2 className="font-semibold mb-1">Formas de pago</h2>
-          <p className="note mb-3">Las que no marques no aparecen en caja ni en apartados.</p>
+          <p className="note mb-3">Las que no marques no aparecen en caja ni en apartados. El <b>recargo</b> se suma a lo que el cliente paga con ese medio (p. ej. Addi 12 %, Vanti 6 %, tarjeta de crédito 7 %).</p>
           <div className="flex flex-wrap gap-3">
-            {methods.all.map((m) => <label key={m} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px]"><input type="checkbox" className="!w-auto" checked={on.includes(m)} onChange={(e) => setOn(e.target.checked ? methods.all.filter((x) => x === m || on.includes(x)) : on.filter((x) => x !== m))} />{m}</label>)}
+            {methods.all.map((m) => <div key={m} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px]">
+              <label className="flex items-center gap-2"><input type="checkbox" className="!w-auto" checked={on.includes(m)} onChange={(e) => setOn(e.target.checked ? methods.all.filter((x) => x === m || on.includes(x)) : on.filter((x) => x !== m))} />{m}</label>
+              <span className="note">recargo</span><input className="!w-16 !py-1" type="number" min={0} max={50} step="0.5" aria-label={`Recargo ${m} (%)`} value={fees[m]} placeholder="0" onChange={(e) => setFees({ ...fees, [m]: e.target.value })} /><span className="note">%</span>
+            </div>)}
           </div>
-          <button className="btn mt-3" disabled={busy} onClick={() => run(() => saveMethodsAction(on), "Formas de pago guardadas")}>Guardar formas de pago</button>
+          <button className="btn mt-3" disabled={busy} onClick={() => run(() => saveMethodsAction({ on, surcharges: Object.fromEntries(Object.entries(fees).map(([k, x]) => [k, +x || 0])) }), "Formas de pago y recargos guardados")}>Guardar formas de pago</button>
         </div>
         <div className="card p-4">
           <h2 className="font-semibold mb-3">Descuentos y márgenes</h2>

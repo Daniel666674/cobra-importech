@@ -58,7 +58,8 @@ describe("mapeo de columnas", () => {
   });
   it("normaliza formas de pago", () => {
     expect(normMethod("EFECTIVO")).toBe("Efectivo");
-    expect(normMethod("Tarjeta crédito")).toBe("Tarjeta");
+    expect(normMethod("Tarjeta crédito")).toBe("Tarjeta crédito");
+    expect(normMethod("Addi")).toBe("Addi");
     expect(normMethod("Transferencia Bancolombia")).toBe("Transferencia");
     expect(normMethod("Bitcoin")).toBe("Bitcoin");
   });

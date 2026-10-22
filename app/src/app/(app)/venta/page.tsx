@@ -25,7 +25,7 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
       <PosClient
         items={list}
         clients={cl.map((c) => ({ id: c.id, name: c.name, doc: c.doc, phone: c.phone }))}
-        cfg={{ maxDisc: cfg.maxDisc, apartadoMinPct: cfg.apartadoMinPct, holdDays: cfg.holdDays, methods: enabledMethods(cfg) }}
+        cfg={{ maxDisc: cfg.maxDisc, apartadoMinPct: cfg.apartadoMinPct, holdDays: cfg.holdDays, methods: enabledMethods(cfg), surcharges: cfg.surcharges ?? {} }}
         can={{ discount: hasPerm(me, "discount"), cost: hasPerm(me, "cost_view"), credit: hasPerm(me, "credit"), tradein: hasPerm(me, "tradein") }}
         warr={cfg.warr}
         start={{ item: one("item"), mode: one("mode") === "apartado" ? "apartado" : "contado", hold: holdId }}

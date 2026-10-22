@@ -2,7 +2,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, clients, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
-import { METHODS } from "@/lib/catalog";
+import { METHODS, feeFor, surchargeOf } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
@@ -114,10 +114,13 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       const row = await insertItem(tx, a, p, { title: "Retoma recibida en venta", detail: `${no} · ${client!.name} · ${fmt(p.input.cost)}` });
       received.push({ item: row.id, name: uname(row), serial: row.serial, cond: row.cond, amount: row.cost });
     }
-    const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...pays];
+    // Recargo por forma de pago (Addi, Vanti, tarjeta de crédito…): se cobra aparte del valor de los productos.
+    const charged = pays.map((p) => { const fee = feeFor(surchargeOf(cfg, p.method), p.amount); return fee ? { ...p, fee } : p; });
+    const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...charged];
+    const surcharge = charged.reduce((x, p) => x + (p.fee ?? 0), 0);
     const row = {
       id, no, t: Date.now(), client: client?.id ?? null, by: a.id,
-      method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received,
+      method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received, surcharge,
       disc: T.pct, total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,
       holdPays: hold ? hold.pays.map((y) => ({ t: y.t, amount: y.amount, method: y.method, no: y.no })) : null,

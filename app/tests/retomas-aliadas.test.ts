@@ -120,3 +120,21 @@ describe("tiendas aliadas", () => {
     expect((await db.select().from(sales).where(eq(sales.id, "x"))).length).toBe(0);
   });
 });
+
+describe("recargo por forma de pago", () => {
+  it("Addi +12 %, Vanti +6 %, crédito +7 %: el cliente paga más y la venta de productos no cambia", async () => {
+    const it = await stockPhone();
+    const half = Math.round(it.price / 2);
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: half }, { method: "Efectivo", amount: it.price - half }] });
+    expect(s.total).toBe(it.price);
+    expect(s.payments[0]).toEqual({ method: "Addi", amount: half, fee: Math.round(half * 0.12) });
+    expect(s.payments[1].fee).toBeUndefined();
+    expect(s.surcharge).toBe(Math.round(half * 0.12));
+    const it2 = await stockPhone();
+    const s2 = await createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: [{ method: "Tarjeta crédito", amount: it2.price }] });
+    expect(s2.surcharge).toBe(Math.round(it2.price * 0.07));
+    const it3 = await stockPhone();
+    const s3 = await createSale(db, owner, { lines: [{ item: it3.id, qty: 1 }], payments: [{ method: "Vanti", amount: it3.price }] });
+    expect(s3.surcharge).toBe(Math.round(it3.price * 0.06));
+  });
+});

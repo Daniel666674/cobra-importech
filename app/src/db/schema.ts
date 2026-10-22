@@ -15,7 +15,8 @@ import {
 /** Marca de tiempo en milisegundos desde 1970 (igual que la demo). */
 const ms = (name: string) => bigint(name, { mode: "number" });
 
-export type Payment = { method: string; amount: number };
+/** amount = parte del total de la venta; fee = recargo de esa forma de pago (Addi, Vanti, crédito…). */
+export type Payment = { method: string; amount: number; fee?: number };
 export type SaleLine = {
   item: string;
   name: string;
@@ -94,6 +95,8 @@ export const settings = pgTable("settings", {
   /** Formas de pago habilitadas en caja; vacío = todas. */
   methods: jsonb("methods").$type<string[]>().notNull().default([]),
   showSignatures: boolean("show_signatures").notNull().default(true),
+  /** Recargo % por forma de pago. */
+  surcharges: jsonb("surcharges").$type<Record<string, number>>().notNull().default({ Addi: 12, Vanti: 6, "Tarjeta crédito": 7 }),
 });
 
 export const roles = pgTable("roles", {
@@ -187,6 +190,8 @@ export const sales = pgTable("sales", {
   discReason: text("disc_reason").notNull().default(""),
   cash: jsonb("cash").$type<{ given: number; change: number } | null>(),
   holdPays: jsonb("hold_pays").$type<{ t: number; amount: number; method: string; no: string }[] | null>(),
+  /** Recargos cobrados por la forma de pago (no es venta de productos). */
+  surcharge: integer("surcharge").notNull().default(0),
   /** Equipos recibidos como parte de pago. */
   tradeins: jsonb("tradeins").$type<TradeIn[]>().notNull().default([]),
   /** Origen de una venta importada (nombre del archivo); vacío = registrada en el sistema. */

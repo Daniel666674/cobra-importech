@@ -45,7 +45,7 @@ const CSV=[
 
  // Caja: quitar Daviplata
  await p.click('button:has-text("💳 Ventas y caja")');
- await p.uncheck('label:has-text("Daviplata") input');await p.click('button:has-text("Guardar formas de pago")');await p.waitForSelector('text=Formas de pago guardadas');
+ await p.uncheck('label:has-text("Daviplata") input');await p.click('button:has-text("Guardar formas de pago")');await p.waitForSelector('text=Formas de pago y recargos guardados');
 
  // Importar
  await p.click('button:has-text("📥 Importar ventas")');

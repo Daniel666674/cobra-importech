@@ -1876,7 +1876,7 @@
       {
        "t": 1791441693811,
        "amount": 1200000,
-       "method": "Tarjeta",
+       "method": "Tarjeta débito",
        "by": "u3",
        "no": "RB-1002"
       }
@@ -4829,11 +4829,11 @@
     "t": 1762843293811,
     "client": "c9",
     "by": "u3",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 3999000
      }
     ],
@@ -4862,11 +4862,11 @@
     "t": 1785739293811,
     "client": "c10",
     "by": "u2",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 7399000
      }
     ],
@@ -4928,11 +4928,11 @@
     "t": 1789368093811,
     "client": "c6",
     "by": "u3",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 4199000
      }
     ],
@@ -5129,11 +5129,11 @@
     "t": 1791268893811,
     "client": "c3",
     "by": "u3",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 2128000
      }
     ],
@@ -5240,11 +5240,11 @@
     "t": 1791700893811,
     "client": "c1",
     "by": "u3",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 7057000
      }
     ],
@@ -5363,11 +5363,11 @@
     "t": 1792046493811,
     "client": "c1",
     "by": "u3",
-    "method": "Tarjeta",
+    "method": "Tarjeta débito",
     "mode": "contado",
     "payments": [
      {
-      "method": "Tarjeta",
+      "method": "Tarjeta débito",
       "amount": 5616000
      }
     ],
