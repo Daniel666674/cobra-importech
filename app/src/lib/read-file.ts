@@ -20,7 +20,8 @@ export async function readExcel(f: File): Promise<string[][]> {
     if (c instanceof Date) return `${c.getUTCFullYear()}-${two(c.getUTCMonth() + 1)}-${two(c.getUTCDate())} ${two(c.getUTCHours())}:${two(c.getUTCMinutes())}`;
     return String(c).trim();
   };
-  return (sheet?.data ?? []).map((r) => r.map(cell)).filter((r) => r.some(Boolean));
+  // Se conservan las filas vacías para que los números de fila de los avisos coincidan con los de Excel.
+  return (sheet?.data ?? []).map((r) => r.map(cell));
 }
 
 const isExcel = async (f: File) => /\.xlsx$/i.test(f.name) || new TextDecoder().decode(await f.slice(0, 2).arrayBuffer()) === "PK";

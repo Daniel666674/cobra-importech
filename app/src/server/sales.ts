@@ -77,6 +77,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty }));
     for (const { it, qty } of lines) {
       if (!isAvail(it) && it.id !== input.holdItem) throw new AppError(`«${uname(it)}» ya no está disponible`, "conflict");
+      if (!(it.price > 0)) throw new AppError(`«${uname(it)}» no tiene precio de venta: pónselo antes de venderlo`, "invalid");
       if (isQty(it) ? qty > it.qty : qty !== 1) throw new AppError(isQty(it) ? `Solo hay ${it.qty} de «${it.name}»` : `«${uname(it)}» es un equipo único`, "conflict");
     }
     let hold: Hold | null = null;

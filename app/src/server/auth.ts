@@ -13,6 +13,8 @@ const MAX_FAILS = 5;
 const LOCK_MS = 5 * 60_000;
 const MAX_LOCK_MS = 24 * 60 * 60_000;
 const TTL_S = 60 * 60 * 12;
+/** «Mantener la sesión iniciada»: 30 días, y se renueva sola con el uso (ver proxy.ts). */
+export const REMEMBER_S = 60 * 60 * 24 * 30;
 
 /** Cada bloqueo seguido dura el triple que el anterior: 5 min, 15 min, 45 min… hasta 24 h. */
 export const lockMs = (n: number) => Math.min(LOCK_MS * 3 ** (n - 1), MAX_LOCK_MS);
@@ -28,8 +30,8 @@ function secret() {
 
 export type Me = { id: string; name: string; username: string; role: string; roleName: string; perms: string[]; locked: boolean; mustChange: boolean };
 
-export async function signSession(userId: string, v = 0) {
-  return new SignJWT({ v }).setProtectedHeader({ alg: "HS256" }).setSubject(userId).setIssuedAt().setExpirationTime(`${TTL_S}s`).sign(secret());
+export async function signSession(userId: string, v = 0, remember = false) {
+  return new SignJWT({ v, ...(remember ? { r: 1 } : {}) }).setProtectedHeader({ alg: "HS256" }).setSubject(userId).setIssuedAt().setExpirationTime(`${remember ? REMEMBER_S : TTL_S}s`).sign(secret());
 }
 
 export type LoginResult = { ok: true; token: string } | { ok: false; error: string };
@@ -39,7 +41,7 @@ export type LoginResult = { ok: true; token: string } | { ok: false; error: stri
  * El intento se registra antes de compararla y solo si nadie más lo registró a la vez,
  * así que enviar muchos intentos en paralelo no salta el bloqueo.
  */
-export async function checkLogin(userId: string, pin: string, now = Date.now()): Promise<LoginResult> {
+export async function checkLogin(userId: string, pin: string, now = Date.now(), remember = false): Promise<LoginResult> {
   const db = await getDb();
   const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!u || !u.active) return { ok: false, error: "Usuario no disponible" };
@@ -54,7 +56,7 @@ export async function checkLogin(userId: string, pin: string, now = Date.now()):
   if (!claimed.length) return { ok: false, error: "Intenta de nuevo" };
   if (await bcrypt.compare(pin, u.pinHash)) {
     await db.update(users).set({ failed: 0, lockedUntil: 0 }).where(eq(users.id, userId));
-    return { ok: true, token: await signSession(userId, u.sessionV) };
+    return { ok: true, token: await signSession(userId, u.sessionV, remember) };
   }
   if (lock !== u.lockedUntil) {
     await logFeed(db, null, "owner", "🚨", `Alerta: <b>${esc(u.name)}</b> quedó bloqueado/a ${Math.round(lockMs(failed / MAX_FAILS) / 60000)} min por ${failed} intentos fallidos seguidos`);
@@ -88,9 +90,16 @@ export const getMe = cache(async (): Promise<Me | null> => {
 
 export const hasPerm = (me: Me, perm: string) => me.locked || me.perms.includes(perm);
 
-export async function setSessionCookie(token: string) {
+/** ¿La sesión actual pidió «mantener la sesión iniciada»? (para conservarlo al cambiar la contraseña). */
+export async function sessionRemembers(): Promise<boolean> {
+  const t = (await cookies()).get(COOKIE)?.value;
+  if (!t) return false;
+  try { return (await jwtVerify(t, secret())).payload.r === 1; } catch { return false; }
+}
+
+export async function setSessionCookie(token: string, remember = false) {
   const jar = await cookies();
-  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: TTL_S });
+  jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: remember ? REMEMBER_S : TTL_S });
 }
 export async function clearSessionCookie() {
   (await cookies()).delete(COOKIE);
@@ -105,14 +114,14 @@ const dummyHash = async () => (dummy ??= await bcrypt.hash("relleno-no-es-una-co
 const GENERIC = "Usuario o contraseña incorrectos";
 
 /** Entrada con usuario y contraseña. No revela si el usuario existe. */
-export async function loginWithPassword(username: string, password: string, now = Date.now()): Promise<LoginResult> {
+export async function loginWithPassword(username: string, password: string, now = Date.now(), remember = false): Promise<LoginResult> {
   const db = await getDb();
   const [u] = await db.select({ id: users.id, active: users.active }).from(users).where(eq(users.username, username.trim().toLowerCase())).limit(1);
   if (!u || !u.active) {
     await bcrypt.compare(password, await dummyHash());
     return { ok: false, error: GENERIC };
   }
-  const r = await checkLogin(u.id, password, now);
+  const r = await checkLogin(u.id, password, now, remember);
   if (r.ok) return r;
   return { ok: false, error: r.error.replace(/^Contraseña incorrecta/, GENERIC) };
 }

@@ -79,6 +79,7 @@ export function buildSales(rows: string[][], map: Mapping, opts: { dateOrder: Da
   const first = opts.firstRow ?? 2;
   rows.forEach((r, i) => {
     const rowNo = first + i;
+    if (!r.some((c) => c && c.trim())) return;
     const name = get(r, "product");
     const t = parseDate(get(r, "date"), opts.dateOrder);
     if (!name) return issues.push({ row: rowNo, msg: "Sin producto" });
