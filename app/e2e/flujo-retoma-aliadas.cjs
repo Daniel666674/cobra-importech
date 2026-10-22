@@ -37,12 +37,12 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.locator(dlg+' aside input[type=checkbox]').check();
  ok(!(await p.locator(dlg+' :text("Quien entrega el equipo")').count()),'en la venta no pide datos de otro vendedor: es el cliente');
  await p.click(dlg+' button:has-text("Usar como parte de pago")');await p.waitForSelector(dlg,{state:'detached'});
- let side=await p.innerText('main section.card');
+ let side=await p.innerText('main section.card >> nth=1');
  ok(/iPhone 13/.test(side)&&/−\$1\.000\.000/.test(side),'la retoma aparece con su valor ($1.000.000)');
  ok(/Total a pagar\s*\$2\.600\.000/.test(side),'el saldo baja a $2.600.000');
  ok(await p.locator('button:has-text("Cobrar")').isDisabled(),'sin cliente con cédula no deja cobrar');
  ok(/elige o crea el cliente con su cédula/.test(side),'explica que falta la cédula del cliente');
- await p.click('button:has-text("+ Nuevo")');await p.fill('input[aria-label="Nombre del cliente"]','Laura Ríos');await p.fill('input[placeholder="Cédula / NIT"]','1010101010');
+ await p.click('button:has-text("Crear cliente nuevo")');await p.fill('input[aria-label="Nombre del cliente"]','Laura Ríos');await p.fill('input[placeholder="Cédula / NIT"]','1010101010');
  await p.click('button:has-text("Cobrar $2.600.000")');await p.waitForURL(/\/ventas\/S-/,{timeout:30000});
  let r=await p.innerText('article');
  ok(/Equipo recibido como parte de pago/i.test(r)&&/iPhone 13/.test(r),'el comprobante muestra el equipo recibido');

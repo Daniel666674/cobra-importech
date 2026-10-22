@@ -9,6 +9,10 @@ import { isQty } from "@/lib/items";
 import { posTotals } from "@/lib/sales";
 import type { Hold } from "@/db/schema";
 import { TradeinForm, type TradePayload } from "@/components/tradein-form";
+import { ScanDialog } from "@/components/scan-dialog";
+import { fdatey, initials } from "@/lib/format";
+
+const CAT_ICON: Record<string, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
 
 export type PosItem = { id: string; cat: string; name: string; spec: string; color: string; cond: string; serial: string; qty: number; price: number; cost: number; warr: number; track: string; hold: Hold | null };
 type Line = { id: string; qty: number };
@@ -49,6 +53,10 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const [busy, startT] = useTransition();
   const [trades, setTrades] = useState<TradePayload[]>([]);
   const [tradeOpen, setTradeOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanMsg, setScanMsg] = useState("");
+  const [cq, setCq] = useState("");
+  const [today] = useState(() => Date.now());
 
   const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it);
   const T = posTotals(cart.map((x) => ({ price: x.it.price, cost: x.it.cost, qty: x.l.qty })), { type: discType, value: +disc || 0 }, finishing?.hold?.abono ?? 0);
@@ -90,7 +98,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
     if (cat && i.cat !== cat) return false;
     const s = q.toLowerCase().trim();
     return !s || `${i.name} ${i.spec} ${i.color} ${i.serial}`.toLowerCase().includes(s);
-  }).slice(0, 60);
+  }).slice(0, 120);
 
   const add = (id: string) => {
     const it = byId.get(id)!;
@@ -124,18 +132,38 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
-      <section className="space-y-3">
-        <div className="card p-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto, color, IMEI o serie" aria-label="Buscar producto" autoFocus />
-          <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Categoría"><option value="">Todas</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
+    <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr]">
+      <section className="card self-start overflow-hidden !p-0">
+        <div className="flex gap-2 border-b border-line p-4">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-t3">🔍</span>
+            <input className="!pl-9 !py-2.5" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto, IMEI / serial o SKU…" aria-label="Buscar producto" autoFocus />
+          </div>
+          <button type="button" className="btn whitespace-nowrap" onClick={() => { setScanMsg(""); setScanOpen(true); }}>📷 Escanear</button>
         </div>
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
+          {["", ...CATS].map((c) => (
+            <button key={c || "todo"} type="button" onClick={() => setCat(c)} aria-pressed={cat === c}
+              className={`rounded-full border px-4 py-1.5 text-[13px] font-semibold ${cat === c ? "border-transparent bg-brand text-white" : "border-line bg-card hover:border-accent"}`}>
+              {c ? `${CAT_ICON[c] ?? ""} ${c}` : "Todo"}
+            </button>
+          ))}
+        </div>
+        {scanMsg && <p role="status" className="chip warn !rounded-md !whitespace-normal mx-4 mt-3 block">{scanMsg}</p>}
+        <div className="grid max-h-[72vh] gap-3 overflow-y-auto p-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((i) => (
-            <button key={i.id} type="button" onClick={() => add(i.id)} className="card p-3 text-left hover:border-accent">
-              <b className="block text-[13.5px] leading-snug">{i.name}{i.spec ? ` · ${i.spec}` : ""}</b>
-              <span className="note block">{i.color}{i.color ? " · " : ""}{i.cond}{isQty(i) ? ` · ${i.qty} uds.` : i.serial ? ` · ••${i.serial.slice(-6)}` : ""}</span>
-              <b className="mt-1 block tabular-nums">{fmt(i.price)}</b>
+            <button key={i.id} type="button" onClick={() => add(i.id)} className="flex flex-col rounded-xl border border-line bg-card p-4 text-left transition hover:border-accent hover:shadow-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-gray-bg text-[18px]">{CAT_ICON[i.cat] ?? "📦"}</span>
+                <span className={`chip ${i.cond === "Nuevo" ? "ok" : "gray"}`}>{i.cond}</span>
+              </div>
+              <b className="block text-[15px] leading-snug">{i.name}</b>
+              <span className="note block">{[i.spec, i.color].filter(Boolean).join(" · ") || "\u00a0"}</span>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <b className="text-[19px] tabular-nums">{i.price ? fmt(i.price) : <span className="chip warn">Sin precio</span>}</b>
+                <span className="note mono">{isQty(i) ? `${i.qty} uds.` : i.serial ? `•••${i.serial.slice(-5)}` : ""}</span>
+              </div>
+              <span className="mt-2 text-[13px] font-semibold">+ Agregar</span>
             </button>
           ))}
           {!filtered.length && <p className="note p-4">No hay productos disponibles con esa búsqueda.</p>}
@@ -151,9 +179,18 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
             ))}
           </div>
         )}
+        <div className="flex items-start justify-between border-b border-line pb-3">
+          <div><h2 className="text-lg font-bold">Venta</h2><p className="note"><span className="chip gray">Borrador</span> {fdatey(today)}</p></div>
+          {cart.length > 0 && !finishing && <button type="button" className="btn sm" onClick={() => { setLines([]); setTrades([]); }}>Vaciar</button>}
+        </div>
         <div>
-          <h3 className="font-semibold mb-2">Productos</h3>
-          {!cart.length ? <p className="note">Toca un producto para agregarlo.</p> : (
+          {!cart.length ? (
+            <div className="py-8 text-center">
+              <div className="text-4xl">🛒</div>
+              <b className="mt-2 block text-[15px]">Tu venta está vacía</b>
+              <p className="note mt-1">Toca un producto de la izquierda, busca por IMEI o usa <b>📷 Escanear</b>.</p>
+            </div>
+          ) : (
             <ul className="space-y-2">
               {cart.map(({ l, it }) => (
                 <li key={l.id} className="flex items-center gap-2">
@@ -168,13 +205,30 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
         </div>
 
         <div>
-          <h3 className="font-semibold mb-2">Cliente</h3>
-          {finishing ? <p className="text-t2">{clients.find((c) => c.id === client)?.name ?? "—"}</p> : !newC ? (
-            <div className="flex gap-2">
-              <select value={client} onChange={(e) => setClient(e.target.value)} aria-label="Cliente"><option value="">{hold ? "Elige un cliente" : "Mostrador (sin cliente)"}</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.doc ? " · " + c.doc : ""}</option>)}</select>
-              <button type="button" className="btn" onClick={() => { setNewC(true); setClient(""); }}>+ Nuevo</button>
+          <div className="mb-2 flex items-center justify-between"><h3 className="text-[12px] font-bold uppercase tracking-widest text-t2">Cliente</h3><span className="note">{hold || trades.length ? "obligatorio" : "opcional"}</span></div>
+          {finishing ? <p className="text-t2">{clients.find((c) => c.id === client)?.name ?? "—"}</p> : !newC ? (client ? (
+            <div className="flex items-center gap-3 rounded-lg border border-accent p-3">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand text-[12px] font-bold text-white">{initials(clients.find((c) => c.id === client)?.name ?? "")}</span>
+              <div className="flex-1 min-w-0"><b className="block truncate">{clients.find((c) => c.id === client)?.name}</b><span className="note">{[clients.find((c) => c.id === client)?.phone, clients.find((c) => c.id === client)?.doc].filter(Boolean).join(" · ")}</span></div>
+              <button type="button" className="btn sm" onClick={() => setClient("")}>Cambiar</button>
             </div>
           ) : (
+            <div className="space-y-2">
+              <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-t3">🔍</span>
+                <input className="!pl-9" value={cq} onChange={(e) => setCq(e.target.value)} placeholder="Buscar por nombre, teléfono o documento" aria-label="Buscar cliente" /></div>
+              {clients.filter((c) => { const t = cq.toLowerCase().trim(); return !t || `${c.name} ${c.phone} ${c.doc}`.toLowerCase().includes(t); }).slice(0, 5).map((c) => (
+                <button key={c.id} type="button" onClick={() => { setClient(c.id); setCq(""); }} className="flex w-full items-center gap-3 rounded-lg border border-line p-3 text-left hover:border-accent">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-brand text-[12px] font-bold text-white">{initials(c.name)}</span>
+                  <span className="min-w-0"><b className="block truncate">{c.name}</b><span className="note">{[c.phone, c.doc].filter(Boolean).join(" · ")}</span></span>
+                </button>
+              ))}
+              <button type="button" onClick={() => { setNewC(true); setClient(""); setNc({ ...nc, name: cq }); }} className="flex w-full items-center gap-3 rounded-lg border border-dashed border-line p-3 text-left hover:border-accent">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-bg text-lg">+</span>
+                <span><b className="block">Crear cliente nuevo</b><span className="note">Nombre y teléfono</span></span>
+              </button>
+              {!hold && <p className="note">Sin cliente se registra como venta de mostrador.</p>}
+            </div>
+          )) : (
             <div className="grid grid-cols-2 gap-2">
               <input className="col-span-2" placeholder="Nombre completo" value={nc.name} onChange={(e) => setNc({ ...nc, name: e.target.value })} aria-label="Nombre del cliente" />
               <input placeholder="Cédula / NIT" value={nc.doc} onChange={(e) => setNc({ ...nc, doc: e.target.value })} />
@@ -250,6 +304,12 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
         {why && cart.length > 0 && <p className="note" role="status">{why}</p>}
         {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{err}</p>}
       </section>
+      {scanOpen && <ScanDialog onClose={() => setScanOpen(false)} onUse={(r) => {
+        const codes = [r.imei, r.serial].filter(Boolean).map((x) => x!.toUpperCase());
+        const hit = items.find((i) => i.serial && codes.some((c) => i.serial.toUpperCase() === c));
+        if (hit) { add(hit.id); setScanMsg(""); setQ(""); }
+        else { setQ(codes[0] ?? ""); setScanMsg(codes.length ? `No hay un equipo disponible con ${codes[0]}: puede estar vendido, apartado o en revisión.` : "No se leyó un IMEI ni un serial. Intenta de nuevo con más luz."); }
+      }} />}
       {tradeOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Recibir equipo como parte de pago">
           <div className="mx-auto max-w-[1100px] rounded-xl bg-bg p-4 shadow-xl">

@@ -17,7 +17,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  ok(A==='I-0001'&&Bn==='I-0002','dos iPhone ingresados');
  // apartado
  await p.goto(B+`/venta?item=${A}&mode=apartado`);await p.waitForSelector('text=Apartado');
- await p.click('button:has-text("+ Nuevo")');await p.fill('input[aria-label="Nombre del cliente"]','Carlos Ramírez');await p.fill('input[placeholder="Celular"]','300 111 2222');
+ await p.click('button:has-text("Crear cliente nuevo")');await p.fill('input[aria-label="Nombre del cliente"]','Carlos Ramírez');await p.fill('input[placeholder="Celular"]','300 111 2222');
  await p.fill('input[aria-label="Abono"]','500');await p.waitForTimeout(150);ok(/abono mínimo/i.test(await p.innerText('body')),'valida el abono mínimo (20%)');
  await p.fill('input[aria-label="Abono"]','800000');await p.click('button:has-text("Crear apartado")');await p.waitForURL(B+'/apartados',{timeout:30000});
  ok(/RA-1001/.test(await p.innerText('body'))&&/Carlos Ramírez/.test(await p.innerText('body')),'apartado RA-1001 creado');
