@@ -12,6 +12,7 @@ export const PERMS = [
   ["purchase", "Gestionar tiendas aliadas y sus pagos"],
   ["clients", "Gestionar clientes"],
   ["reports", "Ver reportes"],
+  ["approve", "Aprobar productos nuevos y eliminaciones"],
   ["users", "Gestionar usuarios y permisos"],
   ["settings", "Cambiar configuración y logo"],
   ["dev", "Herramientas de desarrollador"],

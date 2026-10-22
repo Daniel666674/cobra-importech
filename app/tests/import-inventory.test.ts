@@ -10,7 +10,7 @@ import { importInventory, undoInventoryImport } from "@/server/import-inventory"
 import { createSale } from "@/server/sales";
 import { freshDb } from "./helpers";
 
-const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "inv_delete", "sell"], locked: false };
+const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "inv_delete", "sell"], locked: false };
 const seller: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "sell"], locked: false };
 const WARR = { Nuevo: 12, Exhibición: 9, Reacondicionado: 6, "Pre-owned": 3, Usado: 1 };
 const I1 = withCheck("35822002400001"), I2 = withCheck("35822002400002");

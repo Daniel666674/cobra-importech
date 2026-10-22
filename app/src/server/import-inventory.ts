@@ -6,6 +6,7 @@ import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { addEvent, AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { branchName } from "./inventory";
+import { canApprove, pendingAlta } from "./approvals";
 
 const item = z.object({
   key: z.string().max(80), cat: z.enum(CATS), name: z.string().trim().min(1).max(200), spec: z.string().max(80).default(""),
@@ -50,7 +51,7 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
       await tx.insert(items).values({
         id, sku: CAT_SKU[it.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond,
         serial: it.serial, serial2: it.serial2, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr, branch, status, acq: it.acq ?? Date.now(), src,
-        batt: it.batt, notes: [it.notes, it.serial ? "" : `[${it.key}]`].filter(Boolean).join(" "), repairs: 0, min: track === "qty" ? it.min : 0, track, imeiCheck: null, hold: null,
+        batt: it.batt, notes: [it.notes, it.serial ? "" : `[${it.key}]`].filter(Boolean).join(" "), repairs: 0, min: track === "qty" ? it.min : 0, track, imeiCheck: null, hold: null, approval: pendingAlta(a),
       });
       await addEvent(tx, id, a, "Ingreso al inventario", `Importado de ${source}`);
       if (status === "En revisión") await addEvent(tx, id, a, "En revisión", "Falta registrar la consulta oficial (CRC y Apple) para poder venderlo", "warn");
@@ -69,12 +70,20 @@ export async function undoInventoryImport(db: Db, a: Actor, source: string) {
   need(a, "inv_edit");
   need(a, "inv_delete");
   const src = srcOf(source);
-  const del = await db.delete(items).where(and(
+  const free = and(
     eq(items.src, src),
     inArray(items.status, ["En vitrina", "En revisión"]),
     sql`${items.hold} is null`,
     sql`not exists (select 1 from sales s where s.lines @> jsonb_build_array(jsonb_build_object('item', ${items.id})))`,
-  )).returning({ id: items.id });
+  );
+  // Sin ser la propietaria: se borra solo lo que ella no ha aprobado; lo demás queda como solicitud de eliminación.
+  const owner = canApprove(a);
+  const del = await db.delete(items).where(owner ? free : and(free, sql`${items.approval}->>'kind' = 'alta'`)).returning({ id: items.id });
+  if (!owner) {
+    const req = await db.update(items).set({ approval: { kind: "baja", by: a.id, name: a.name, t: Date.now(), note: `Deshacer importación de ${source}` } })
+      .where(and(free, sql`${items.approval} is null`)).returning({ id: items.id });
+    if (req.length) await logFeed(db, a, "owner", "🕒", `${esc(a.name)} pidió deshacer la importación <b>${esc(source)}</b>: ${req.length} productos esperan tu aprobación para eliminarse`);
+  }
   if (del.length) await logFeed(db, a, "owner", "🗑️", `Se deshizo la importación de inventario <b>${esc(source)}</b>: ${del.length} productos eliminados · ${esc(a.name)}`);
   return del.length;
 }

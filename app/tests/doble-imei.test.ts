@@ -9,7 +9,7 @@ import { createItem, listItems, updateItem } from "@/server/inventory";
 import { createSale } from "@/server/sales";
 import { freshDb } from "./helpers";
 
-const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "sell", "cost_view"], locked: false };
+const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "sell", "cost_view"], locked: false };
 const OK = { crc: "clean", apple: "clean" };
 const I1 = withCheck("35822002600001"), I2 = withCheck("35822002600002"), I3 = withCheck("35822002600003");
 const phone = (serial: string, serial2: string) => ({ cat: "iPhone", name: "iPhone 15", spec: "128 GB", color: "Negro", cond: "Usado", serial, serial2, batt: 88, cost: 2_000_000, price: 2_600_000, warr: 1 });

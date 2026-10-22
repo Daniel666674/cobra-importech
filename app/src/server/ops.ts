@@ -6,6 +6,7 @@ import { CATS, CAT_SKU, CONDS, listPrice, type Cat } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
 import { isQty, uname } from "@/lib/items";
+import { pendingAlta } from "./approvals";
 import { AppError, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { verifyImei } from "./imei";
 import { branchName } from "./inventory";
@@ -159,7 +160,7 @@ export async function receivePurchase(db: Db, a: Actor, poId: string, raw: unkno
     if (qtyTrack) {
       const n = await nextCounter(tx, "item");
       const id = "I-" + String(n).padStart(4, "0");
-      await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: "", qty: v.qty, cost, price, warr, branch, status: "En vitrina", acq: Date.now(), src: "Importación " + poId, min: 3, track: "qty", batt: null, notes: "", repairs: 0, imeiCheck: null, hold: null });
+      await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: "", qty: v.qty, cost, price, warr, branch, status: "En vitrina", acq: Date.now(), src: "Importación " + poId, min: 3, track: "qty", batt: null, notes: "", repairs: 0, imeiCheck: null, hold: null, approval: pendingAlta(a) });
       await addEvent(tx, id, a, "Ingreso ×" + v.qty, poId, "ok");
       ok.push(id);
     } else {
@@ -179,7 +180,7 @@ export async function receivePurchase(db: Db, a: Actor, poId: string, raw: unkno
         const n = await nextCounter(tx, "item");
         const id = "I-" + String(n).padStart(4, "0");
         const review = v.cat === "iPhone";
-        await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: sr, qty: 1, cost, price, warr, branch, status: review ? "En revisión" : "En vitrina", acq: Date.now(), src: "Importación " + poId, batt: v.cond === "Nuevo" ? 100 : null, notes: "", repairs: 0, min: 0, track: "unit", imeiCheck: null, hold: null });
+        await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: sr, qty: 1, cost, price, warr, branch, status: review ? "En revisión" : "En vitrina", acq: Date.now(), src: "Importación " + poId, batt: v.cond === "Nuevo" ? 100 : null, notes: "", repairs: 0, min: 0, track: "unit", imeiCheck: null, hold: null, approval: pendingAlta(a) });
         await addEvent(tx, id, a, "Ingreso por compra", `${poId} · costo real ${fmt(cost)}`);
         if (review) await addEvent(tx, id, a, "Pendiente de verificación oficial", "No se puede vender hasta registrar CRC y Apple", "warn");
         else await addEvent(tx, id, a, "En vitrina", branch);

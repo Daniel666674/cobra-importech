@@ -73,6 +73,7 @@ const B='http://localhost:3101';
  await p.goto(B+'/usuarios');ok(p.url().includes('denied')||p.url()===B+'/?denied=1','empleado no entra a usuarios');
  await p.goto(B+'/inventario');ok(!/Costo/.test(await p.innerText('thead')),'empleado no ve costos');
  const csv=await p.request.get(B+'/api/export/inventario');ok(csv.status()===403,'empleado no descarga CSV');
+ await p.goto(B+'/aprobaciones');ok(/Aprobaciones/.test(await p.innerText('main'))&&/No hay nada pendiente/.test(await p.innerText('main')),'bandeja de aprobaciones carga');
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');
 })().catch(e=>{console.log('EXC',e.message);process.exit(1)});

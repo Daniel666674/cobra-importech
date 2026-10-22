@@ -9,7 +9,7 @@ import { AppError, type Actor } from "@/server/core";
 import { withCheck } from "@/lib/imei-test";
 import { freshDb } from "./helpers";
 
-const owner: Actor = { id: "u2", name: "Angelica", perms: ["inv_view", "inv_edit", "inv_delete", "sell", "discount", "refund", "credit", "cost_view"], locked: false };
+const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "inv_delete", "sell", "discount", "refund", "credit", "cost_view"], locked: false };
 const emp: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "sell", "credit"], locked: false };
 const phone = { cat: "iPhone", batt: 90, name: "iPhone 16", spec: "128 GB", color: "Negro", cond: "Nuevo", cost: 2500000, price: 3499000, warr: 12 };
 let db: Db;

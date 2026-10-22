@@ -8,7 +8,9 @@ export const uname = (it: Pick<ItemLike, "name" | "spec">) => it.name + (it.spec
 export const isQty = (it: Pick<ItemLike, "track">) => it.track === "qty";
 export const stockQty = (it: Pick<ItemLike, "track" | "qty" | "status">) => (isQty(it) ? it.qty : it.status === "Vendido" ? 0 : 1);
 export const inStock = (it: Pick<ItemLike, "track" | "qty" | "status">) => stockQty(it) > 0;
-export const isAvail = (it: Pick<ItemLike, "track" | "qty" | "status">) => (isQty(it) ? it.qty > 0 : it.status === "En vitrina");
+/** Se puede vender: con existencias / en vitrina y sin aprobación pendiente de producto nuevo. */
+export const isAvail = (it: Pick<ItemLike, "track" | "qty" | "status"> & { approval?: { kind: string } | null }) =>
+  it.approval?.kind !== "alta" && (isQty(it) ? it.qty > 0 : it.status === "En vitrina");
 export const itemState = (it: Pick<ItemLike, "track" | "qty" | "status">) => (isQty(it) ? (it.qty <= 0 ? "Agotado" : "En vitrina") : it.status);
 export const daysIn = (it: Pick<ItemLike, "acq">, now = Date.now()) => daysAgo(it.acq, now);
 export const margin = (it: Pick<ItemLike, "price" | "cost" | "repairs">) => it.price - it.cost - (it.repairs || 0);
