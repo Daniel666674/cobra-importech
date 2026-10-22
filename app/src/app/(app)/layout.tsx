@@ -30,8 +30,7 @@ const NAV: (NavItem & { perm?: string })[] = [
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMe();
   const db = await getDb();
-  const [cfg] = await db.select().from(settings).limit(1);
-  const [{ n: review }] = await db.select({ n: count() }).from(items).where(eq(items.status, "En revisión"));
+  const [[cfg], [{ n: review }]] = await Promise.all([db.select().from(settings).limit(1), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión"))]);
   const nav = NAV.filter((n) => !n.perm || hasPerm(me, n.perm)).map(({ perm, ...n }) => (perm === "inv_view" ? { ...n, badge: review || undefined } : n));
   void or;
   const brand = (

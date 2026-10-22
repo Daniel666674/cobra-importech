@@ -2,6 +2,7 @@ import "server-only";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { roles, users } from "@/db/schema";
@@ -69,19 +70,21 @@ export async function meFromToken(token: string | undefined): Promise<Me | null>
     const id = payload.sub;
     if (!id) return null;
     const db = await getDb();
-    const [u] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    // Usuario y rol en una sola consulta (cada ida a la base cuenta).
+    const [row] = await db.select({ u: users, r: roles }).from(users).leftJoin(roles, eq(roles.key, users.role)).where(eq(users.id, id)).limit(1);
+    const u = row?.u, r = row?.r;
     if (!u || !u.active || (payload.v ?? 0) !== u.sessionV) return null;
-    const [r] = await db.select().from(roles).where(eq(roles.key, u.role)).limit(1);
     return { id: u.id, name: u.name, username: u.username, role: u.role, roleName: r?.name ?? u.role, perms: r?.perms ?? [], locked: !!r?.locked, mustChange: u.mustChange };
   } catch {
     return null;
   }
 }
 
-export async function getMe(): Promise<Me | null> {
+/** Sesión actual. Se calcula una sola vez por petición aunque la pidan el menú y la página. */
+export const getMe = cache(async (): Promise<Me | null> => {
   const jar = await cookies();
   return meFromToken(jar.get(COOKIE)?.value);
-}
+});
 
 export const hasPerm = (me: Me, perm: string) => me.locked || me.perms.includes(perm);
 

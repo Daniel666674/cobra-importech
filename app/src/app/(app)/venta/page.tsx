@@ -13,13 +13,11 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
   const sp = await searchParams;
   const one = (k: string) => { const v = sp[k]; return (Array.isArray(v) ? v[0] : v) ?? ""; };
   const db = await getDb();
-  const [cfg] = await db.select().from(settings).limit(1);
-  const all = await db.select().from(items);
+  const [[cfg], all, cl] = await Promise.all([db.select().from(settings).limit(1), db.select().from(items), db.select().from(clients).orderBy(asc(clients.name))]);
   const holdId = one("hold");
   const list: PosItem[] = all
     .filter((i) => isAvail(i) || i.id === holdId)
     .map((i) => ({ id: i.id, cat: i.cat, name: i.name, spec: i.spec, color: i.color, cond: i.cond, serial: i.serial, qty: i.qty, price: i.price, cost: i.cost + (i.track === "qty" ? 0 : i.repairs), warr: i.warr, track: i.track, hold: i.id === holdId ? i.hold : null }));
-  const cl = await db.select().from(clients).orderBy(asc(clients.name));
   void eq;
   return (
     <>
