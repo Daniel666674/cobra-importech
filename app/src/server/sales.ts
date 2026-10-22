@@ -84,7 +84,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const n = await nextCounter(tx, "sale");
     const inv = await nextCounter(tx, "invoice");
     const id = "S-" + String(n).padStart(4, "0");
-    const no = "FV-" + inv;
+    const no = (cfg.invPrefix ?? "FV-") + inv;
     const saleLines: SaleLine[] = lines.map(({ it, qty }) => ({
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, qty, price: it.price,
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0,
@@ -92,7 +92,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const row = {
       id, no, t: Date.now(), client: client?.id ?? null, by: a.id,
       method: pays.length > 1 ? "Mixto" : pays[0]?.method ?? "Abono previo", mode: "contado", payments: pays, lines: saleLines,
-      disc: +T.pct.toFixed(4), total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
+      disc: T.pct, total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,
       holdPays: hold ? hold.pays.map((y) => ({ t: y.t, amount: y.amount, method: y.method, no: y.no })) : null,
     };

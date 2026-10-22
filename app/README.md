@@ -32,6 +32,18 @@ En desarrollo ninguna es obligatoria. Todo lo demás (nombre, logo, reglas) se c
 - `src/db/schema.ts` tablas; `drizzle/` migraciones (`npm run db:generate` tras cambiar el esquema).
 - `tests/` pruebas automáticas.
 
+## Importar el historial de ventas
+
+*Configuración → Importar ventas*. Acepta el CSV de Excel, Siigo, Alegra, Loggro, etc. (separador `,` `;` o tabulador, UTF-8 o Windows-1252).
+
+1. Propone qué columna es cada dato según los encabezados; se puede corregir. Solo «Fecha» y «Producto» son obligatorios.
+2. Muestra un resumen, las filas que no se pueden leer (con el motivo) y las primeras ventas antes de importar.
+3. Filas con el mismo número de factura = una venta. Si el total de la factura es menor que la suma, la diferencia queda como descuento.
+4. No toca el inventario actual. Crea o reutiliza clientes (por cédula, teléfono o nombre) y las ventas quedan marcadas como «Histórica».
+5. Subir el mismo archivo otra vez no duplica. Cada importación se puede deshacer desde la misma pantalla.
+
+Hay una plantilla descargable para quien tenga los datos en cuadernos o en un Excel suelto.
+
 ## Verificación de IMEI
 
 1. Automática: formato (Luhn), modelo por TAC, duplicado y lista interna de bloqueados.

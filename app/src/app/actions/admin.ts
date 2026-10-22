@@ -1,7 +1,8 @@
 "use server";
 import { act } from "@/server/act";
 import { importTacCsv } from "@/server/inventory";
-import { createUser, saveLogo, saveRolePerms, saveSettings, updateUser } from "@/server/admin";
+import { createUser, saveLogo, saveMethods, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
+import { importSales, undoImport } from "@/server/import";
 
 export async function createUserAction(data: unknown) {
   return act((db, a) => createUser(db, a, data), ["/usuarios"]);
@@ -20,4 +21,19 @@ export async function saveLogoAction(dataUrl: string) {
 }
 export async function importTacAction(text: string) {
   return act((db, a) => importTacCsv(db, a, text), ["/ingreso"]);
+}
+export async function saveNumberingAction(data: unknown) {
+  return act((db, a) => saveNumbering(db, a, data), ["/config"]);
+}
+export async function saveWarrantyAction(data: unknown) {
+  return act((db, a) => saveWarranty(db, a, data), ["/"]);
+}
+export async function saveMethodsAction(data: unknown) {
+  return act((db, a) => saveMethods(db, a, data), ["/"]);
+}
+export async function importSalesAction(data: unknown) {
+  return act((db, a) => importSales(db, a, data), ["/"]);
+}
+export async function undoImportAction(source: string) {
+  return act((db, a) => undoImport(db, a, source), ["/"]);
 }

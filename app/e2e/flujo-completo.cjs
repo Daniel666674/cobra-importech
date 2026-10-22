@@ -46,7 +46,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  const sec='section[aria-label="Verificación oficial"]';await p.locator(sec+' button:has-text("Limpio")').click();await p.locator(sec+' button:has-text("Sin bloqueo")').click();await p.click('button:has-text("Registrar verificación")');
  await p.waitForSelector('text=Verificación oficial registrada',{timeout:20000});await p.reload();ok(/En vitrina/.test(await p.innerText('main')),'tras la verificación oficial pasa a vitrina');
  // config + logo
- await p.goto(B+'/config');await p.fill('#c-nit','900.123.456-7');await p.click('button:has-text("Guardar configuración")');await p.waitForSelector('text=Configuración guardada');
+ await p.goto(B+'/config');await p.fill('#c-nit','900.123.456-7');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Configuración guardada');
  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==','base64');fs.writeFileSync(require('os').tmpdir()+'/l.png',png);
  await p.setInputFiles('input[type=file]',require('os').tmpdir()+'/l.png');await p.waitForSelector('text=Logo actualizado',{timeout:20000});ok(true,'logo subido desde archivo');
  await p.goto(B+'/ventas/S-0001');ok(/900\.123\.456-7/.test(await p.innerText('article')),'el NIT sale en el comprobante');

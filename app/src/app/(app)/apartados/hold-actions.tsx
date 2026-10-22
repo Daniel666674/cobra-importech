@@ -3,14 +3,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addAbonoAction, extendHoldAction, releaseHoldAction } from "@/app/actions/sales";
-import { METHODS } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 
-export function HoldActions({ itemId, balance }: { itemId: string; balance: number }) {
+export function HoldActions({ itemId, balance, methods }: { itemId: string; balance: number; methods: string[] }) {
   const router = useRouter();
   const [mode, setMode] = useState<"" | "abono" | "extend" | "release">("");
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<string>(METHODS[0]);
+  const [method, setMethod] = useState<string>(methods[0]);
   const [days, setDays] = useState("5");
   const [refund, setRefund] = useState("1");
   const [msg, setMsg] = useState("");
@@ -31,7 +30,7 @@ export function HoldActions({ itemId, balance }: { itemId: string; balance: numb
       {mode === "abono" && (
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <input type="number" min={1} max={balance} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Hasta ${fmt(balance)}`} aria-label="Valor del abono" />
-          <select value={method} onChange={(e) => setMethod(e.target.value)} aria-label="Método">{METHODS.map((m) => <option key={m}>{m}</option>)}</select>
+          <select value={method} onChange={(e) => setMethod(e.target.value)} aria-label="Método">{methods.map((m) => <option key={m}>{m}</option>)}</select>
           <button className="btn primary" disabled={busy || !(+amount > 0)} onClick={() => run(() => addAbonoAction(itemId, +amount, method))}>Registrar</button>
         </div>
       )}

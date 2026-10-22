@@ -1,3 +1,4 @@
+import { waLink } from "@/lib/whatsapp";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -23,7 +24,7 @@ export default async function SalePage({ params }: PageProps<"/ventas/[id]">) {
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href="/ventas" className="note hover:underline">← Ventas</Link>
         <div className="flex gap-2">
-          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={`https://wa.me/57${client.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${client.name.split(" ")[0]}, gracias por tu compra en ${cfg.name}. Comprobante ${s.no}.`)}`}>💬 WhatsApp</a>}
+          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={waLink(client.phone, `Hola ${client.name.split(" ")[0]}, gracias por tu compra en ${cfg.name}. Comprobante ${s.no}.`)}>💬 WhatsApp</a>}
           <PrintButton />
         </div>
       </div>
