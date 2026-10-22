@@ -73,7 +73,7 @@ describe("ventas", () => {
   });
   it("vende un equipo único una sola vez", async () => {
     const [it] = await db.select().from(items).where(eq(items.id, "I-0001"));
-    const pay = [{ method: "Tarjeta", amount: it.price }];
+    const pay = [{ method: "Tarjeta débito", amount: it.price }];
     const s = await createSale(db, emp, { lines: [{ item: it.id, qty: 1 }], payments: pay });
     expect(s.no).toMatch(/^FV-/);
     expect((await db.select().from(items).where(eq(items.id, it.id)))[0].status).toBe("Vendido");

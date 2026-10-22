@@ -136,8 +136,12 @@ export async function saveWarranty(db: Db, a: Actor, raw: unknown) {
 /** Formas de pago que aparecen en caja y apartados. */
 export async function saveMethods(db: Db, a: Actor, raw: unknown) {
   need(a, "settings");
-  const v = z.array(z.enum(METHODS)).min(1, "Deja al menos una forma de pago").parse(raw);
-  await db.update(settings).set({ methods: v.length === METHODS.length ? [] : v }).where(eq(settings.id, 1));
+  const r = z.union([z.array(z.enum(METHODS)), z.object({ on: z.array(z.enum(METHODS)), surcharges: z.record(z.string(), z.coerce.number().min(0, "El recargo no puede ser negativo").max(50, "Máximo 50 %")) })]).parse(raw);
+  const v = Array.isArray(r) ? r : r.on;
+  if (!v.length) throw new AppError("Deja al menos una forma de pago", "invalid");
+  const set: Partial<typeof settings.$inferInsert> = { methods: v.length === METHODS.length ? [] : v };
+  if (!Array.isArray(r)) set.surcharges = Object.fromEntries(Object.entries(r.surcharges).filter(([k, x]) => (METHODS as readonly string[]).includes(k) && x > 0));
+  await db.update(settings).set(set).where(eq(settings.id, 1));
 }
 
 const MAX_LOGO = 400_000;

@@ -26,7 +26,7 @@ export default async function Config({ searchParams }: PageProps<"/config">) {
         logo={cfg.logo}
         numbering={{ prefix: cfg.invPrefix, last: inv?.value ?? 0 }}
         warranty={{ warr: Object.fromEntries(CONDS.map((c) => [c, cfg.warr[c] ?? 0])), terms: cfg.warrTerms.length ? cfg.warrTerms : WARR_TERMS, custom: cfg.warrTerms.length > 0 }}
-        methods={{ all: [...METHODS], on: enabledMethods(cfg) }}
+        methods={{ all: [...METHODS], on: enabledMethods(cfg), surcharges: cfg.surcharges ?? {} }}
         sources={sources.map((s) => ({ ...s, total: Number(s.total), from: Number(s.from), to: Number(s.to) }))}
       />
     </>

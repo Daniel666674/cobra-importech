@@ -70,7 +70,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
   const discAmt = Math.max(0, subtotal - s.total);
   const pays = s.payments.length ? s.payments : [{ method: s.method, amount: s.total - s.prepaid }];
   const holdPaid = (s.holdPays ?? []).reduce((a, y) => a + y.amount, 0);
-  const paidNow = pays.reduce((a, p) => a + p.amount, 0) + holdPaid;
+  const paidNow = pays.reduce((a, p) => a + p.amount + (p.fee ?? 0), 0) + holdPaid;
   return (
     <ReceiptFrame cfg={cfg} kind={cfg.invTitle || "Comprobante de venta"} no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : s.mode === "historico" ? ["HISTÓRICA", "warn"] : ["PAGADA", "ok"]}>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -117,7 +117,8 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
           {discAmt > 0 && <div className="flex justify-between"><span>Descuento</span><span className="tabular-nums">−{fmt(discAmt)}</span></div>}
           <div className="flex justify-between border-y-2 border-gray-900 py-1.5 text-[17px] font-extrabold"><span>TOTAL</span><span className="tabular-nums">{fmt(s.total)}</span></div>
           {holdPaid > 0 && <div className="flex justify-between"><span>Abonos del apartado ({s.holdPays!.length})</span><span className="tabular-nums">{fmt(holdPaid)}</span></div>}
-          {pays.map((p, i) => <div key={i} className="flex justify-between"><span>{p.method}</span><span className="tabular-nums">{fmt(p.amount)}</span></div>)}
+          {(s.surcharge ?? 0) > 0 && <div className="flex justify-between"><span>Recargo por forma de pago</span><span className="tabular-nums">{fmt(s.surcharge)}</span></div>}
+          {pays.map((p, i) => <div key={i} className="flex justify-between"><span>{p.method}{p.fee ? ` (incluye recargo ${fmt(p.fee)})` : ""}</span><span className="tabular-nums">{fmt(p.amount + (p.fee ?? 0))}</span></div>)}
           {s.cash && <div className="flex justify-between"><span>Efectivo recibido · cambio</span><span className="tabular-nums">{fmt(s.cash.given)} · {fmt(s.cash.change)}</span></div>}
           <div className="flex justify-between border-t border-gray-200 pt-2 font-bold"><span>Total pagado</span><span className="tabular-nums">{fmt(paidNow)}</span></div>
         </div>

@@ -43,6 +43,13 @@
       "when": 1792690213689,
       "tag": "0005_contrasenas",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792701537080,
+      "tag": "0006_recargos",
+      "breakpoints": true
     }
   ]
 }

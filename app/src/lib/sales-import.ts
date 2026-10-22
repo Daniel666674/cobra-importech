@@ -49,7 +49,10 @@ const METHOD_SYN: [RegExp, string][] = [
   [/nequi/i, "Nequi"],
   [/daviplata/i, "Daviplata"],
   [/bold|link|enlace/i, "Enlace Bold"],
-  [/tarjeta|cr[eé]dito|d[eé]bito|dat[aá]fono|visa|master|\btc\b|\btd\b/i, "Tarjeta"],
+  [/cr[eé]dito|\btc\b/i, "Tarjeta crédito"],
+  [/addi/i, "Addi"],
+  [/vanti/i, "Vanti"],
+  [/tarjeta|d[eé]bito|dat[aá]fono|visa|master|\btd\b/i, "Tarjeta débito"],
   [/transf|consigna|pse|bancolombia|banco/i, "Transferencia"],
 ];
 export const normMethod = (s: string) => (s ? METHOD_SYN.find(([r]) => r.test(s))?.[1] ?? s.trim() : "");

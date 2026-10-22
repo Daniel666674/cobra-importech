@@ -1,0 +1,2 @@
+ALTER TABLE "sales" ADD COLUMN "surcharge" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "settings" ADD COLUMN "surcharges" jsonb DEFAULT '{"Addi":12,"Vanti":6,"Tarjeta crédito":7}'::jsonb NOT NULL;
