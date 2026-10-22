@@ -41,6 +41,16 @@ const B='http://localhost:3101';
  await p.setInputFiles('input[type=file][accept^=".xlsx"]',path.join(__dirname,'inventario-sin-encabezados.xlsx'));
  await p.waitForSelector('text=Columnas reconocidas automáticamente',{timeout:20000});
  ok(!(await p.locator('details[open] select').count()),'las columnas quedan ocultas cuando se reconocieron solas');
+ // venta de un producto sin precio (como quedan los importados con solo costo): se escribe el precio en caja
+ await p.goto(B+'/inventario');if(await p.locator('button:has-text("Pasar")').count()){await p.click('button:has-text("Pasar")');await p.waitForTimeout(1500)}
+ await p.goto(B+'/venta');const np=p.locator('button:has(.chip:has-text("Sin precio"))').first();
+ ok(await np.count()>0,'hay productos sin precio en caja');
+ await np.click();await p.waitForSelector('input[aria-label^="Precio de "]');
+ ok(await p.locator('button:has-text("Emitir comprobante")').isDisabled(),'sin precio no deja emitir el comprobante en $0');
+ ok(/Escribe el precio de venta/.test(await p.innerText('main')),'dice qué falta');
+ await p.fill('input[aria-label^="Precio de "]','2500000');
+ await p.click('button:has-text("Cobrar")');await p.waitForURL(/\/ventas\/S-/,{timeout:30000});
+ ok(/2\.500\.000/.test(await p.innerText('article')),'vende con el precio escrito en caja');
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');process.exit(fails?1:0);
 })();
