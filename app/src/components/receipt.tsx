@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { clients, sales, settings } from "@/db/schema";
-import { fdatey, fmt, ftime, initials } from "@/lib/format";
+import { fdatey, fmt, ftime } from "@/lib/format";
 import { lineNet, warrEnd } from "@/lib/sales";
 import { inWords } from "@/lib/words";
 
@@ -24,12 +24,8 @@ export function ReceiptFrame({ cfg, kind, no, t, stamp, children }: { cfg: Cfg; 
       <div className="p-7">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 pb-5">
           <div className="flex gap-3">
-            {cfg.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={cfg.logo} alt={`Logo de ${cfg.name}`} className="h-14 w-14 object-contain" />
-            ) : (
-              <div className="grid h-14 w-14 place-items-center rounded-lg text-xl font-bold text-white" style={{ background: cfg.brand }}>{initials(cfg.name) || "I"}</div>
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={cfg.logo || "/logo.png"} alt={`Logo de ${cfg.name}`} className="h-20 w-20 rounded-lg object-contain" />
             <div className="text-[12px] leading-relaxed text-gray-600">
               <b className="block text-[16px] text-gray-900">{cfg.name}</b>
               {[cfg.legal, cfg.nit && `NIT ${cfg.nit}`].filter(Boolean).join(" · ")}
@@ -89,7 +85,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
                 <td className="text-right">{l.qty}{l.ret ? <small className="block">dev. {l.ret}</small> : null}</td>
                 <td className="text-right tabular-nums">{fmt(l.price)}</td>
                 <td className="text-right font-bold tabular-nums">{fmt(l.price * l.qty)}</td>
-                <td className="pl-3">{l.warr ? <>{l.warr} meses<small className="block text-gray-500">hasta {fdatey(warrEnd(s.t, l))}</small></> : <small>Sin garantía</small>}</td>
+                <td className="pl-3">{l.warr ? <>{l.warr} {l.warr === 1 ? "mes" : "meses"}<small className="block text-gray-500">hasta {fdatey(warrEnd(s.t, l))}</small></> : <small>Sin garantía</small>}</td>
               </tr>
             ))}
           </tbody>

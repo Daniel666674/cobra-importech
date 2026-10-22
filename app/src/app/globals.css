@@ -53,6 +53,11 @@ table.t tr:last-child td { border-bottom: 0; }
 table.t td.num, table.t th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .note { font-size: 12.5px; color: var(--t3); }
 @media print {
-  body { background: #fff; color: #000; }
+  @page { size: letter; margin: 10mm; }
+  body { background: #fff; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print { display: none !important; }
+  /* Solo el comprobante: sin menú lateral, encabezados ni márgenes de la app. */
+  main { padding: 0 !important; max-width: none !important; }
+  .min-h-screen { min-height: 0 !important; display: block !important; }
+  article { max-width: none !important; border: 0 !important; box-shadow: none !important; break-inside: avoid; }
 }
