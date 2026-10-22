@@ -6,7 +6,7 @@ Estado al 22 de octubre de 2026. Orden sugerido: primero lo que bloquea el arran
 
 | # | Qué | Por qué | Esfuerzo |
 |---|---|---|---|
-| 1 | **Importar el inventario actual (CSV)** | Hoy cada producto se ingresa uno a uno. Con 80–200 equipos en vitrina es medio día de digitación y errores. Debe pasar por la misma verificación de IMEI: los iPhone importados entran «En revisión» hasta registrar CRC/Apple. | 1 día |
+| 1 | ~~Importar el inventario actual~~ **Hecho** (Inventario → Importar desde Excel) | Hoy cada producto se ingresa uno a uno. Con 80–200 equipos en vitrina es medio día de digitación y errores. Debe pasar por la misma verificación de IMEI: los iPhone importados entran «En revisión» hasta registrar CRC/Apple. | 1 día |
 | 2 | **Recibir el archivo real de ventas de la clienta** y hacer una importación de prueba | El importador ya está listo, pero hay que confirmar con su archivo real (formato de fechas, columnas, si trae costo e IMEI). Si no trae costo, los márgenes históricos no salen. | 1–2 h con el archivo |
 | 3 | **Datos del negocio** en Configuración: NIT, razón social, responsabilidad tributaria, numeración que continúa la del sistema anterior | El comprobante ya se puede personalizar completo; falta cargar los datos reales y revisar la vista previa con ella. | 30 min con la clienta |
 | 4 | **Usuarios del personal** y permisos del rol «Empleado/a» | Cada persona con su PIN (6 dígitos para la dueña). | 30 min |

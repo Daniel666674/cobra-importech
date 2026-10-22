@@ -11,6 +11,7 @@ node e2e/flujo-basico.cjs      # configuración inicial, verificación oficial, 
 node e2e/flujo-completo.cjs    # apartados, garantías, taller, compras, configuración
 node e2e/flujo-retomas.cjs    # retomas, aprendizaje de TAC, importar CSV
 node e2e/flujo-retoma-aliadas.cjs # tienda aliada, venta con iPhone como parte de pago, pago a la aliada
+node e2e/flujo-inventario-import.cjs # cargar inventario desde Excel con el selector de archivos
 node e2e/flujo-configuracion.cjs # configuración por pestañas, numeración, importar ventas (CSV de Excel)
 node e2e/escaner.cjs           # lectura de una foto de caja con IMEI y serie
 ```

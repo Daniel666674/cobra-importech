@@ -1,7 +1,9 @@
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { importSalesAction } from "@/app/actions/admin";
-import { guessDateOrder, parseCsv, type DateOrder } from "@/lib/csv";
+import { guessDateOrder, type DateOrder } from "@/lib/csv";
+import { readTable } from "@/lib/read-file";
 import { fdatey, fmt } from "@/lib/format";
 import { IMPORT_FIELDS, buildSales, impliedDisc, guessMapping, type FieldKey, type Mapping } from "@/lib/sales-import";
 
@@ -19,30 +21,6 @@ const downloadTemplate = () => {
   a.click();
   URL.revokeObjectURL(a.href);
 };
-
-/** Lee el archivo como UTF-8 y, si trae caracteres dañados (típico de Excel en Windows), como Windows-1252. */
-async function readText(f: File) {
-  const buf = await f.arrayBuffer();
-  const utf = new TextDecoder("utf-8").decode(buf);
-  return utf.includes("�") ? new TextDecoder("windows-1252").decode(buf) : utf;
-}
-
-/** Lee la primera hoja con datos de un Excel (.xlsx) y la deja como texto, igual que un CSV. */
-async function readExcel(f: File): Promise<string[][]> {
-  const { default: readXlsxFile } = await import("read-excel-file/browser");
-  const sheets = await readXlsxFile(f);
-  const sheet = sheets.find((s) => s.data.some((r) => r.some((c) => c !== null && String(c).trim() !== ""))) ?? sheets[0];
-  const two = (n: number) => String(n).padStart(2, "0");
-  const cell = (c: unknown) => {
-    if (c === null || c === undefined) return "";
-    // Excel guarda fechas sin zona horaria: se leen como vienen (año-mes-día hora:minuto).
-    if (c instanceof Date) return `${c.getUTCFullYear()}-${two(c.getUTCMonth() + 1)}-${two(c.getUTCDate())} ${two(c.getUTCHours())}:${two(c.getUTCMinutes())}`;
-    return String(c).trim();
-  };
-  return (sheet?.data ?? []).map((r) => r.map(cell)).filter((r) => r.some(Boolean));
-}
-
-const isExcel = async (f: File) => /\.xlsx$/i.test(f.name) || new TextDecoder().decode(await f.slice(0, 2).arrayBuffer()) === "PK";
 
 type Result = { created: number; skipped: number; newClients: number; amount: number };
 
@@ -75,13 +53,8 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
   async function pick(f: File) {
     setErr(""); setResult(null); setFailed("");
     if (f.size > 15_000_000) return setErr("El archivo pesa más de 15 MB. Divídelo por años.");
-    if (/\.xls$/i.test(f.name)) return setErr("Ese es el formato antiguo de Excel (.xls). Ábrelo en Excel y guárdalo como .xlsx o como CSV.");
     let rows: string[][];
-    try {
-      rows = (await isExcel(f)) ? await readExcel(f) : parseCsv(await readText(f));
-    } catch {
-      return setErr("No se pudo leer el archivo. Si es Excel, guárdalo como .xlsx o CSV e inténtalo de nuevo.");
-    }
+    try { rows = await readTable(f); } catch (e) { return setErr((e as Error).message); }
     if (rows.length < 2) return setErr("El archivo está vacío o no tiene filas de datos.");
     setFile({ name: f.name, rows });
     const m = guessMapping(rows[0]);
@@ -148,7 +121,7 @@ export function ImportSales({ warr, onDone }: { warr: Record<string, number>; on
         </div>
       )}
 
-      {file && !built && <p className="chip warn !rounded-md">Asigna al menos «Fecha» y «Producto» para ver la vista previa.</p>}
+      {file && !built && <p className="chip warn !rounded-md !whitespace-normal">Asigna al menos «Fecha» y «Producto» para ver la vista previa.{map.date === undefined && <> Si el archivo es de <b>inventario</b> (lo que hay hoy en la tienda) y no de ventas, súbelo en <Link className="underline" href="/inventario/importar">Inventario → Importar desde Excel</Link>.</>}</p>}
 
       {built && summary && (
         <div className="card p-4 space-y-3">
