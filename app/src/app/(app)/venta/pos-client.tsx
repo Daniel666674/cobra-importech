@@ -8,6 +8,7 @@ import { holdMin } from "@/lib/hold";
 import { isQty } from "@/lib/items";
 import { posTotals } from "@/lib/sales";
 import type { Hold } from "@/db/schema";
+import { TradeinForm, type TradePayload } from "@/components/tradein-form";
 
 export type PosItem = { id: string; cat: string; name: string; spec: string; color: string; cond: string; serial: string; qty: number; price: number; cost: number; warr: number; track: string; hold: Hold | null };
 type Line = { id: string; qty: number };
@@ -17,11 +18,12 @@ type Props = {
   items: PosItem[];
   clients: { id: string; name: string; doc: string; phone: string }[];
   cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[] };
-  can: { discount: boolean; cost: boolean; credit: boolean };
+  can: { discount: boolean; cost: boolean; credit: boolean; tradein: boolean };
+  warr: Record<string, number>;
   start: { item: string; mode: "contado" | "apartado"; hold: string };
 };
 
-export function PosClient({ items, clients, cfg, can, start }: Props) {
+export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const router = useRouter();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const finishing = start.hold ? byId.get(start.hold) ?? null : null;
@@ -45,16 +47,21 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
   const [abonoMethod, setAbonoMethod] = useState(cfg.methods[0]);
   const [err, setErr] = useState("");
   const [busy, startT] = useTransition();
+  const [trades, setTrades] = useState<TradePayload[]>([]);
+  const [tradeOpen, setTradeOpen] = useState(false);
 
   const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it);
   const T = posTotals(cart.map((x) => ({ price: x.it.price, cost: x.it.cost, qty: x.l.qty })), { type: discType, value: +disc || 0 }, finishing?.hold?.abono ?? 0);
   const hold = mode === "apartado";
+  const tradeTotal = hold ? 0 : trades.reduce((a, t) => a + t.offer, 0);
+  const due = T.due - tradeTotal;
+  const clientDoc = newC ? nc.doc.trim() : clients.find((c) => c.id === client)?.doc ?? "";
   const cartHasQty = cart.some((x) => isQty(x.it));
 
   // pagos: una fila vacía (la última) se completa sola con el saldo
   const fixed = pays.reduce((a, p) => a + (p.amount === "" ? 0 : +p.amount || 0), 0);
   const autoIdx = pays.findIndex((p) => p.amount === "");
-  const resolved = pays.map((p, i) => ({ method: p.method, amount: p.amount === "" ? (i === autoIdx ? Math.max(0, T.due - fixed) : 0) : +p.amount || 0 }));
+  const resolved = pays.map((p, i) => ({ method: p.method, amount: p.amount === "" ? (i === autoIdx ? Math.max(0, due - fixed) : 0) : +p.amount || 0 }));
   const paid = resolved.reduce((a, p) => a + p.amount, 0);
   const min = hold ? holdMin(T.total, cfg.apartadoMinPct) : 0;
 
@@ -70,10 +77,12 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
     else if (!(+abono > 0)) why = "Escribe el valor del abono";
     else if (+abono < min) why = `El abono mínimo es ${fmt(min)} (${cfg.apartadoMinPct}%)`;
     else if (+abono >= T.total) why = "El abono cubre el total: registra una venta normal";
-  } else if (T.due > 0) {
+  } else if (due < 0) why = `La retoma supera el total por ${fmt(-due)}: regístrala sola en «Retomas»`;
+  else if (trades.length && (!(client || newC) || !clientDoc)) why = "Para recibir un equipo en parte de pago, elige o crea el cliente con su cédula";
+  else if (due > 0) {
     if (resolved.some((p) => p.amount <= 0)) why = "Cada método de pago debe tener un valor";
-    else if (paid < T.due) why = `Falta asignar ${fmt(T.due - paid)} en los pagos`;
-    else if (paid > T.due) why = `Los pagos superan el total por ${fmt(paid - T.due)}`;
+    else if (paid < due) why = `Falta asignar ${fmt(due - paid)} en los pagos`;
+    else if (paid > due) why = `Los pagos superan el total por ${fmt(paid - due)}`;
   }
 
   const filtered = items.filter((i) => {
@@ -105,7 +114,8 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
       } else {
         const r = await createSaleAction({
           lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty })), client: client_, newClient,
-          discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: resolved.filter((p) => p.amount > 0), notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
+          discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
+          tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
         });
         if (!r.ok) return setErr(r.error);
         router.push(`/ventas/${r.data}`);
@@ -191,7 +201,20 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
               <select value={abonoMethod} onChange={(e) => setAbonoMethod(e.target.value)} aria-label="Método del abono">{cfg.methods.map((m) => <option key={m}>{m}</option>)}</select></div>
             <p className="note mt-1">Vence en {cfg.holdDays} días · mínimo {cfg.apartadoMinPct}% ({fmt(min)})</p>
           </div>
-        ) : T.due > 0 && (
+        ) : <>
+          {can.tradein && (
+            <div>
+              <h3 className="font-semibold mb-2">Retoma (equipo como parte de pago)</h3>
+              {trades.map((t, i) => (
+                <div key={i} className="mb-2 flex items-center gap-2 rounded-lg border border-line p-2 text-[13px]">
+                  <span className="flex-1 min-w-0 truncate">🔄 {t.label}</span><b className="tabular-nums">−{fmt(t.offer)}</b>
+                  <button type="button" className="btn sm" aria-label="Quitar retoma" onClick={() => setTrades(trades.filter((_, j) => j !== i))}>✕</button>
+                </div>
+              ))}
+              {trades.length < 3 && <button type="button" className="btn sm" onClick={() => setTradeOpen(true)}>+ Recibir un equipo</button>}
+            </div>
+          )}
+          {due > 0 && (
           <div>
             <h3 className="font-semibold mb-2">Pago</h3>
             <div className="space-y-2">
@@ -206,25 +229,38 @@ export function PosClient({ items, clients, cfg, can, start }: Props) {
             </div>
             {pays.length === 1 && pays[0].method === "Efectivo" && (
               <div className="mt-2"><input type="number" min={0} value={cash} onChange={(e) => setCash(e.target.value)} placeholder="Efectivo recibido (opcional)" aria-label="Efectivo recibido" />
-                {+cash >= T.due && T.due > 0 && <p className="note mt-1">Devuelta: <b>{fmt(+cash - T.due)}</b></p>}</div>
+                {+cash >= due && due > 0 && <p className="note mt-1">Devuelta: <b>{fmt(+cash - due)}</b></p>}</div>
             )}
           </div>
-        )}
+          )}
+        </>}
         <div><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas (opcional)" aria-label="Notas" /></div>
 
         <div className="space-y-1 border-t border-line pt-3">
           <div className="flex justify-between"><span className="text-t2">Subtotal</span><span>{fmt(T.sub)}</span></div>
           {T.discAmt > 0 && <div className="flex justify-between"><span className="text-t2">Descuento ({+T.pct.toFixed(1)}%)</span><span className="text-red-t">−{fmt(T.discAmt)}</span></div>}
           {T.prepaid > 0 && <div className="flex justify-between"><span className="text-t2">Abonos del apartado</span><span className="text-green-t">−{fmt(T.prepaid)}</span></div>}
-          <div className="flex justify-between text-lg font-bold"><span>{hold ? "Total del equipo" : "Total a pagar"}</span><span className="tabular-nums">{fmt(hold ? T.total : T.due)}</span></div>
+          {tradeTotal > 0 && <div className="flex justify-between"><span className="text-t2">Retoma ({trades.length})</span><span className="text-green-t">−{fmt(tradeTotal)}</span></div>}
+          <div className="flex justify-between text-lg font-bold"><span>{hold ? "Total del equipo" : "Total a pagar"}</span><span className="tabular-nums">{fmt(hold ? T.total : Math.max(0, due))}</span></div>
           {can.cost && cart.length > 0 && <div className="flex justify-between note"><span>Margen de la venta</span><span>{fmt(T.total - T.cost)} · {T.total ? Math.round(((T.total - T.cost) / T.total) * 100) : 0}%</span></div>}
         </div>
         <button type="button" className="btn primary w-full !py-3" disabled={!!why || busy} onClick={confirm}>
-          {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : T.due > 0 ? `Cobrar ${fmt(T.due)}` : "Emitir comprobante"}
+          {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : due > 0 ? `Cobrar ${fmt(due)}` : "Emitir comprobante"}
         </button>
         {why && cart.length > 0 && <p className="note" role="status">{why}</p>}
         {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{err}</p>}
       </section>
+      {tradeOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Recibir equipo como parte de pago">
+          <div className="mx-auto max-w-[1100px] rounded-xl bg-bg p-4 shadow-xl">
+            <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold">Recibir equipo como parte de pago</h2><button type="button" className="btn sm" onClick={() => setTradeOpen(false)}>Cerrar</button></div>
+            <TradeinForm warr={warr} mode="venta" onAccept={(p) => {
+              if (trades.some((t) => t.item.serial && t.item.serial === p.item.serial)) return;
+              setTrades([...trades, p]); setTradeOpen(false); setPays(pays.map((x) => ({ ...x, amount: "" })));
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

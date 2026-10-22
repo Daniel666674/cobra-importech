@@ -15,7 +15,7 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
   const [panel, setPanel] = useState<"" | "edit" | "verify" | "shop">("");
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [busy, start] = useTransition();
-  const [form, setForm] = useState<ItemFormValues>({ name: item.name, spec: item.spec, color: item.color, cond: item.cond, serial: item.serial, qty: String(item.qty), cost: String(item.cost), price: String(item.price), warr: String(item.warr), src: "", batt: item.batt == null ? "" : String(item.batt), notes: item.notes, min: String(item.min) });
+  const [form, setForm] = useState<ItemFormValues>({ name: item.name, spec: item.spec, color: item.color, cond: item.cond, serial: item.serial, qty: String(item.qty), cost: String(item.cost), price: String(item.price), warr: String(item.warr), src: "", batt: item.batt == null ? "" : String(item.batt), notes: item.notes, min: String(item.min), ally: "" });
   const [off, setOff] = useState<OfficialValue>({});
   const [job, setJob] = useState("");
   const [jobCost, setJobCost] = useState("");

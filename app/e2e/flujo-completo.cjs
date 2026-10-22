@@ -37,14 +37,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.goto(B+'/taller');ok(/Cambio de batería/.test(await p.innerText('body')),'orden en el tablero del taller');
  for(let i=0;i<4;i++){await p.locator('button:has-text("Avanzar"), button:has-text("Entregar a vitrina")').first().click();await p.waitForTimeout(700)}
  await p.goto(B+`/inventario/${Bn}`);const t=await p.innerText('body');ok(/En vitrina/.test(t)&&/Reparación terminada/.test(t),'el equipo vuelve a vitrina con el costo sumado');
- // compras
- await p.goto(B+'/compras');await p.fill('#po-sup','Miami Tech');await p.fill('#po-usd','800');await p.fill('#po-qty','2');await p.click('button:has-text("Registrar compra")');await p.waitForSelector('text=L-001');
- await p.click('button:has-text("Recibir")');await p.fill('input[aria-label="Producto"]','iPhone 17 Pro');await p.fill('textarea',w('35911002300001')+'\n'+w('35911002300002'));
- await p.click('button:has-text("Ingresar al inventario")');await p.waitForURL(/inventario/,{timeout:20000});
- ok(/iPhone 17 Pro/.test(await p.innerText('body')),'lote recibido queda «En revisión»');
- await p.click('a:has-text("iPhone 17 Pro")');await p.click('button:has-text("Verificar IMEI de nuevo")');
- const sec='section[aria-label="Verificación oficial"]';await p.locator(sec+' button:has-text("Limpio")').click();await p.locator(sec+' button:has-text("Sin bloqueo")').click();await p.click('button:has-text("Registrar verificación")');
- await p.waitForSelector('text=Verificación oficial registrada',{timeout:20000});await p.reload();ok(/En vitrina/.test(await p.innerText('main')),'tras la verificación oficial pasa a vitrina');
+ // (Compras e importación están desactivadas por ahora; ver flujo-retoma-aliadas.cjs para productos de tiendas aliadas)
  // config + logo
  await p.goto(B+'/config');await p.fill('#c-nit','900.123.456-7');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Configuración guardada');
  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==','base64');fs.writeFileSync(require('os').tmpdir()+'/l.png',png);

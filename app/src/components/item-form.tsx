@@ -4,11 +4,11 @@ import { CATALOG, CONDS, type Cat } from "@/lib/catalog";
 
 export type ItemFormValues = {
   name: string; spec: string; color: string; cond: string; serial: string; qty: string; cost: string; price: string;
-  warr: string; src: string; batt: string; notes: string; min: string;
+  warr: string; src: string; batt: string; notes: string; min: string; ally: string;
 };
 export const emptyItem = (cat: Cat, warr = 12): ItemFormValues => ({
   name: "", spec: "", color: "", cond: "Nuevo", serial: "", qty: "1", cost: "", price: "", warr: String(warr),
-  src: "Importación", batt: cat === "iPhone" ? "100" : "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0",
+  src: "Propio", batt: cat === "iPhone" ? "100" : "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0", ally: "",
 });
 
 type Props = {
@@ -19,6 +19,8 @@ type Props = {
   serialLocked?: boolean;
   showCost?: boolean;
   hideSerial?: boolean;
+  /** Tiendas aliadas activas; si hay, se puede elegir de quién es el producto. */
+  allies?: { id: string; name: string }[];
 };
 
 const Field = ({ id, label, children, hint }: { id: string; label: string; children: React.ReactNode; hint?: string }) => (
@@ -29,7 +31,7 @@ const Field = ({ id, label, children, hint }: { id: string; label: string; child
   </div>
 );
 
-export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial }: Props) {
+export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial, allies = [] }: Props) {
   const models = useMemo(() => CATALOG.filter((c) => c.cat === cat), [cat]);
   const qtyTrack = cat === "AirPods" || cat === "Accesorios";
   const set = (patch: Partial<ItemFormValues>) => {
@@ -62,15 +64,20 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
           <Field id="i-min" label="Stock mínimo (alerta)"><input id="i-min" type="number" min={0} value={v.min} onChange={(e) => set({ min: e.target.value })} /></Field>
         </>
       )}
-      {showCost && <Field id="i-cost" label="Costo (COP)"><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
-      <Field id="i-price" label="Precio de venta (COP)" hint={margin != null ? `Margen ${margin}%` : undefined}>
+      {allies.length > 0 && (
+        <Field id="i-ally" label="¿De quién es el producto?" hint={v.ally ? "El costo es lo que se le paga a la tienda aliada" : undefined}>
+          <select id="i-ally" value={v.ally} onChange={(e) => set({ ally: e.target.value })}><option value="">Propio de la tienda</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>
+        </Field>
+      )}
+      {showCost && <Field id="i-cost" label={v.ally ? "Se le paga a la aliada (COP)" : "Costo (COP)"}><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
+      <Field id="i-price" label="Precio de venta (COP)" hint={margin != null ? `${v.ally ? "Gana la tienda" : "Margen"}: $${(+v.price - +v.cost).toLocaleString("es-CO")} (${margin}%)` : undefined}>
         <input id="i-price" type="number" min={0} step={1000} value={v.price} onChange={(e) => { set({ price: e.target.value }); }} />
       </Field>
       <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={0} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
         <Field id="i-batt" label="Batería (%)"><input id="i-batt" type="number" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
       )}
-      <Field id="i-src" label="Origen"><input id="i-src" value={v.src} onChange={(e) => set({ src: e.target.value })} placeholder="Importación, Trade-in…" /></Field>
+      {!v.ally && <Field id="i-src" label="Origen"><input id="i-src" value={v.src} onChange={(e) => set({ src: e.target.value })} placeholder="Propio, compra local…" /></Field>}
       <div className="sm:col-span-2"><Field id="i-notes" label="Notas"><textarea id="i-notes" rows={2} value={v.notes} onChange={(e) => set({ notes: e.target.value })} /></Field></div>
     </div>
   );
@@ -78,5 +85,5 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
 
 export const toPayload = (cat: Cat, v: ItemFormValues, extra: Record<string, unknown> = {}) => ({
   cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: v.serial, qty: v.qty || 1, cost: v.cost || 0,
-  price: v.price, warr: v.warr || 0, src: v.src, batt: v.batt === "" ? null : v.batt, notes: v.notes, min: v.min || 0, ...extra,
+  price: v.price, warr: v.warr || 0, src: v.src, batt: v.batt === "" ? null : v.batt, notes: v.notes, min: v.min || 0, ally: v.ally, ...extra,
 });

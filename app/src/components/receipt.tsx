@@ -95,6 +95,18 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
           </tbody>
         </table>
       </div>
+      {s.tradeins?.length > 0 && (
+        <div className="mt-4 rounded-lg border border-gray-200 p-3 text-[12.5px]">
+          <h4 className="mb-1.5 text-[10.5px] font-bold uppercase tracking-widest text-gray-500">Equipo recibido como parte de pago</h4>
+          {s.tradeins.map((t) => (
+            <div key={t.item} className="flex justify-between gap-3 py-0.5">
+              <span><b>{t.name}</b> · {t.cond}{t.serial && <span className="font-mono text-[11.5px]"> · {t.serial}</span>}</span>
+              <span className="tabular-nums font-semibold">{fmt(t.amount)}</span>
+            </div>
+          ))}
+          <p className="mt-1 text-[11px] text-gray-500">El cliente declara ser el propietario legítimo del equipo entregado y que no tiene reporte de hurto ni bloqueo.</p>
+        </div>
+      )}
       <div className="mt-5 grid gap-5 sm:grid-cols-[1.2fr_1fr]">
         <div className="text-[11.5px] text-gray-600">
           <h4 className="mb-1 text-[10.5px] font-bold uppercase tracking-widest text-gray-500">Condiciones de garantía</h4>

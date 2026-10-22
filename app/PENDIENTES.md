@@ -44,3 +44,6 @@ Estado al 22 de octubre de 2026. Orden sugerido: primero lo que bloquea el arran
 - Importador de historial de ventas con mapeo de columnas, vista previa, sin duplicados y con opción de deshacer.
 - Garantías: búsqueda por IMEI que incluye las ventas importadas.
 - Error corregido: las ventas con descuento en pesos fallaban al guardar en Postgres.
+- Retoma como parte de pago en caja: el equipo entra solo al inventario dentro de la misma venta.
+- Tiendas aliadas (consignación o compra): cuánto se les paga, cuánto gana la tienda, cuenta y pagos.
+- Compras e importación desactivadas por ahora (la página redirige a Tiendas aliadas; los datos se conservan).

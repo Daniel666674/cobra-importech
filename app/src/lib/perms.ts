@@ -9,7 +9,7 @@ export const PERMS = [
   ["credit", "Gestionar apartados y abonos"],
   ["tradein", "Recibir trade-in"],
   ["workshop", "Gestionar taller"],
-  ["purchase", "Gestionar compras"],
+  ["purchase", "Gestionar tiendas aliadas y sus pagos"],
   ["clients", "Gestionar clientes"],
   ["reports", "Ver reportes"],
   ["users", "Gestionar usuarios y permisos"],

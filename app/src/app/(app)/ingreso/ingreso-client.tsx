@@ -13,20 +13,20 @@ const ICON: Record<Cat, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "
 const STEP: Record<string, string> = { ok: "✓", warn: "!", fail: "✕", skip: "–" };
 const STEP_TONE: Record<string, string> = { ok: "text-green-t", warn: "text-amber-t", fail: "text-red-t", skip: "text-t3" };
 
-export function IngresoClient({ warr, canCost }: { warr: Record<string, number>; canCost: boolean }) {
+export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: { warr: Record<string, number>; canCost: boolean; allies?: { id: string; name: string }[]; initialAlly?: string }) {
   const router = useRouter();
   const [cat, setCat] = useState<Cat>("iPhone");
   const [imei, setImei] = useState("");
   const [res, setRes] = useState<(ImeiResult & { imei: string }) | null>(null);
   const [off, setOff] = useState<OfficialValue>({});
   const [ok, setOk] = useState(false);
-  const [form, setForm] = useState<ItemFormValues>(emptyItem("iPhone", warr.Nuevo));
+  const [form, setForm] = useState<ItemFormValues>({ ...emptyItem("iPhone", warr.Nuevo), ally: initialAlly });
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
   const [scanOpen, setScanOpen] = useState(false);
   const [pending, setPending] = useState<ScanRead | null>(null);
 
-  const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm(emptyItem(c, warr.Nuevo)); };
+  const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm({ ...emptyItem(c, warr.Nuevo), ally: form.ally }); };
 
   function verify() {
     const clean = imei.replace(/\D/g, "");
@@ -38,7 +38,7 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
       setRes({ ...r.data, imei: clean });
       const sc = pending;
       setPending(null);
-      setForm({ ...emptyItem("iPhone", warr.Nuevo), name: sc?.name ?? r.data.modelName ?? "", serial: clean, spec: sc?.spec ?? "256 GB", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "100", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
+      setForm({ ...emptyItem("iPhone", warr.Nuevo), ally: form.ally, name: sc?.name ?? r.data.modelName ?? "", serial: clean, spec: sc?.spec ?? "256 GB", color: sc?.color ?? "", batt: sc?.batt != null ? String(sc.batt) : "100", notes: [sc?.serial ? "Serie " + sc.serial : "", ...(sc?.info ?? [])].filter(Boolean).join(" · ") });
     });
   }
 
@@ -102,7 +102,7 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
                       <OfficialPanel imei={res.imei} value={off} onChange={(v) => { setOff(v); setErr(""); }} />
                       <div className="border-t border-line pt-4">
                         <h3 className="font-semibold text-[14px] mb-3">Datos del equipo</h3>
-                        <ItemForm cat="iPhone" values={form} onChange={setForm} warrByCond={warr} serialLocked showCost={canCost} />
+                        <ItemForm cat="iPhone" values={form} onChange={setForm} warrByCond={warr} serialLocked showCost={canCost} allies={allies} />
                       </div>
                       {needOwner && (
                         <label className="flex items-start gap-2 text-[13px]">
@@ -134,7 +134,7 @@ export function IngresoClient({ warr, canCost }: { warr: Record<string, number>;
         ) : (
           <div className="max-w-3xl space-y-4">
             <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-bg/60 p-3"><span className="text-[13px]">📷 <b>Llena el formulario con la cámara</b> · caja nueva o pantalla de un equipo usado</span><button type="button" className="btn primary" onClick={() => setScanOpen(true)}>Escanear</button></div>
-            <ItemForm cat={cat} values={form} onChange={setForm} warrByCond={warr} showCost={canCost} />
+            <ItemForm cat={cat} values={form} onChange={setForm} warrByCond={warr} showCost={canCost} allies={allies} />
             <button type="button" className="btn primary" onClick={save} disabled={busy}>Guardar en inventario</button>
           </div>
         )}

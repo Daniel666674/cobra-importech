@@ -1,13 +1,14 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { clients, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
+import { allies, allyMoves, clients, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
 import { METHODS } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
 import { lineNet, posTotals, saleNet } from "@/lib/sales";
 import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { insertItem, prepareItem, type PreparedItem } from "./inventory";
 
 const method = z.enum(METHODS);
 const clientNew = z.object({
@@ -27,6 +28,8 @@ export const saleInput = z.object({
   notes: z.string().trim().default(""),
   cash: z.coerce.number().int().min(0).default(0),
   holdItem: z.string().nullable().default(null),
+  /** Equipos que el cliente entrega como parte de pago. Entran solos al inventario. */
+  tradeins: z.array(z.object({ item: z.unknown(), official: z.unknown().optional(), ownerApproved: z.boolean().default(false) })).max(3, "Máximo 3 equipos de retoma por venta").default([]),
 });
 export type SaleInput = z.infer<typeof saleInput>;
 
@@ -54,6 +57,17 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
   need(a, "sell");
   const input = saleInput.parse(raw);
   const cfg = await getSettings(db);
+  // Retomas: se validan antes (IMEI, verificación oficial) y se guardan dentro de la misma transacción de la venta.
+  if (input.tradeins.length) need(a, "tradein");
+  const trades: PreparedItem[] = [];
+  for (const t of input.tradeins) {
+    const raw = { ...(t.item as object), src: "Trade-in", qty: 1, ally: "" };
+    const p = await prepareItem(db, a, raw, { official: t.official, ownerApproved: t.ownerApproved });
+    if (!(p.input.cost > 0)) throw new AppError("El valor de la retoma debe ser mayor a 0", "invalid");
+    if (p.input.serial && trades.some((x) => x.input.serial === p.input.serial)) throw new AppError("El mismo equipo de retoma está dos veces", "invalid");
+    trades.push(p);
+  }
+  const tradeTotal = trades.reduce((x, p) => x + p.input.cost, 0);
   return db.transaction(async (tx) => {
     const ids = input.lines.map((l) => l.item);
     if (new Set(ids).size !== ids.length) throw new AppError("Hay productos repetidos en la venta", "invalid");
@@ -75,23 +89,34 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     if (T.pct > 0 && !input.discReason) throw new AppError("Indica el motivo del descuento", "invalid");
     if (T.pct > cfg.maxDisc && !can(a, "discount")) throw new AppError(`El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`, "forbidden");
     if (T.total < T.cost && !can(a, "discount")) throw new AppError("El total queda por debajo del costo: pide autorización", "forbidden");
+    if (tradeTotal > T.due) throw new AppError(`La retoma (${fmt(tradeTotal)}) supera lo que falta por pagar (${fmt(T.due)}). Registra la retoma sola en «Retomas» y paga la diferencia al cliente.`, "invalid");
+    for (const p of trades) if (lines.some(({ it }) => it.serial && it.serial === p.input.serial)) throw new AppError("El equipo de retoma no puede ser el mismo que se vende", "invalid");
+    const cashDue = T.due - tradeTotal;
     const pays: Payment[] = input.payments;
     const sum = pays.reduce((s, p) => s + p.amount, 0);
-    if (T.due > 0 && sum !== T.due) throw new AppError(sum < T.due ? `Falta asignar ${fmt(T.due - sum)} en los pagos` : `Los pagos superan el total por ${fmt(sum - T.due)}`, "invalid");
-    if (T.due === 0 && pays.length) throw new AppError("Con el apartado pagado completo no hay nada por cobrar", "invalid");
+    if (cashDue > 0 && sum !== cashDue) throw new AppError(sum < cashDue ? `Falta asignar ${fmt(cashDue - sum)} en los pagos` : `Los pagos superan el total por ${fmt(sum - cashDue)}`, "invalid");
+    if (cashDue === 0 && pays.length) throw new AppError(tradeTotal ? "La retoma cubre todo: no hay nada más por cobrar" : "Con el apartado pagado completo no hay nada por cobrar", "invalid");
 
     const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient);
+    if (trades.length && !client?.doc) throw new AppError("Para recibir un equipo en parte de pago, el cliente debe tener nombre y cédula (soporta el origen del equipo)", "invalid");
     const n = await nextCounter(tx, "sale");
     const inv = await nextCounter(tx, "invoice");
     const id = "S-" + String(n).padStart(4, "0");
     const no = (cfg.invPrefix ?? "FV-") + inv;
     const saleLines: SaleLine[] = lines.map(({ it, qty }) => ({
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, qty, price: it.price,
-      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0,
+      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
+    const received = [];
+    for (const p of trades) {
+      p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");
+      const row = await insertItem(tx, a, p, { title: "Retoma recibida en venta", detail: `${no} · ${client!.name} · ${fmt(p.input.cost)}` });
+      received.push({ item: row.id, name: uname(row), serial: row.serial, cond: row.cond, amount: row.cost });
+    }
+    const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...pays];
     const row = {
       id, no, t: Date.now(), client: client?.id ?? null, by: a.id,
-      method: pays.length > 1 ? "Mixto" : pays[0]?.method ?? "Abono previo", mode: "contado", payments: pays, lines: saleLines,
+      method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received,
       disc: T.pct, total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,
       holdPays: hold ? hold.pays.map((y) => ({ t: y.t, amount: y.amount, method: y.method, no: y.no })) : null,
@@ -118,6 +143,8 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     await logFeed(tx, a, "fe", "🧾", `Comprobante <b>${no}</b> emitido · ${fmt(row.total)}${client ? " · " + esc(client.name) : ""}`);
     if (T.pct > cfg.maxDisc) await logFeed(tx, a, "owner", "🚨", `Alerta al dueño: descuento de <b>${T.pct.toFixed(1)}%</b> en ${no} (${esc(input.discReason)}) · ${esc(a.name)}`);
     if (T.total < T.cost) await logFeed(tx, a, "owner", "🚨", `Alerta al dueño: <b>venta bajo costo</b> en ${no} (${esc(a.name)})`);
+    for (const r of received) await logFeed(tx, a, "owner", "🔄", `Retoma en ${no}: <b>${esc(r.name)}</b> recibido por ${fmt(r.amount)} · ya está en inventario`);
+    await allyDebts(tx, a, saleLines, (l) => l.qty, no, "Vendido");
     return row;
   });
 }
@@ -217,6 +244,7 @@ export async function refundSale(db: Db, a: Actor, saleId: string, rawReturns: u
     });
     if (!n) throw new AppError("Indica qué se devuelve", "invalid");
     await tx.update(sales).set({ lines }).where(eq(sales.id, saleId));
+    await allyDebts(tx, a, s.lines, (l, i) => -Math.max(0, Math.min(lineNet(l), returns[i] ?? 0)), s.no, "Devolución");
     for (const [i, l] of lines.entries()) {
       const q = Math.max(0, Math.min(lineNet(s.lines[i]), returns[i] ?? 0));
       if (!q) continue;
@@ -229,6 +257,18 @@ export async function refundSale(db: Db, a: Actor, saleId: string, rawReturns: u
     await logFeed(tx, a, "owner", "↩️", `Devolución en <b>${s.no}</b>: ${n} producto${n !== 1 ? "s" : ""} · ${fmt(total)} (${esc(reason)}) · ${esc(a.name)}`);
     return { total, n };
   });
+}
+
+/** Registra en la cuenta de cada tienda aliada (en consignación) lo que se le debe por lo vendido o devuelto. */
+async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLine, i: number) => number, ref: string, what: string) {
+  const ids = [...new Set(lines.filter((l) => l.ally).map((l) => l.ally!))];
+  if (!ids.length) return;
+  const consign = new Set((await tx.select().from(allies).where(inArray(allies.id, ids))).filter((x) => x.mode === "consignacion").map((x) => x.id));
+  for (const [i, l] of lines.entries()) {
+    const q = qtyOf(l, i);
+    if (!l.ally || !q || !consign.has(l.ally)) continue;
+    await tx.insert(allyMoves).values({ ally: l.ally, t: Date.now(), kind: "deuda", amount: q * l.cost, ref, detail: `${what}: ${l.name}${Math.abs(q) > 1 ? " ×" + Math.abs(q) : ""}`, by: a.name });
+  }
 }
 
 export async function listSales(db: Db) {

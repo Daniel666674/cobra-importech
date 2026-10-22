@@ -1,5 +1,5 @@
 import type { Db } from "@/db";
-import { claims, items, orders, purchases, sales, settings } from "@/db/schema";
+import { claims, items, orders, sales, settings } from "@/db/schema";
 import { DAY, daysAgo } from "@/lib/format";
 import { holdBal, holdLeft } from "@/lib/hold";
 import { daysIn, inStock, isQty, stockQty, uname } from "@/lib/items";
@@ -74,12 +74,11 @@ export async function reportData(db: Db, days: number, now = Date.now()) {
     byUser.set(s.by, (byUser.get(s.by) ?? 0) + saleNet(s));
   }
   const ords = await db.select().from(orders);
-  const pos = await db.select().from(purchases);
   return {
     total: ss.reduce((a, s) => a + saleNet(s), 0), count: ss.length, margin: ss.reduce((a, s) => a + saleNet(s) - saleCost(s), 0),
     byCat: [...byCat.entries()].map(([cat, v]) => ({ cat, ...v })).sort((a, b) => b.total - a.total),
     byMethod: [...byMethod.entries()].sort((a, b) => b[1] - a[1]),
     byUser: [...byUser.entries()],
-    openOrders: ords.length, inTransit: pos.filter((p) => p.st === "En tránsito").length,
+    openOrders: ords.length,
   };
 }

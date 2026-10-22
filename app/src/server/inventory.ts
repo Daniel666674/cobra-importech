@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
+import { allies, allyMoves, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
 import { officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
@@ -24,6 +24,8 @@ export const itemInput = z.object({
   batt: z.coerce.number().int().min(0).max(100).nullable().default(null),
   notes: z.string().trim().default(""),
   min: z.coerce.number().int().min(0).default(0),
+  /** Tienda aliada dueña del producto; vacío = propio. */
+  ally: z.string().trim().default(""),
 });
 export type ItemInput = z.infer<typeof itemInput>;
 
@@ -40,13 +42,13 @@ function checks(a: Actor, o: OfficialPayload): ImeiCheck {
   return { crc: mk(o.crc), apple: mk(o.apple) };
 }
 
-/** Crea un producto. Los iPhone exigen IMEI válido, no duplicado y verificación oficial registrada. */
-export async function createItem(
-  db: Db,
-  a: Actor,
-  raw: unknown,
-  opts: { official?: unknown; ownerApproved?: boolean } = {},
-) {
+export type PreparedItem = Awaited<ReturnType<typeof prepareItem>>;
+
+/**
+ * Valida un producto nuevo sin guardarlo: permisos, IMEI (formato, duplicado, bloqueados) y verificación oficial.
+ * Los iPhone exigen IMEI válido, no duplicado y verificación oficial registrada.
+ */
+export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { official?: unknown; ownerApproved?: boolean } = {}) {
   const input = itemInput.parse(raw);
   // Las retomas las puede recibir quien tenga el permiso de trade-in, aunque no edite el inventario.
   if (!(input.src === "Trade-in" && can(a, "tradein"))) need(a, "inv_edit");
@@ -54,6 +56,13 @@ export async function createItem(
   const track = input.cat === "AirPods" || input.cat === "Accesorios" ? "qty" : "unit";
   let check: ImeiCheck | null = null;
   let verifyNote: { text: string; tone: string } | null = null;
+  let ally: typeof allies.$inferSelect | null = null;
+  if (input.ally) {
+    [ally] = await db.select().from(allies).where(eq(allies.id, input.ally));
+    if (!ally || !ally.active) throw new AppError("La tienda aliada no existe o está inactiva", "invalid");
+    if (!(input.cost > 0)) throw new AppError("Escribe cuánto se le paga a la tienda aliada por este producto (costo)", "invalid");
+    input.src = "Aliada: " + ally.name;
+  }
 
   if (isPhone) {
     const imei = input.serial.replace(/\D/g, "");
@@ -78,28 +87,41 @@ export async function createItem(
         ? { text: "Formato, modelo y duplicado correctos", tone: "ok" }
         : { text: "Advertencia aprobada por el propietario/a: " + res.steps.filter((s) => s.state === "warn").map((s) => s.detail).join(" | "), tone: "warn" };
   }
+  return { input, track, check, verifyNote, isPhone, ally };
+}
 
-  const branch = await branchName(db);
-  return db.transaction(async (tx) => {
-    const n = await nextCounter(tx, "item");
-    const id = "I-" + String(n).padStart(4, "0");
-    const row = {
-      id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
-      color: input.color, cond: input.cond, serial: input.serial, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
-      warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
-      min: input.min, track, imeiCheck: check, hold: null,
-    };
-    await tx.insert(items).values(row);
-    await addEvent(tx, id, a, row.src === "Trade-in" ? "Trade-in recibido" : "Ingreso al inventario", row.src + (track === "qty" ? " · " + row.qty + " unidades" : ""));
-    if (verifyNote) await addEvent(tx, id, a, "Verificación de IMEI", verifyNote.text, verifyNote.tone);
-    if (check)
-      for (const k of ["crc", "apple"] as const)
-        await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
-    await addEvent(tx, id, a, "En vitrina", branch);
-    if (isPhone && input.name) await tx.insert(tacModels).values({ tac: input.serial.slice(0, 8), name: input.name, t: Date.now(), by: a.name }).onConflictDoNothing();
-    await logFeed(tx, a, "owner", "📦", `Nuevo ingreso: <b>${esc(uname(row))}</b>${track === "qty" ? " ×" + row.qty : ""} por ${esc(a.name)}`);
-    return row;
-  });
+/** Guarda un producto ya validado con `prepareItem` (dentro de la transacción que se le pase). */
+export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title?: string; detail?: string } = {}) {
+  const { input, track, check, verifyNote, isPhone, ally } = p;
+  const branch = await branchName(tx);
+  const n = await nextCounter(tx, "item");
+  const id = "I-" + String(n).padStart(4, "0");
+  const row = {
+    id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
+    color: input.color, cond: input.cond, serial: input.serial, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
+    warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
+    min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "",
+  };
+  await tx.insert(items).values(row);
+  await addEvent(tx, id, a, how.title ?? (row.src === "Trade-in" ? "Trade-in recibido" : "Ingreso al inventario"), how.detail ?? row.src + (track === "qty" ? " · " + row.qty + " unidades" : ""));
+  if (verifyNote) await addEvent(tx, id, a, "Verificación de IMEI", verifyNote.text, verifyNote.tone);
+  if (check)
+    for (const k of ["crc", "apple"] as const)
+      await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
+  await addEvent(tx, id, a, "En vitrina", branch);
+  if (ally?.mode === "compra") {
+    const amount = row.cost * row.qty;
+    await tx.insert(allyMoves).values({ ally: ally.id, t: Date.now(), kind: "deuda", amount, ref: id, detail: `Recibido: ${uname(row)}${track === "qty" ? " ×" + row.qty : ""}`, by: a.name });
+  }
+  if (isPhone && input.name) await tx.insert(tacModels).values({ tac: input.serial.slice(0, 8), name: input.name, t: Date.now(), by: a.name }).onConflictDoNothing();
+  await logFeed(tx, a, "owner", "📦", `Nuevo ingreso: <b>${esc(uname(row))}</b>${track === "qty" ? " ×" + row.qty : ""}${ally ? " de " + esc(ally.name) : ""} por ${esc(a.name)}`);
+  return row;
+}
+
+/** Crea un producto. Los iPhone exigen IMEI válido, no duplicado y verificación oficial registrada. */
+export async function createItem(db: Db, a: Actor, raw: unknown, opts: { official?: unknown; ownerApproved?: boolean } = {}) {
+  const p = await prepareItem(db, a, raw, opts);
+  return db.transaction((tx) => insertItem(tx, a, p));
 }
 
 export const itemPatch = itemInput.pick({ name: true, spec: true, color: true, cond: true, qty: true, cost: true, price: true, warr: true, batt: true, notes: true, min: true }).partial();

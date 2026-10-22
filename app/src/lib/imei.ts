@@ -18,6 +18,8 @@ export type Verdict = "clean" | "review" | "blocked";
 export type ImeiFacts = {
   /** Equipo ya existente con el mismo IMEI (otro que no sea el que se re-verifica). */
   existing?: { id: string; name: string; status: string } | null;
+  /** El equipo ya pasó por la tienda y se vendió: puede volver a entrar. */
+  soldBefore?: { id: string; name: string } | null;
   /** Modelo aprendido o importado para este TAC (tiene prioridad sobre el catálogo). */
   tacName?: string | null;
   /** Motivo si el IMEI está en la lista interna de bloqueados. */
@@ -59,7 +61,8 @@ export function checkImei(imei: string, facts: ImeiFacts = {}): ImeiResult {
     P(L[2], "fail", `Ya existe: ${facts.existing.name} · ${facts.existing.id} · estado ${facts.existing.status}`);
     verdict = "blocked";
     reason = "dup";
-  } else P(L[2], "ok", "No está registrado en el inventario");
+  } else if (facts.soldBefore) P(L[2], "ok", `Lo vendimos antes (${facts.soldBefore.name} · ${facts.soldBefore.id}): puede volver a entrar`);
+  else P(L[2], "ok", "No está registrado en el inventario");
   if (facts.blocked) {
     P(L[3], "fail", facts.blocked);
     verdict = "blocked";
