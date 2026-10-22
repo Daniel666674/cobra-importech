@@ -64,11 +64,15 @@ describe("compras y recepción", () => {
 });
 
 describe("usuarios", () => {
-  it("crea usuario con PIN y no deja quitar al último administrador", async () => {
-    await expect(createUser(db, owner, { name: "Pepe", role: "employee", pin: "12" })).rejects.toThrow(/PIN/);
-    const id = await createUser(db, owner, { name: "Pepe Pérez", role: "employee", pin: "4444" });
+  it("crea usuario con contraseña temporal y no deja quitar al último administrador", async () => {
+    await expect(createUser(db, owner, { name: "Pepe", username: "p", role: "employee" })).rejects.toThrow(/usuario/i);
+    const { id, temp } = await createUser(db, owner, { name: "Pepe Pérez", username: "Pepe.Perez", role: "employee" });
     expect(id).toMatch(/^u/);
-    await expect(createUser(db, owner, { name: "Otro dev", role: "dev", pin: "4444" })).rejects.toThrow(/desarrollador/);
+    expect(temp).toHaveLength(14);
+    const [u] = await db.select().from(users).where(eq(users.id, id));
+    expect(u).toMatchObject({ username: "pepe.perez", mustChange: true });
+    await expect(createUser(db, owner, { name: "Otro Pepe", username: "pepe.perez", role: "employee" })).rejects.toThrow(/ya existe/);
+    await expect(createUser(db, owner, { name: "Otro dev", username: "otro.dev", role: "dev" })).rejects.toThrow(/desarrollador/);
     await updateUser(db, owner, "u1", { active: false });
     await expect(updateUser(db, owner, "u2", { active: false })).rejects.toThrow(/al menos un administrador/);
     await db.update(users).set({ active: true }).where(eq(users.id, "u1"));

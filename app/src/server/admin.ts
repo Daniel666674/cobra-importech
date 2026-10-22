@@ -5,20 +5,33 @@ import { counters, feed, roles, sales, settings, users } from "@/db/schema";
 import { CONDS, METHODS } from "@/lib/catalog";
 import { ALL_PERMS } from "@/lib/perms";
 import { AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { randomInt } from "node:crypto";
+import { USERNAME_RE, tempPassword } from "@/lib/password";
 import { hashPin } from "./auth";
 
-const pin = z.string().regex(/^\d{4,6}$/, "El PIN debe tener de 4 a 6 números");
+export const usernameSchema = z.string().trim().toLowerCase().regex(USERNAME_RE, "El usuario debe tener de 3 a 30 caracteres: letras sin tildes, números, punto, guion o guion bajo");
 
+/** Contraseña temporal aleatoria (criptográficamente segura). */
+export const newTempPassword = () => tempPassword((n) => randomInt(n));
+
+export async function assertUsernameFree(db: Db, username: string, exceptId?: string) {
+  const [x] = await db.select({ id: users.id }).from(users).where(eq(users.username, username));
+  if (x && x.id !== exceptId) throw new AppError(`El usuario «${username}» ya existe`, "conflict");
+}
+
+/** Crea un usuario con contraseña temporal (se muestra una sola vez; la debe cambiar al entrar). */
 export async function createUser(db: Db, a: Actor, raw: unknown) {
   need(a, "users");
-  const v = z.object({ name: z.string().trim().min(2, "Escribe el nombre"), email: z.string().trim().default(""), role: z.string(), pin }).parse(raw);
+  const v = z.object({ name: z.string().trim().min(2, "Escribe el nombre"), username: usernameSchema, email: z.string().trim().default(""), role: z.string() }).parse(raw);
   const [r] = await db.select().from(roles).where(eq(roles.key, v.role));
   if (!r) throw new AppError("Rol no válido", "invalid");
   if (r.locked && !a.locked) throw new AppError("Solo un desarrollador puede crear ese rol", "forbidden");
+  await assertUsernameFree(db, v.username);
   const id = "u" + (await nextCounter(db, "user"));
-  await db.insert(users).values({ id, name: v.name, email: v.email, role: v.role, active: true, pinHash: await hashPin(v.pin), createdAt: Date.now() });
-  await logFeed(db, a, "owner", "👤", `Usuario creado: <b>${esc(v.name)}</b> (${esc(r.name)}) por ${esc(a.name)}`);
-  return id;
+  const temp = newTempPassword();
+  await db.insert(users).values({ id, name: v.name, username: v.username, email: v.email, role: v.role, active: true, pinHash: await hashPin(temp), mustChange: true, createdAt: Date.now() });
+  await logFeed(db, a, "owner", "👤", `Usuario creado: <b>${esc(v.name)}</b> (${esc(v.username)} · ${esc(r.name)}) por ${esc(a.name)}`);
+  return { id, temp };
 }
 
 async function otherAdmins(db: Db, exceptId: string) {
@@ -28,12 +41,12 @@ async function otherAdmins(db: Db, exceptId: string) {
 
 export async function updateUser(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "users");
-  const v = z.object({ role: z.string().optional(), active: z.boolean().optional(), pin: pin.optional() }).parse(raw);
+  const v = z.object({ role: z.string().optional(), active: z.boolean().optional(), resetPassword: z.boolean().optional(), username: usernameSchema.optional() }).parse(raw);
   const [u] = await db.select().from(users).where(eq(users.id, id));
   if (!u) throw new AppError("Usuario no encontrado", "notfound");
   const [ur] = await db.select().from(roles).where(eq(roles.key, u.role));
-  // El dueño puede desactivar al desarrollador, pero no ponerle PIN para entrar como él.
-  if (v.pin && ur?.locked && !a.locked) throw new AppError("Solo un desarrollador puede cambiar el PIN de ese usuario", "forbidden");
+  // El dueño puede desactivar al desarrollador, pero no restablecerle la contraseña para entrar como él.
+  if ((v.resetPassword || v.username) && ur?.locked && !a.locked) throw new AppError("Solo un desarrollador puede cambiar la contraseña o el usuario de ese usuario", "forbidden");
   const set: Partial<typeof users.$inferInsert> = {};
   if (v.role && v.role !== u.role) {
     const [r] = await db.select().from(roles).where(eq(roles.key, v.role));
@@ -47,11 +60,14 @@ export async function updateUser(db: Db, a: Actor, id: string, raw: unknown) {
     const [cur] = await db.select().from(roles).where(eq(roles.key, set.role ?? u.role));
     if (set.active === false || !(cur.locked || cur.perms.includes("users"))) throw new AppError("Debe quedar al menos un administrador activo", "conflict");
   }
-  if (v.pin) { set.pinHash = await hashPin(v.pin); set.failed = 0; set.lockedUntil = 0; }
-  if (!Object.keys(set).length) return;
+  if (v.username && v.username !== u.username) { await assertUsernameFree(db, v.username, id); set.username = v.username; }
+  let temp: string | undefined;
+  if (v.resetPassword) { temp = newTempPassword(); set.pinHash = await hashPin(temp); set.mustChange = true; set.failed = 0; set.lockedUntil = 0; }
+  if (!Object.keys(set).length) return {};
   if (set.pinHash || set.active === false) set.sessionV = u.sessionV + 1;
   await db.update(users).set(set).where(eq(users.id, id));
-  await logFeed(db, a, "owner", "👤", `Usuario actualizado: <b>${esc(u.name)}</b> por ${esc(a.name)}`);
+  await logFeed(db, a, "owner", temp ? "🔑" : "👤", `${temp ? "Contraseña restablecida" : "Usuario actualizado"}: <b>${esc(u.name)}</b> por ${esc(a.name)}`);
+  return { temp };
 }
 
 export async function saveRolePerms(db: Db, a: Actor, key: string, perms: string[]) {

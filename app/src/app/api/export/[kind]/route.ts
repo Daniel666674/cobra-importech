@@ -7,7 +7,7 @@ const q = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 export async function GET(_req: Request, ctx: { params: Promise<{ kind: string }> }) {
   const me = await getMe();
-  if (!me) return new NextResponse("No autorizado", { status: 401 });
+  if (!me || me.mustChange) return new NextResponse("No autorizado", { status: 401 });
   if (!hasPerm(me, "reports")) return new NextResponse("Sin permiso", { status: 403 });
   const { kind } = await ctx.params;
   const db = await getDb();

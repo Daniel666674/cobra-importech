@@ -1,7 +1,7 @@
 # Importech · aplicación real
 
 Inventario, ventas, apartados, garantías, taller, compras y verificación de IMEI para una tienda Apple en Colombia.
-Next.js (App Router) + TypeScript · PostgreSQL (Neon) con Drizzle · login por PIN con roles y permisos.
+Next.js (App Router) + TypeScript · PostgreSQL (Neon) con Drizzle · login con usuario y contraseña, roles y permisos.
 
 La tienda **arranca vacía**: la primera vez que se abre aparece «Bienvenido» para crear el negocio y al propietario/a.
 No hay datos de ejemplo (existe `npm run db:seed-demo` solo para desarrollo).
@@ -32,6 +32,16 @@ En desarrollo ninguna es obligatoria. Todo lo demás (nombre, logo, reglas) se c
 - `src/db/schema.ts` tablas; `drizzle/` migraciones (`npm run db:generate` tras cambiar el esquema).
 - `tests/` pruebas automáticas.
 
+## Usuarios y contraseñas
+
+- Se entra con **usuario y contraseña**. La pantalla de entrada no muestra la lista de usuarios y el error no dice si el usuario existe.
+- Reglas: mínimo 10 caracteres combinando 3 de mayúsculas/minúsculas/números/símbolos, o una frase de 16+. Se rechazan las comunes
+  y las que contienen el nombre, el usuario o el nombre del negocio. Se guardan con bcrypt (costo 12).
+- Al crear un usuario o restablecerle la contraseña (*Usuarios y permisos*), el sistema genera una **temporal** que se muestra una sola vez.
+  Con ella solo se puede entrar a crear la propia: el resto del sistema queda bloqueado hasta cambiarla.
+- Cambiar la contraseña (🔑 junto a «Salir») cierra las sesiones abiertas en otros dispositivos. 5 intentos fallidos bloquean la cuenta 5 min, luego 15, 45… hasta 24 h.
+- Los usuarios que tenían PIN entran con su usuario (el primer nombre en minúsculas, p. ej. `angelica`) y su PIN una última vez, y deben crear su contraseña.
+
 ## Retomas (equipo como parte de pago)
 
 - **En caja**: «+ Recibir un equipo». Se cotiza y se verifica igual que una retoma suelta (IMEI, CRC y Apple). El valor de la retoma
@@ -51,7 +61,7 @@ Las devoluciones descuentan lo que se le debía. *Compras e importación están 
 
 ## Importar el historial de ventas
 
-*Configuración → Importar ventas*. Acepta el CSV de Excel, Siigo, Alegra, Loggro, etc. (separador `,` `;` o tabulador, UTF-8 o Windows-1252).
+*Configuración → Importar ventas*. Acepta el archivo de Excel (.xlsx) directamente, o el CSV de Excel, Siigo, Alegra, Loggro, etc. (separador `,` `;` o tabulador, UTF-8 o Windows-1252).
 
 1. Propone qué columna es cada dato según los encabezados; se puede corregir. Solo «Fecha» y «Producto» son obligatorios.
 2. Muestra un resumen, las filas que no se pueden leer (con el motivo) y las primeras ventas antes de importar.

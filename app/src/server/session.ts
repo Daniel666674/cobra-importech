@@ -9,6 +9,7 @@ export const toActor = (me: Me): Actor => ({ id: me.id, name: me.name, perms: me
 export async function requireMe(perm?: string): Promise<Me> {
   const me = await getMe();
   if (!me) redirect("/login");
+  if (me.mustChange) redirect("/cuenta");
   if (perm && !hasPerm(me, perm)) redirect("/?denied=1");
   return me;
 }

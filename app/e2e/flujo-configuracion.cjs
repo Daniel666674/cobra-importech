@@ -16,7 +16,7 @@ const CSV=[
  const ctx=await b.newContext({viewport:{width:1366,height:900}});const p=await ctx.newPage();
  const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
  await p.goto(B+'/');await p.waitForURL('**/setup',{timeout:60000});
- await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPin','2222');
+ await p.fill('#business','Importech');await p.fill('#ownerName','Angelica');await p.fill('#ownerPass','Vitrina#7Luna');await p.fill('#ownerPass2','Vitrina#7Luna');
  await p.click('button:has-text("Crear mi tienda")');await p.waitForURL(B+'/',{timeout:60000});
 
  // Negocio: valida NIT y guarda datos nuevos
@@ -49,7 +49,7 @@ const CSV=[
 
  // Importar
  await p.click('button:has-text("📥 Importar ventas")');
- await p.setInputFiles('input[type=file][accept^=".csv"]',{name:'ventas-2025.csv',mimeType:'text/csv',buffer:latin1(CSV)});
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',{name:'ventas-2025.csv',mimeType:'text/csv',buffer:latin1(CSV)});
  await p.waitForSelector('text=Revisa antes de importar');
  r=await p.innerText('main');
  ok(/José Pérez/.test(r),'lee tildes de un CSV de Excel (Windows-1252)');
@@ -61,10 +61,16 @@ const CSV=[
  ok(/1 clientes nuevos/.test(await p.innerText('main')),'crea el cliente');
  ok(/ventas-2025\.csv/.test(await p.innerText('main')),'aparece en importaciones hechas');
  // Reimportar no duplica
- await p.setInputFiles('input[type=file][accept^=".csv"]',{name:'ventas-2025.csv',mimeType:'text/csv',buffer:latin1(CSV)});
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',{name:'ventas-2025.csv',mimeType:'text/csv',buffer:latin1(CSV)});
  await p.waitForSelector('button:has-text("Importar 2 ventas")');await p.click('button:has-text("Importar 2 ventas")');
  await p.waitForSelector('text=2 ya existían',{timeout:30000});ok(true,'volver a importar no duplica');
 
+ // Excel (.xlsx) directo, con fechas y pesos con formato
+ await p.setInputFiles('input[type=file][accept^=".xlsx"]',require('path').join(__dirname,'ventas-prueba.xlsx'));
+ await p.waitForSelector('td:has-text("Sofía Pérez")',{timeout:20000});
+ r=await p.innerText('main');
+ok(/Sofía Pérez/.test(r)&&/0?5 (de )?nov\.? (de )?2024/.test(r)&&/24 (de )?dic\.? (de )?2024/.test(r)&&/\$5\.150\.000/.test(r),'lee un Excel: fechas, nombres y totales (con descuento)');
+ await p.click('button:has-text("Importar 2 ventas")');await p.waitForSelector('text=Listo: 2 ventas importadas',{timeout:30000});
  // Ventas: comprobante histórico
  await p.goto(B+'/ventas');ok(/A-100/.test(await p.innerText('main')),'la venta importada aparece en Ventas');
  await p.click('text=A-100');await p.waitForURL(/\/ventas\/H-/);

@@ -1,3 +1,4 @@
+import { suggestUsername } from "@/lib/password";
 import bcrypt from "bcryptjs";
 import type { Db } from "@/db";
 import * as s from "@/db/schema";
@@ -39,7 +40,7 @@ export async function seedDemo(db: Db, opts: { pins?: Record<string, string>; ro
     await tx.insert(s.users).values(
       await Promise.all(
         (d.users as Json[]).map(async (u) => ({
-          id: u.id, name: u.name, email: u.email, role: u.role, active: u.active,
+          id: u.id, name: u.name, username: suggestUsername(String(u.name).split(" ")[0]), email: u.email, role: u.role, active: u.active,
           pinHash: await bcrypt.hash(pins[u.id] ?? "0000", rounds), createdAt: d.seedAt,
         })),
       ),

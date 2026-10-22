@@ -25,7 +25,7 @@ function secret() {
   return new TextEncoder().encode(s);
 }
 
-export type Me = { id: string; name: string; role: string; roleName: string; perms: string[]; locked: boolean };
+export type Me = { id: string; name: string; username: string; role: string; roleName: string; perms: string[]; locked: boolean; mustChange: boolean };
 
 export async function signSession(userId: string, v = 0) {
   return new SignJWT({ v }).setProtectedHeader({ alg: "HS256" }).setSubject(userId).setIssuedAt().setExpirationTime(`${TTL_S}s`).sign(secret());
@@ -34,8 +34,8 @@ export async function signSession(userId: string, v = 0) {
 export type LoginResult = { ok: true; token: string } | { ok: false; error: string };
 
 /**
- * Valida el PIN con bloqueos crecientes tras varios intentos fallidos.
- * El intento se registra antes de comparar el PIN y solo si nadie más lo registró a la vez,
+ * Valida la contraseña con bloqueos crecientes tras varios intentos fallidos.
+ * El intento se registra antes de compararla y solo si nadie más lo registró a la vez,
  * así que enviar muchos intentos en paralelo no salta el bloqueo.
  */
 export async function checkLogin(userId: string, pin: string, now = Date.now()): Promise<LoginResult> {
@@ -56,10 +56,10 @@ export async function checkLogin(userId: string, pin: string, now = Date.now()):
     return { ok: true, token: await signSession(userId, u.sessionV) };
   }
   if (lock !== u.lockedUntil) {
-    await logFeed(db, null, "owner", "🚨", `Alerta: <b>${esc(u.name)}</b> quedó bloqueado/a ${Math.round(lockMs(failed / MAX_FAILS) / 60000)} min por ${failed} PIN incorrectos seguidos`);
-    return { ok: false, error: `PIN incorrecto. Demasiados intentos: prueba en ${Math.ceil((lock - now) / 60000)} min.` };
+    await logFeed(db, null, "owner", "🚨", `Alerta: <b>${esc(u.name)}</b> quedó bloqueado/a ${Math.round(lockMs(failed / MAX_FAILS) / 60000)} min por ${failed} intentos fallidos seguidos`);
+    return { ok: false, error: `Contraseña incorrecta. Demasiados intentos: prueba en ${Math.ceil((lock - now) / 60000)} min.` };
   }
-  return { ok: false, error: "PIN incorrecto" };
+  return { ok: false, error: "Contraseña incorrecta" };
 }
 
 export async function meFromToken(token: string | undefined): Promise<Me | null> {
@@ -72,7 +72,7 @@ export async function meFromToken(token: string | undefined): Promise<Me | null>
     const [u] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     if (!u || !u.active || (payload.v ?? 0) !== u.sessionV) return null;
     const [r] = await db.select().from(roles).where(eq(roles.key, u.role)).limit(1);
-    return { id: u.id, name: u.name, role: u.role, roleName: r?.name ?? u.role, perms: r?.perms ?? [], locked: !!r?.locked };
+    return { id: u.id, name: u.name, username: u.username, role: u.role, roleName: r?.name ?? u.role, perms: r?.perms ?? [], locked: !!r?.locked, mustChange: u.mustChange };
   } catch {
     return null;
   }
@@ -93,4 +93,23 @@ export async function clearSessionCookie() {
   (await cookies()).delete(COOKIE);
 }
 
-export const hashPin = (pin: string) => bcrypt.hash(pin, 10);
+/** Hash de contraseña. Costo 12 (≈250 ms): cada intento de adivinar es caro. */
+export const hashPin = (secret: string) => bcrypt.hash(secret, 12);
+
+// Hash de relleno: si el usuario no existe igual se compara, para que el tiempo de respuesta no lo delate.
+let dummy: string | null = null;
+const dummyHash = async () => (dummy ??= await bcrypt.hash("relleno-no-es-una-contrasena", 12));
+const GENERIC = "Usuario o contraseña incorrectos";
+
+/** Entrada con usuario y contraseña. No revela si el usuario existe. */
+export async function loginWithPassword(username: string, password: string, now = Date.now()): Promise<LoginResult> {
+  const db = await getDb();
+  const [u] = await db.select({ id: users.id, active: users.active }).from(users).where(eq(users.username, username.trim().toLowerCase())).limit(1);
+  if (!u || !u.active) {
+    await bcrypt.compare(password, await dummyHash());
+    return { ok: false, error: GENERIC };
+  }
+  const r = await checkLogin(u.id, password, now);
+  if (r.ok) return r;
+  return { ok: false, error: r.error.replace(/^Contraseña incorrecta/, GENERIC) };
+}
