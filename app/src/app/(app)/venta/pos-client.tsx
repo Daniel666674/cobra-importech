@@ -13,6 +13,7 @@ import type { Hold } from "@/db/schema";
 import { TradeinForm, type TradePayload } from "@/components/tradein-form";
 import { ScanDialog } from "@/components/scan-dialog";
 import { fdatey, initials } from "@/lib/format";
+import { MoneyInput } from "@/components/money-input";
 
 const CAT_ICON: Record<string, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
 
@@ -212,7 +213,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
               {cart.map(({ l, it, noPrice }) => (
                 <li key={l.id} className="flex flex-wrap items-center gap-2">
                   <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí" : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
-                  {noPrice && <input type="number" min={0} step={10000} className={`!w-32 ${it.price > 0 ? "" : "!border-amber-t"}`} placeholder="Precio venta" aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(e) => setTyped({ ...typed, [it.id]: e.target.value })} autoFocus />}
+                  {noPrice && <MoneyInput className={`!w-32 ${it.price > 0 ? "" : "!border-amber-t"}`} placeholder="Precio venta" aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} autoFocus />}
                   {isQty(it) && <input type="number" aria-label="Cantidad" className="!w-16" min={1} max={it.qty} value={l.qty} onChange={(e) => setQty(l.id, +e.target.value)} />}
                   <b className="tabular-nums w-24 text-right">{fmt(it.price * l.qty)}</b>
                   {!(finishing && finishing.id === l.id) && <button type="button" className="btn sm" aria-label={`Quitar ${it.name}`} onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}>✕</button>}
@@ -240,8 +241,8 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
                 <input type="number" min={0} max={100} placeholder={/iphone/i.test(cf.name) ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
-                <input type="number" min={0} step={10000} placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(e) => setCf({ ...cf, price: e.target.value })} />
-                {can.cost && <input type="number" min={0} step={10000} placeholder="Costo (opcional)" aria-label="Costo fuera de inventario" value={cf.cost} onChange={(e) => setCf({ ...cf, cost: e.target.value })} />}
+                <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
+                {can.cost && <MoneyInput placeholder="Costo (opcional)" aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
                 <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
@@ -292,7 +293,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
           <h3 className="font-semibold mb-2">Descuento</h3>
           <div className="grid grid-cols-[auto_1fr] gap-2">
             <select value={discType} onChange={(e) => setDiscType(e.target.value as "pct" | "cop")} aria-label="Tipo de descuento"><option value="pct">%</option><option value="cop">$</option></select>
-            <input type="number" min={0} value={disc} onChange={(e) => setDisc(e.target.value)} placeholder="0" aria-label="Valor del descuento" />
+            {discType === "cop" ? <MoneyInput value={disc} onChange={setDisc} aria-label="Valor del descuento" /> : <input type="number" min={0} max={100} step="0.5" value={disc} onChange={(e) => setDisc(e.target.value)} placeholder="0" aria-label="Valor del descuento" />}
           </div>
           {T.pct > 0 && <input className="mt-2" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo del descuento" aria-label="Motivo del descuento" />}
         </div>
@@ -300,7 +301,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
         {hold ? (
           <div>
             <h3 className="font-semibold mb-2">Abono inicial</h3>
-            <div className="grid grid-cols-2 gap-2"><input type="number" min={0} step={1000} value={abono} onChange={(e) => setAbono(e.target.value)} placeholder={min ? `Mínimo ${fmt(min)}` : "Valor"} aria-label="Abono" />
+            <div className="grid grid-cols-2 gap-2"><MoneyInput value={abono} onChange={(x) => setAbono(x)} placeholder={min ? `Mínimo ${fmt(min)}` : "Valor"} aria-label="Abono" />
               <select value={abonoMethod} onChange={(e) => setAbonoMethod(e.target.value)} aria-label="Método del abono">{cfg.methods.map((m) => <option key={m}>{m}</option>)}</select></div>
             <p className="note mt-1">Mínimo {cfg.apartadoMinPct}% ({fmt(min)})</p>
             <div className="mt-2"><DateField id="hold-until" label="Vence el" value={holdUntil} onChange={setHoldUntil} minDays={0} maxDays={180} quick={[["1 semana", 7], ["15 días", 15], ["1 mes", 30]]} /></div>
@@ -325,7 +326,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
               {pays.map((p, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
                   <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}</option>)}</select>
-                  <input type="number" min={0} value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} aria-label="Valor del pago" />
+                  <MoneyInput value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(val) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: val } : x)))} aria-label="Valor del pago" />
                   {fees[i] > 0 && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
@@ -333,7 +334,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
               <button type="button" className="btn sm" onClick={() => setPays([...pays.map((p, i) => (p.amount === "" ? { ...p, amount: String(resolved[i].amount) } : p)), { method: cfg.methods.find((m) => m !== pays[pays.length - 1]?.method) ?? cfg.methods[0], amount: "" }])}>+ Dividir pago</button>
             </div>
             {pays.length === 1 && pays[0].method === "Efectivo" && (
-              <div className="mt-2"><input type="number" min={0} value={cash} onChange={(e) => setCash(e.target.value)} placeholder="Efectivo recibido (opcional)" aria-label="Efectivo recibido" />
+              <div className="mt-2"><MoneyInput value={cash} onChange={(x) => setCash(x)} placeholder="Efectivo recibido (opcional)" aria-label="Efectivo recibido" />
                 {+cash >= due && due > 0 && <p className="note mt-1">Devuelta: <b>{fmt(+cash - due)}</b></p>}</div>
             )}
           </div>

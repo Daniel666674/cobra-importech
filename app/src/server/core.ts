@@ -1,4 +1,6 @@
 import { eq, sql } from "drizzle-orm";
+import { z } from "@/lib/zod-es";
+import { MAX_COP, parseCop } from "@/lib/money";
 import type { Db } from "@/db";
 import { counters, feed, itemEvents } from "@/db/schema";
 
@@ -37,3 +39,12 @@ export async function logFeed(db: Db, a: Actor | null, type: string, ic: string,
 
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 export { eq };
+
+/**
+ * Valor en pesos para los esquemas: tolera puntos, comas, «$» y espacios; quita centavos; rechaza con mensaje claro
+ * lo que no es número o pasa del tope. `label` va en los mensajes («el precio de venta», «el costo»…).
+ */
+export const copField = (label: string, min = 0) =>
+  z.preprocess((v) => (v === "" || v == null ? NaN : parseCop(v)), z.number({ error: `Escribe ${label} (solo números, ej. 1.500.000)` })
+    .int().min(min, min > 0 ? `Escribe ${label} (mayor a $0)` : `${label[0].toUpperCase() + label.slice(1)} no puede ser negativo`)
+    .max(MAX_COP, `${label[0].toUpperCase() + label.slice(1)} es demasiado grande (máximo $2.000.000.000)`));

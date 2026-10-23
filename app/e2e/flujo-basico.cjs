@@ -40,6 +40,14 @@ const B='http://localhost:3101';
  r=await p.innerText('body');ok(/Limpio/.test(r)&&/Angelica/.test(r)&&/Consulta oficial/.test(r),'ficha con verificación oficial e historial');
  ok(/IMEI 2/.test(r)&&r.includes('358220020000024')&&/91%/.test(r),'ficha con IMEI 2 y batería');
  await p.goto(B+'/inventario?q=000024');ok(/iPhone 16/.test(await p.innerText('main')),'se busca por el IMEI 2');
+ // editar el precio escribiendo con puntos, como en Colombia
+ await p.goto(B+'/inventario/I-0002');await p.click('button:has-text("Editar")');await p.fill('#i-price','');await p.locator('#i-price').pressSequentially('3.600.000');
+ ok(await p.inputValue('#i-price')==='3.600.000','el precio se ve con puntos mientras se escribe');
+ await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados',{timeout:15000});
+ ok(/3\.600\.000/.test(await p.innerText('main')),'precio «3.600.000» guardado');
+ await p.click('button:has-text("Editar")');await p.fill('#i-price','');await p.click('button:has-text("Guardar cambios")');
+ await p.waitForSelector('text=No se guardó');ok(/No se guardó: Escribe el precio de venta/.test(await p.innerText('main')),'si falla, el aviso sale junto al botón y en español');
+ await p.locator('#i-price').pressSequentially('3499000');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados',{timeout:15000});
  // 4) venta
  await p.goto(B+'/venta?item=I-0002');await p.waitForSelector('text=Cobrar',{timeout:20000});
  await p.click('button:has-text("Cobrar")');await p.waitForURL(/\/ventas\/S-0001/,{timeout:30000});

@@ -7,7 +7,7 @@ import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
 import { lineNet, posTotals, saleNet } from "@/lib/sales";
-import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, copField, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { insertItem, prepareItem, type PreparedItem } from "./inventory";
 
 const method = z.enum(METHODS);
@@ -20,22 +20,22 @@ const clientNew = z.object({
 
 export const saleInput = z.object({
   /** `price`: solo para productos sin precio de venta (se escribe en caja y queda guardado en el producto). */
-  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: z.coerce.number().int().min(1).max(1e10).optional() })).default([]),
+  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 1).optional() })).default([]),
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
     cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), serial2: z.string().trim().max(40).default(""),
-    batt: z.coerce.number().int().min(0).max(100).nullable().default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
-    price: z.coerce.number().int().min(1, "Escribe el precio del producto fuera de inventario"), cost: z.coerce.number().int().min(0).default(0),
+    batt: z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v), z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
+    price: copField("el precio del producto fuera de inventario", 1), cost: copField("el costo").default(0),
     warr: z.coerce.number().int().min(0).max(60).default(0),
   })).max(20).default([]),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
   discount: z.object({ type: z.enum(["pct", "cop"]), value: z.coerce.number().min(0) }).default({ type: "pct", value: 0 }),
   discReason: z.string().trim().default(""),
-  payments: z.array(z.object({ method, amount: z.coerce.number().int().min(1) })).default([]),
+  payments: z.array(z.object({ method, amount: copField("el valor de cada forma de pago", 1) })).default([]),
   notes: z.string().trim().default(""),
-  cash: z.coerce.number().int().min(0).default(0),
+  cash: copField("el efectivo recibido").default(0),
   holdItem: z.string().nullable().default(null),
   /** Equipos que el cliente entrega como parte de pago. Entran solos al inventario. */
   tradeins: z.array(z.object({ item: z.unknown(), official: z.unknown().optional(), ownerApproved: z.boolean().default(false) })).max(3, "Máximo 3 equipos de retoma por venta").default([]),
@@ -177,7 +177,7 @@ export const holdInput = z.object({
   item: z.string(),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
-  abono: z.coerce.number().int().min(1),
+  abono: copField("el valor del abono", 1),
   method,
   days: z.coerce.number().int().min(1).max(60).optional(),
   /** Fecha de vencimiento escogida en el calendario (ms). Tiene prioridad sobre `days`. */
@@ -214,7 +214,7 @@ export async function createHold(db: Db, a: Actor, raw: unknown) {
 
 export async function addAbono(db: Db, a: Actor, itemId: string, rawAmount: unknown, rawMethod: unknown) {
   need(a, "credit");
-  const amount = z.coerce.number().int().parse(rawAmount);
+  const amount = copField("el valor del abono", 1).parse(rawAmount);
   const m = method.parse(rawMethod);
   return db.transaction(async (tx) => {
     const [it] = await tx.select().from(items).where(eq(items.id, itemId)).for("update");

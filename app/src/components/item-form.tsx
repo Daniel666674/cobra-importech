@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { CATALOG, COLOR_OPTIONS, CONDS, SPEC_OPTIONS, type Cat } from "@/lib/catalog";
 import { ComboSelect } from "./combo-select";
+import { MoneyInput } from "./money-input";
 
 export type ItemFormValues = {
   name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: string; cost: string; price: string;
@@ -33,17 +34,6 @@ const Field = ({ id, label, children, hint }: { id: string; label: string; child
     {hint && <p className="note mt-1">{hint}</p>}
   </div>
 );
-
-/** Pesos sin decimales: acepta lo que escriban (1.500.000, $ 1,500,000…) y guarda solo los dígitos. */
-const MoneyInput = ({ id, value, onChange, negative }: { id: string; value: string; onChange: (v: string) => void; negative?: boolean }) => {
-  const neg = negative && value.startsWith("-");
-  const digits = value.replace(/\D/g, "");
-  return (
-    <input id={id} type="text" inputMode="numeric" autoComplete="off" placeholder="0"
-      value={(neg ? "-" : "") + (digits ? Number(digits).toLocaleString("es-CO") : "")}
-      onChange={(e) => { const t = e.target.value; onChange((negative && t.trim().startsWith("-") ? "-" : "") + t.replace(/\D/g, "")); }} />
-  );
-};
 
 export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial, allies = [], repairs = 0 }: Props) {
   const base = (+v.cost || 0) + repairs;

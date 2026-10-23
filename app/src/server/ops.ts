@@ -7,7 +7,7 @@ import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
 import { isQty, uname } from "@/lib/items";
 import { pendingAlta } from "./approvals";
-import { AppError, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, copField, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { verifyImei } from "./imei";
 import { branchName } from "./inventory";
 
@@ -63,7 +63,7 @@ export async function resolveClaim(db: Db, a: Actor, id: string, resolution: str
 export const ORDER_FLOW = ["Diagnóstico", "Esperando repuesto", "En reparación", "Listo"] as const;
 export async function createOrder(db: Db, a: Actor, raw: unknown) {
   need(a, "workshop");
-  const v = z.object({ item: z.string(), job: z.string().trim().min(1, "Describe el trabajo"), cost: z.coerce.number().int().min(0).default(0), tech: z.string().default("") }).parse(raw);
+  const v = z.object({ item: z.string(), job: z.string().trim().min(1, "Describe el trabajo"), cost: copField("el costo de la reparación").default(0), tech: z.string().default("") }).parse(raw);
   return db.transaction(async (tx) => {
     const [it] = await tx.select().from(items).where(eq(items.id, v.item)).for("update");
     if (!it) throw new AppError("Equipo no encontrado", "notfound");
@@ -120,7 +120,7 @@ export async function moveOrder(db: Db, a: Actor, id: string, st: string) {
 /** Actualiza el costo de la reparación (p. ej. tras el diagnóstico) y las notas del técnico. */
 export async function updateOrder(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "workshop");
-  const v = z.object({ cost: z.coerce.number().int().min(0).max(1e9).optional(), notes: z.string().trim().max(500).optional(), tech: z.string().trim().max(60).optional() }).parse(raw);
+  const v = z.object({ cost: copField("el costo de la reparación").optional(), notes: z.string().trim().max(500).optional(), tech: z.string().trim().max(60).optional() }).parse(raw);
   const [o] = await db.select().from(orders).where(eq(orders.id, id));
   if (!o) throw new AppError("Orden no encontrada", "notfound");
   await db.update(orders).set(v).where(eq(orders.id, id));

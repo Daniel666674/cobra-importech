@@ -7,6 +7,7 @@ import { fmt } from "@/lib/format";
 import { CONDS } from "@/lib/catalog";
 import { INV_FIELDS, buildItems, guessByContent, guessInvMapping, hasHeaderRow, type InvKey, type InvMapping } from "@/lib/inventory-import";
 import { readTable } from "@/lib/read-file";
+import { MoneyInput } from "@/components/money-input";
 
 const BATCH = 200;
 const TEMPLATE = [
@@ -155,7 +156,7 @@ export function ImportInventory({ warr, sources, canUndo, initial }: {
             <div><label className="lb" htmlFor="inv-cond">Condición cuando el archivo no la dice</label>
               <select id="inv-cond" value={defaultCond} onChange={(e) => setDefaultCond(e.target.value)}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select></div>
             <div><label className="lb" htmlFor="inv-gain">Ganancia por equipo sobre el costo (COP)</label>
-              <input id="inv-gain" type="number" min={0} step={10000} value={gain} onChange={(e) => setGain(e.target.value)} placeholder="Ej. 300000 · vacío = sin precio" />
+              <MoneyInput id="inv-gain" value={gain} onChange={(x) => setGain(x)} placeholder="Ej. 300000 · vacío = sin precio" />
               <p className="note mt-1">El valor del archivo es el <b>costo</b>. Precio de venta = costo + esta ganancia. Si lo dejas vacío, ponle precio a cada uno en «Editar» (sin precio no se puede vender).</p></div>
         </div>
       )}

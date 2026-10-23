@@ -5,6 +5,7 @@ import { payAllyAction, saveAllyAction, voidAllyPayAction } from "@/app/actions/
 import { PAY_METHODS } from "@/lib/cartera";
 import { fmt } from "@/lib/format";
 import { DateField, fromYmd, toYmd } from "@/components/date-field";
+import { MoneyInput } from "@/components/money-input";
 
 type Ally = { name: string; contact: string; phone: string; doc: string; mode: string; notes: string; active: boolean; terms: string; bank: string; due: number | null };
 const EMPTY: Ally = { name: "", contact: "", phone: "", doc: "", mode: "consignacion", notes: "", active: true, terms: "0", bank: "", due: null };
@@ -63,7 +64,7 @@ export function PayAlly({ id, balance, advance = 0 }: { id: string; balance: num
       {balance > 0 ? <p className="text-[13px]">Saldo por pagar: <b>{fmt(balance)}</b></p> : <p className="text-[13px]">No hay saldo pendiente{advance ? <> · anticipo a favor <b className="text-green-t">{fmt(advance)}</b></> : null}. Lo que registres queda como <b>anticipo</b>.</p>}
       <div className="grid gap-2 sm:grid-cols-2">
         <div><label className="lb" htmlFor="pay-amount">Valor (COP)</label>
-          <div className="flex gap-1"><input id="pay-amount" type="number" min={1} step={1000} value={v.amount} onChange={(e) => setV({ ...v, amount: e.target.value })} />
+          <div className="flex gap-1"><MoneyInput id="pay-amount" value={v.amount} onChange={(x) => setV({ ...v, amount: x })} />
             {balance > 0 && <button className="btn sm" type="button" onClick={() => setV({ ...v, amount: String(balance) })}>Todo</button>}</div></div>
         <div><label className="lb" htmlFor="pay-method">Forma de pago</label>
           <select id="pay-method" value={v.method} onChange={(e) => setV({ ...v, method: e.target.value })}>{PAY_METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>

@@ -6,12 +6,13 @@ import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
-import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, addEvent, can, copField, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { blockImei, verifyImei } from "./imei";
 import { pendingAlta, requestDelete } from "./approvals";
 
-/** Pesos enteros: tolera puntos, comas, «$» y espacios al escribir (1.500.000 → 1500000). */
-const cop = z.preprocess((v) => (typeof v === "string" ? v.replace(/[^\d]/g, "") : v), z.coerce.number().int());
+/** Batería: «87», «87%» o vacío (= sin dato). */
+const batt = z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v),
+  z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int("La batería va sin decimales").min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable());
 
 export const itemInput = z.object({
   cat: z.enum(CATS),
@@ -21,14 +22,14 @@ export const itemInput = z.object({
   cond: z.enum(CONDS).default("Nuevo"),
   serial: z.string().trim().default(""),
   serial2: z.string().trim().default(""),
-  qty: z.coerce.number().int().min(0).default(1),
-  cost: cop.pipe(z.number().min(0, "El costo no puede ser negativo")).default(0),
-  price: cop.pipe(z.number().min(1, "Escribe el precio de venta")),
-  warr: z.coerce.number().int().min(0).max(60).default(12),
+  qty: z.coerce.number({ error: "Escribe la cantidad (número entero)" }).int("La cantidad va sin decimales").min(0, "La cantidad no puede ser negativa").default(1),
+  cost: copField("el costo").default(0),
+  price: copField("el precio de venta", 1),
+  warr: z.coerce.number({ error: "Escribe la garantía en meses" }).int("La garantía va en meses enteros").min(0, "La garantía no puede ser negativa").max(60, "La garantía es de máximo 60 meses").default(12),
   src: z.string().trim().default("Importación"),
-  batt: z.coerce.number().int().min(0).max(100).nullable().default(null),
+  batt: batt.default(null),
   notes: z.string().trim().default(""),
-  min: z.coerce.number().int().min(0).default(0),
+  min: z.coerce.number({ error: "Escribe el stock mínimo" }).int("El stock mínimo va sin decimales").min(0, "El stock mínimo no puede ser negativo").default(0),
   /** Tienda aliada dueña del producto; vacío = propio. */
   ally: z.string().trim().default(""),
 });
@@ -277,7 +278,7 @@ export async function releaseAllReview(db: Db, a: Actor) {
 /** Pone precio a los productos sin precio de venta: costo + la ganancia en pesos que elija la tienda. */
 export async function priceUnpriced(db: Db, a: Actor, gain: number) {
   need(a, "inv_edit");
-  const g = z.coerce.number().int().min(1, "Escribe la ganancia en pesos").max(1e9).parse(gain);
+  const g = copField("la ganancia en pesos", 1).parse(gain);
   return db.transaction(async (tx) => {
     const rows = await tx.update(items).set({ price: sql`${items.cost} + ${items.repairs} + ${g}` })
       .where(and(eq(items.price, 0), sql`${items.cost} > 0`, inArray(items.status, ["En vitrina", "En revisión"]))).returning({ id: items.id, price: items.price });
