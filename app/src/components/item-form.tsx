@@ -34,6 +34,17 @@ const Field = ({ id, label, children, hint }: { id: string; label: string; child
   </div>
 );
 
+/** Pesos sin decimales: acepta lo que escriban (1.500.000, $ 1,500,000…) y guarda solo los dígitos. */
+const MoneyInput = ({ id, value, onChange, negative }: { id: string; value: string; onChange: (v: string) => void; negative?: boolean }) => {
+  const neg = negative && value.startsWith("-");
+  const digits = value.replace(/\D/g, "");
+  return (
+    <input id={id} type="text" inputMode="numeric" autoComplete="off" placeholder="0"
+      value={(neg ? "-" : "") + (digits ? Number(digits).toLocaleString("es-CO") : "")}
+      onChange={(e) => { const t = e.target.value; onChange((negative && t.trim().startsWith("-") ? "-" : "") + t.replace(/\D/g, "")); }} />
+  );
+};
+
 export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, showCost = true, hideSerial, allies = [], repairs = 0 }: Props) {
   const base = (+v.cost || 0) + repairs;
   const models = useMemo(() => CATALOG.filter((c) => c.cat === cat), [cat]);
@@ -76,14 +87,14 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
           <select id="i-ally" value={v.ally} onChange={(e) => set({ ally: e.target.value })}><option value="">Propio de la tienda</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>
         </Field>
       )}
-      {showCost && <Field id="i-cost" label={v.ally ? "Se le paga a la aliada (COP)" : "Costo (COP)"}><input id="i-cost" type="number" min={0} step={1000} value={v.cost} onChange={(e) => set({ cost: e.target.value })} /></Field>}
+      {showCost && <Field id="i-cost" label={v.ally ? "Se le paga a la aliada (COP)" : "Costo (COP)"}><MoneyInput id="i-cost" value={v.cost} onChange={(x) => set({ cost: x })} /></Field>}
       {showCost && (
         <Field id="i-gain" label={v.ally ? "Gana la tienda (COP)" : "Ganancia sobre el costo (COP)"} hint={repairs ? `Precio = costo $${(+v.cost || 0).toLocaleString("es-CO")} + reparaciones $${repairs.toLocaleString("es-CO")} + ganancia` : "Precio de venta = costo + ganancia"}>
-          <input id="i-gain" type="number" step={10000} value={+v.price && v.cost !== "" ? String(+v.price - base) : ""} onChange={(e) => set({ price: e.target.value === "" ? "" : String(base + (+e.target.value || 0)) })} />
+          <MoneyInput id="i-gain" negative value={+v.price && v.cost !== "" ? String(+v.price - base) : ""} onChange={(x) => set({ price: x === "" ? "" : String(Math.max(0, base + (+x || 0))) })} />
         </Field>
       )}
       <Field id="i-price" label="Precio de venta (COP)">
-        <input id="i-price" type="number" min={0} step={1000} value={v.price} onChange={(e) => { set({ price: e.target.value }); }} />
+        <MoneyInput id="i-price" value={v.price} onChange={(x) => set({ price: x })} />
       </Field>
       <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={0} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (

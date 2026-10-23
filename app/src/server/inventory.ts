@@ -10,6 +10,9 @@ import { AppError, addEvent, can, esc, logFeed, need, nextCounter, type Actor } 
 import { blockImei, verifyImei } from "./imei";
 import { pendingAlta, requestDelete } from "./approvals";
 
+/** Pesos enteros: tolera puntos, comas, «$» y espacios al escribir (1.500.000 → 1500000). */
+const cop = z.preprocess((v) => (typeof v === "string" ? v.replace(/[^\d]/g, "") : v), z.coerce.number().int());
+
 export const itemInput = z.object({
   cat: z.enum(CATS),
   name: z.string().trim().min(1, "Escribe el nombre del producto"),
@@ -19,8 +22,8 @@ export const itemInput = z.object({
   serial: z.string().trim().default(""),
   serial2: z.string().trim().default(""),
   qty: z.coerce.number().int().min(0).default(1),
-  cost: z.coerce.number().int().min(0, "El costo no puede ser negativo").default(0),
-  price: z.coerce.number().int().min(1, "Escribe el precio de venta"),
+  cost: cop.pipe(z.number().min(0, "El costo no puede ser negativo")).default(0),
+  price: cop.pipe(z.number().min(1, "Escribe el precio de venta")),
   warr: z.coerce.number().int().min(0).max(60).default(12),
   src: z.string().trim().default("Importación"),
   batt: z.coerce.number().int().min(0).max(100).nullable().default(null),
