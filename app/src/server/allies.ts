@@ -20,6 +20,8 @@ export const allyInput = z.object({
   active: z.boolean().default(true),
   terms: z.coerce.number().int().min(0).max(180).default(0),
   bank: z.string().trim().max(120).default(""),
+  /** Fecha acordada de pago (ms, mediodía local) o null. */
+  due: z.coerce.number().int().min(Date.UTC(2020, 0, 1)).max(Date.UTC(2100, 0, 1)).nullable().default(null),
 });
 
 export async function saveAlly(db: Db, a: Actor, id: string | null, raw: unknown) {
@@ -82,6 +84,8 @@ export async function voidAllyPay(db: Db, a: Actor, moveId: number, reason: stri
   await logFeed(db, a, "owner", "↩️", `Pago ${m.no} anulado (${fmt(m.amount)}): ${esc(why)} · ${esc(a.name)}`);
 }
 
+const endOfDay = (t: number) => { const d = new Date(t); d.setHours(23, 59, 59, 999); return d.getTime(); };
+
 type Move = { kind: string; amount: number; t: number; voided?: boolean };
 /** Saldo: positivo = se le debe a la aliada; negativo = anticipo (saldo a favor de nosotros). */
 const balanceOf = (moves: Move[]) => moves.reduce((s, m) => (m.voided ? s : s + (m.kind === "pago" ? -m.amount : m.amount)), 0);
@@ -90,7 +94,7 @@ const balanceOf = (moves: Move[]) => moves.reduce((s, m) => (m.voided ? s : s + 
  * Cartera por edades (como se maneja en Colombia): los pagos y devoluciones se aplican a las deudas más antiguas
  * primero; lo que queda se clasifica por días desde que nació la deuda y se marca vencido si pasa el plazo.
  */
-export function aging(moves: Move[], terms: number, now = Date.now()) {
+export function aging(moves: Move[], terms: number, now = Date.now(), due: number | null = null) {
   const debts = moves.filter((m) => !m.voided && m.kind === "deuda" && m.amount > 0).sort((x, y) => x.t - y.t).map((m) => ({ t: m.t, left: m.amount }));
   let credit = moves.reduce((s, m) => s + (m.voided ? 0 : m.kind === "pago" ? m.amount : m.kind === "deuda" && m.amount < 0 ? -m.amount : 0), 0);
   for (const d of debts) { const use = Math.min(credit, d.left); d.left -= use; credit -= use; }
@@ -99,7 +103,8 @@ export function aging(moves: Move[], terms: number, now = Date.now()) {
     if (!d.left) continue;
     const days = Math.floor((now - d.t) / 864e5);
     if (days <= 30) b.d0_30 += d.left; else if (days <= 60) b.d31_60 += d.left; else if (days <= 90) b.d61_90 += d.left; else b.d90 += d.left;
-    if (days > terms) b.overdue += d.left;
+    // Con fecha acordada: todo lo pendiente vence ese día (al final del día). Sin fecha: por el plazo en días.
+    if (due != null ? now > endOfDay(due) : days > terms) b.overdue += d.left;
     b.oldest = Math.max(b.oldest, days);
   }
   return { ...b, advance: credit };
@@ -133,7 +138,7 @@ export async function allySummary(db: Db) {
     const stock = its.filter((i) => i.ally === x.id && i.status !== "Vendido" && (i.track !== "qty" || i.qty > 0));
     const sl = sold.get(x.id) ?? [];
     const revenue = sl.reduce((s, l) => s + l.revenue, 0), cost = sl.reduce((s, l) => s + l.cost, 0);
-    const bal = balanceOf(m), age = aging(m, x.terms);
+    const bal = balanceOf(m), age = aging(m, x.terms, Date.now(), x.due);
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
     return {
       ...x,
@@ -161,4 +166,20 @@ export async function allyDetail(db: Db, id: string) {
     .map((i) => ({ id: i.id, name: uname(i), serial: i.serial, status: i.status, qty: i.track === "qty" ? i.qty : 1, cost: i.cost, price: i.price, acq: i.acq }));
   const sold = (await soldLines(db)).get(id) ?? [];
   return { ally: x, summary, moves, stock, sold };
+}
+
+export type PayFilter = { from?: number | null; to?: number | null; ally?: string; method?: string };
+/** Historial de todos los pagos a aliadas (abonos y anticipos), con filtros por fecha, tienda y forma de pago. */
+export async function paymentsLog(db: Db, f: PayFilter = {}) {
+  const [moves, list] = await Promise.all([db.select().from(allyMoves).where(eq(allyMoves.kind, "pago")).orderBy(desc(allyMoves.t), desc(allyMoves.id)), db.select().from(allies)]);
+  const names = new Map(list.map((x) => [x.id, x.name]));
+  const to = f.to != null ? (() => { const d = new Date(f.to!); d.setHours(23, 59, 59, 999); return d.getTime(); })() : null;
+  const from = f.from != null ? (() => { const d = new Date(f.from!); d.setHours(0, 0, 0, 0); return d.getTime(); })() : null;
+  const rows = moves
+    .filter((m) => (from == null || m.t >= from) && (to == null || m.t <= to) && (!f.ally || m.ally === f.ally) && (!f.method || m.method === f.method))
+    .map((m) => ({ ...m, allyName: names.get(m.ally) ?? m.ally }));
+  const valid = rows.filter((m) => !m.voided);
+  const byMethod = new Map<string, number>();
+  for (const m of valid) byMethod.set(m.method || "—", (byMethod.get(m.method || "—") ?? 0) + m.amount);
+  return { rows, total: valid.reduce((s, m) => s + m.amount, 0), count: valid.length, voided: rows.length - valid.length, byMethod: [...byMethod.entries()].sort((a, b) => b[1] - a[1]) };
 }

@@ -17,7 +17,7 @@ export default async function Aliada({ params }: PageProps<"/cartera/[id]">) {
   return (
     <>
       <Link href="/cartera" className="note hover:underline">← Cartera</Link>
-      <PageHeader title={x.name} subtitle={`${ALLY_MODES[x.mode as keyof typeof ALLY_MODES] ?? x.mode} · plazo ${x.terms ? x.terms + " días" : "de contado"}${x.bank ? " · " + x.bank : ""}`} actions={<Link className="btn primary" href={`/ingreso?ally=${x.id}`}>➕ Ingresar producto de esta tienda</Link>} />
+      <PageHeader title={x.name} subtitle={`${ALLY_MODES[x.mode as keyof typeof ALLY_MODES] ?? x.mode} · ${x.due ? "pagar el " + fdatey(x.due) : x.terms ? "plazo " + x.terms + " días" : "sin fecha de pago"}${x.bank ? " · " + x.bank : ""}`} actions={<Link className="btn primary" href={`/ingreso?ally=${x.id}`}>➕ Ingresar producto de esta tienda</Link>} />
       <div className="mb-4 grid gap-3 grid-cols-2 lg:grid-cols-5">
         <div className="card p-3"><span className="note block">Saldo por pagar</span><b className={`text-xl tabular-nums ${s.age.overdue ? "text-red-t" : s.balance > 0 ? "text-amber-t" : ""}`}>{fmt(s.balance)}</b>{s.age.overdue > 0 && <div className="note text-red-t">vencido {fmt(s.age.overdue)} · {s.age.oldest} días</div>}{s.advance > 0 && <div className="note text-green-t">anticipo a favor {fmt(s.advance)}</div>}</div>
         <div className="card p-3"><span className="note block">Ya pagado</span><b className="text-xl tabular-nums">{fmt(s.paid)}</b></div>
@@ -64,7 +64,7 @@ export default async function Aliada({ params }: PageProps<"/cartera/[id]">) {
               ))}</tbody></table>
             )}
           </div>
-          <div className="card p-4"><h2 className="font-semibold mb-3">Datos de la tienda</h2><AllyForm id={x.id} initial={{ name: x.name, contact: x.contact, phone: x.phone, doc: x.doc, mode: x.mode, notes: x.notes, active: x.active, terms: String(x.terms), bank: x.bank }} /></div>
+          <div className="card p-4"><h2 className="font-semibold mb-3">Datos de la tienda</h2><AllyForm id={x.id} initial={{ name: x.name, contact: x.contact, phone: x.phone, doc: x.doc, mode: x.mode, notes: x.notes, active: x.active, terms: String(x.terms), bank: x.bank, due: x.due }} /></div>
         </div>
       </div>
     </>

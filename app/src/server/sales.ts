@@ -180,6 +180,8 @@ export const holdInput = z.object({
   abono: z.coerce.number().int().min(1),
   method,
   days: z.coerce.number().int().min(1).max(60).optional(),
+  /** Fecha de vencimiento escogida en el calendario (ms). Tiene prioridad sobre `days`. */
+  until: z.coerce.number().int().optional(),
   discReason: z.string().default(""),
 });
 
@@ -198,12 +200,13 @@ export async function createHold(db: Db, a: Actor, raw: unknown) {
     if (input.abono < min) throw new AppError(`El abono mínimo es ${fmt(min)} (${cfg.apartadoMinPct}%)`, "invalid");
     if (input.abono >= it.price) throw new AppError("El abono cubre el total: registra una venta normal", "invalid");
     const now = Date.now();
-    const days = input.days ?? cfg.holdDays;
+    const expires = input.until != null ? untilEnd(input.until, now) : now + (input.days ?? cfg.holdDays) * DAY;
+    const days = Math.max(1, Math.ceil((expires - now) / DAY));
     const no = "RA-" + (1000 + (await nextCounter(tx, "hold")));
     const rb = "RB-" + (1000 + (await nextCounter(tx, "receipt")));
-    const hold: Hold = { client: client.id, abono: input.abono, expires: now + days * DAY, t: now, by: a.id, no, pays: [{ t: now, amount: input.abono, method: input.method, by: a.id, no: rb }] };
+    const hold: Hold = { client: client.id, abono: input.abono, expires, t: now, by: a.id, no, pays: [{ t: now, amount: input.abono, method: input.method, by: a.id, no: rb }] };
     await tx.update(items).set({ status: "Apartado", hold }).where(eq(items.id, it.id));
-    await addEvent(tx, it.id, a, "Apartado", `${client.name} · abono ${fmt(input.abono)} · vence en ${days} días`, "warn");
+    await addEvent(tx, it.id, a, "Apartado", `${client.name} · abono ${fmt(input.abono)} · vence el ${new Date(expires).toLocaleDateString("es-CO")} (${days} días)`, "warn");
     await logFeed(tx, a, "apartado", "🔒", `Apartado de <b>${esc(client.name)}</b>: <b>${esc(uname(it))}</b> con abono de ${fmt(input.abono)}`);
     return { itemId: it.id, hold };
   });
@@ -228,15 +231,27 @@ export async function addAbono(db: Db, a: Actor, itemId: string, rawAmount: unkn
   });
 }
 
-export async function extendHold(db: Db, a: Actor, itemId: string, rawDays: unknown) {
+/** Hasta el final del día escogido; debe ser futuro y a máximo 180 días. */
+function untilEnd(t: number, now = Date.now()) {
+  const d = new Date(t); d.setHours(23, 59, 59, 999);
+  const end = d.getTime();
+  if (end <= now) throw new AppError("Escoge una fecha de hoy en adelante", "invalid");
+  if (end > now + 180 * DAY) throw new AppError("La fecha no puede pasar de 180 días", "invalid");
+  return end;
+}
+
+/** Nueva fecha de vencimiento: un número pequeño son días a sumar; una fecha (ms) es el día escogido en el calendario. */
+export async function extendHold(db: Db, a: Actor, itemId: string, rawUntil: unknown) {
   need(a, "credit");
-  const n = z.coerce.number().int().min(1).max(60).parse(rawDays);
+  const v = z.coerce.number().int().min(1).parse(rawUntil);
   const [it] = await db.select().from(items).where(eq(items.id, itemId));
   if (!it?.hold) throw new AppError("Apartado no encontrado", "notfound");
-  const hold = { ...it.hold, expires: it.hold.expires + n * DAY, reminded: false };
+  const expires = v <= 365 ? it.hold.expires + v * DAY : untilEnd(v);
+  const hold = { ...it.hold, expires, reminded: false };
+  const date = new Date(expires).toLocaleDateString("es-CO");
   await db.update(items).set({ hold }).where(eq(items.id, itemId));
-  await addEvent(db, itemId, a, "Apartado extendido", `+${n} días`, "warn");
-  await logFeed(db, a, "apartado", "🔒", `Apartado extendido ${n} días: <b>${esc(uname(it))}</b>`);
+  await addEvent(db, itemId, a, "Fecha del apartado cambiada", `Ahora vence el ${date}`, "warn");
+  await logFeed(db, a, "apartado", "🔒", `Apartado de <b>${esc(uname(it))}</b> ahora vence el ${date}`);
 }
 
 export async function releaseHold(db: Db, a: Actor, itemId: string, refund: boolean) {

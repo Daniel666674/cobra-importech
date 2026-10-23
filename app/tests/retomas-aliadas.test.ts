@@ -187,3 +187,25 @@ describe("producto fuera de inventario", () => {
     await expect(createSale(db, owner, { payments: [] })).rejects.toThrow(/al menos un producto/);
   });
 });
+
+describe("fechas con calendario y control de pagos", () => {
+  it("fecha acordada de pago: pasada la fecha el saldo sale vencido", async () => {
+    const { aging } = await import("@/server/allies");
+    const d = 864e5, now = Date.UTC(2026, 9, 20, 15);
+    const moves = [{ kind: "deuda", amount: 400, t: now - 3 * d }];
+    expect(aging(moves, 0, now, now + 5 * d).overdue).toBe(0);
+    expect(aging(moves, 0, now, now - 2 * d).overdue).toBe(400);
+  });
+  it("historial de pagos con filtros por fecha, tienda y forma de pago", async () => {
+    const { paymentsLog } = await import("@/server/allies");
+    const id = await saveAlly(db, owner, null, { name: "Mundo iPhone Medellín", mode: "compra", due: Date.now() + 15 * 864e5 });
+    const old = new Date(); old.setMonth(old.getMonth() - 2);
+    await payAlly(db, owner, id, { amount: 100_000, method: "Nequi", advance: true, t: old.getTime() });
+    await payAlly(db, owner, id, { amount: 200_000, method: "Efectivo", advance: true });
+    const all = await paymentsLog(db, { ally: id });
+    expect(all).toMatchObject({ total: 300_000, count: 2 });
+    const recent = await paymentsLog(db, { ally: id, from: Date.now() - 864e5 });
+    expect(recent.rows.map((m) => m.amount)).toEqual([200_000]);
+    expect((await paymentsLog(db, { ally: id, method: "Nequi" })).total).toBe(100_000);
+  });
+});
