@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
 import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor } from "@/lib/catalog";
 import { ComboSelect } from "@/components/combo-select";
+import { DateField } from "@/components/date-field";
 import { fmt } from "@/lib/format";
 import { holdMin } from "@/lib/hold";
 import { isQty } from "@/lib/items";
@@ -62,6 +63,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1) };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
+  const [holdUntil, setHoldUntil] = useState<number | null>(() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + cfg.holdDays); return d.getTime(); });
 
   // Precio escrito en caja para productos sin precio de venta (queda guardado en el producto al cobrar).
   const [typed, setTyped] = useState<Record<string, string>>({});
@@ -98,6 +100,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
     else if (!(+abono > 0)) why = "Escribe el valor del abono";
     else if (+abono < min) why = `El abono mínimo es ${fmt(min)} (${cfg.apartadoMinPct}%)`;
     else if (+abono >= T.total) why = "El abono cubre el total: registra una venta normal";
+    else if (!holdUntil) why = "Escoge la fecha de vencimiento del apartado";
   } else if (due < 0) why = `La retoma supera el total por ${fmt(-due)}: regístrala sola en «Retomas»`;
   else if (trades.length && (!(client || newC) || !clientDoc)) why = "Para recibir un equipo en parte de pago, elige o crea el cliente con su cédula";
   else if (due > 0) {
@@ -129,7 +132,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
     const newClient = newC ? nc : null;
     startT(async () => {
       if (hold) {
-        const r = await createHoldAction({ item: cart[0].it.id, client: client_, newClient, abono, method: abonoMethod });
+        const r = await createHoldAction({ item: cart[0].it.id, client: client_, newClient, abono, method: abonoMethod, ...(holdUntil ? { until: holdUntil } : {}) });
         if (!r.ok) return setErr(r.error);
         router.push("/apartados");
       } else {
@@ -299,7 +302,8 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
             <h3 className="font-semibold mb-2">Abono inicial</h3>
             <div className="grid grid-cols-2 gap-2"><input type="number" min={0} step={1000} value={abono} onChange={(e) => setAbono(e.target.value)} placeholder={min ? `Mínimo ${fmt(min)}` : "Valor"} aria-label="Abono" />
               <select value={abonoMethod} onChange={(e) => setAbonoMethod(e.target.value)} aria-label="Método del abono">{cfg.methods.map((m) => <option key={m}>{m}</option>)}</select></div>
-            <p className="note mt-1">Vence en {cfg.holdDays} días · mínimo {cfg.apartadoMinPct}% ({fmt(min)})</p>
+            <p className="note mt-1">Mínimo {cfg.apartadoMinPct}% ({fmt(min)})</p>
+            <div className="mt-2"><DateField id="hold-until" label="Vence el" value={holdUntil} onChange={setHoldUntil} minDays={0} maxDays={180} quick={[["1 semana", 7], ["15 días", 15], ["1 mes", 30]]} /></div>
           </div>
         ) : <>
           {can.tradein && (

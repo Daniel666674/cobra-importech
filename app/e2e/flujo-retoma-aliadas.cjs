@@ -69,6 +69,17 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.click('a:has-text("CE-0001")');await p.waitForURL(/\/cartera\/egreso\//);r=await p.innerText('article');
  ok(/Comprobante de egreso/i.test(r)&&/000123456/.test(r)&&/TRES MILLONES/.test(r)&&/Recibí conforme/.test(r),'comprobante de egreso imprimible con valor en letras y firma');
 
+ // fecha de pago con calendario y historial de todos los pagos
+ await p.goto(B+'/cartera');await p.click('a:has-text("Celulares Don Pedro")');await p.waitForURL(/\/cartera\/A/);
+ ok(await p.locator('#al-due').getAttribute('type')==='date','la fecha para pagarle se escoge en el calendario');
+ await p.click('button:has-text("15 días")');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados');
+ ok(/pagar el/.test(await p.innerText('main')),'la ficha muestra la fecha de pago acordada');
+ await p.goto(B+'/cartera?tab=pagos');r=await p.innerText('main');
+ ok(/CE-0001/.test(r)&&/CE-0002/.test(r)&&/CE-0003/.test(r)&&/Nequi/.test(r),'historial con todos los pagos registrados');
+ ok(/\$\s?3\.750\.000/.test(r),'total pagado en el historial');
+ await p.selectOption('#f-forma','Nequi');await p.click('form button:has-text("Filtrar")');await p.waitForURL(/forma=Nequi/);
+ r=await p.innerText('main');ok(/CE-0002/.test(r)&&!/CE-0001/.test(r),'filtra por forma de pago');
+ const ex=await p.request.get(B+'/api/export/pagos-aliadas');ok(ex.status()===200&&/CE-0001/.test(await ex.text()),'exporta los pagos a Excel (CSV)');
  ok(errs.length===0,'sin errores JS '+errs.join(';'));
  await b.close();console.log(fails?'FALLAS '+fails:'TODO OK');process.exit(fails?1:0);
 })();

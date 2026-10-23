@@ -308,6 +308,8 @@ export const allies = pgTable("allies", {
   terms: integer("terms").notNull().default(0),
   /** Banco y cuenta de la aliada para transferirle (ej. Bancolombia ahorros 123…). */
   bank: text("bank").notNull().default(""),
+  /** Fecha acordada para pagarle (se escoge en el calendario). Pasada esa fecha, el saldo sale vencido. */
+  due: ms("due"),
 });
 
 /** Cuenta corriente con cada aliada: deudas (positivas o negativas por devoluciones) y pagos. */

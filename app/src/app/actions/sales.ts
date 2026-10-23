@@ -14,8 +14,8 @@ export async function createHoldAction(data: unknown) {
 export async function addAbonoAction(itemId: string, amount: number, method: string) {
   return act(async (db, a) => (await addAbono(db, a, itemId, amount, method)).receipt, P);
 }
-export async function extendHoldAction(itemId: string, days: number) {
-  return act((db, a) => extendHold(db, a, itemId, days), P);
+export async function extendHoldAction(itemId: string, until: number) {
+  return act((db, a) => extendHold(db, a, itemId, until), P);
 }
 export async function releaseHoldAction(itemId: string, refund: boolean) {
   return act((db, a) => releaseHold(db, a, itemId, refund), P);

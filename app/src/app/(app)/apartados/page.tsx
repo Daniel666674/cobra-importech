@@ -45,7 +45,7 @@ export default async function Apartados() {
                   <div className="mt-1.5 flex justify-between text-[13px]"><span>Abonado <b>{fmt(h.abono)}</b></span><span>Saldo <b>{fmt(holdBal(it.price, h))}</b> de {fmt(it.price)}</span></div>
                   <div className="note">{h.pays.length} abono(s) · vence {fdate(h.expires)}</div>
                 </div>
-                <HoldActions itemId={it.id} balance={holdBal(it.price, h)} methods={methods} />
+                <HoldActions itemId={it.id} balance={holdBal(it.price, h)} methods={methods} expires={h.expires} />
                 {c?.phone && <a className="btn sm" target="_blank" rel="noopener noreferrer" href={waLink(c.phone, `Hola ${c.name.split(" ")[0]}, te recordamos que tu apartado ${h.no} (${uname(it)}) tiene un saldo de ${fmt(holdBal(it.price, h))} y vence el ${fdate(h.expires)}.`)}>💬 Recordar por WhatsApp</a>}
               </div>
             );

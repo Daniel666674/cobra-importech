@@ -112,6 +112,13 @@ describe("apartados", () => {
     const r = await addAbono(db, emp, id, 500000, "Transferencia");
     expect(r.hold.pays.length).toBe(2);
     await extendHold(db, emp, id, 7);
+    // fecha escogida en el calendario: vence al final de ese día
+    const day = new Date(); day.setDate(day.getDate() + 20); day.setHours(12, 0, 0, 0);
+    await extendHold(db, emp, id, day.getTime());
+    const exp = (await db.select().from(items).where(eq(items.id, id)))[0].hold!.expires;
+    expect(new Date(exp).getDate()).toBe(day.getDate());
+    expect(new Date(exp).getHours()).toBe(23);
+    await rejects(extendHold(db, emp, id, Date.now() - 2 * 864e5), /de hoy en adelante/);
     await rejects(addAbono(db, emp, id, 99999999, "Efectivo"), /no superar el saldo/);
   });
   it("cierra el apartado como venta descontando abonos", async () => {

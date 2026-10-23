@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addAbonoAction, extendHoldAction, releaseHoldAction } from "@/app/actions/sales";
 import { fmt } from "@/lib/format";
+import { DateField } from "@/components/date-field";
 
-export function HoldActions({ itemId, balance, methods }: { itemId: string; balance: number; methods: string[] }) {
+export function HoldActions({ itemId, balance, methods, expires }: { itemId: string; balance: number; methods: string[]; expires: number }) {
   const router = useRouter();
   const [mode, setMode] = useState<"" | "abono" | "extend" | "release">("");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<string>(methods[0]);
-  const [days, setDays] = useState("5");
+  const [until, setUntil] = useState<number | null>(expires);
   const [refund, setRefund] = useState("1");
   const [msg, setMsg] = useState("");
   const [busy, start] = useTransition();
@@ -24,7 +25,7 @@ export function HoldActions({ itemId, balance, methods }: { itemId: string; bala
         <button className="btn sm" onClick={() => setMode(mode === "abono" ? "" : "abono")}>💰 Abono</button>
         <Link className="btn sm primary" href={`/apartados/${itemId}`}>🧾 Recibo</Link>
         <Link className="btn sm primary" href={`/venta?hold=${itemId}`}>Cerrar como venta</Link>
-        <button className="btn sm" onClick={() => setMode(mode === "extend" ? "" : "extend")}>Extender</button>
+        <button className="btn sm" onClick={() => setMode(mode === "extend" ? "" : "extend")}>📅 Cambiar fecha</button>
         <button className="btn sm danger" onClick={() => setMode(mode === "release" ? "" : "release")}>Liberar</button>
       </div>
       {mode === "abono" && (
@@ -35,8 +36,9 @@ export function HoldActions({ itemId, balance, methods }: { itemId: string; bala
         </div>
       )}
       {mode === "extend" && (
-        <div className="flex gap-2"><select value={days} onChange={(e) => setDays(e.target.value)} aria-label="Días">{[3, 5, 7, 15].map((d) => <option key={d} value={d}>{d} días</option>)}</select>
-          <button className="btn primary" disabled={busy} onClick={() => run(() => extendHoldAction(itemId, +days))}>Extender</button></div>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <DateField id={`until-${itemId}`} label="Nueva fecha de vencimiento" value={until} onChange={setUntil} minDays={0} maxDays={180} quick={[["+3 días", 3], ["+1 semana", 7], ["+15 días", 15], ["+1 mes", 30]]} />
+          <button className="btn primary" disabled={busy || !until} onClick={() => run(() => extendHoldAction(itemId, until!))}>Guardar fecha</button></div>
       )}
       {mode === "release" && (
         <div className="flex flex-wrap gap-2"><select value={refund} onChange={(e) => setRefund(e.target.value)} aria-label="Qué pasa con el abono"><option value="1">Devolver el abono al cliente</option><option value="0">Retener el abono (política de la tienda)</option></select>
