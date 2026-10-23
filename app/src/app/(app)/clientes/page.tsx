@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getDb } from "@/db";
 import { clients, items, sales } from "@/db/schema";
 import { Empty, PageHeader } from "@/components/ui";
@@ -24,7 +25,7 @@ export default async function Clientes({ searchParams }: PageProps<"/clientes">)
         {rows.length === 0 ? <Empty>Aún no hay clientes. Se crean al vender o con el botón «Nuevo cliente».</Empty> : (
           <table className="t"><thead><tr><th>Cliente</th><th>Contacto</th><th className="num">Compras</th><th className="num">Total comprado</th><th>Última compra</th></tr></thead>
             <tbody>{rows.map(({ c, n, total, last, holds }) => (
-              <tr key={c.id}><td><b>{c.name}</b><div className="note">{c.doc}{holds ? ` · ${holds} apartado(s)` : ""}</div></td><td>{c.phone}<div className="note">{c.email}</div></td><td className="num">{n}</td><td className="num"><b>{fmt(total)}</b></td><td>{last ? fdate(last) : "—"}</td></tr>))}</tbody></table>
+              <tr key={c.id} className="hover:bg-gray-bg/60"><td><Link href={`/clientes/${c.id}`} className="font-bold hover:underline">{c.name}</Link><div className="note">{c.doc}{holds ? ` · ${holds} apartado(s)` : ""}</div></td><td>{c.phone}<div className="note">{c.email}</div></td><td className="num">{n}</td><td className="num"><b>{fmt(total)}</b></td><td>{last ? fdate(last) : "—"}</td></tr>))}</tbody></table>
         )}
       </div>
     </>
