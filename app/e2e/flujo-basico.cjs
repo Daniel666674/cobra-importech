@@ -46,8 +46,10 @@ const B='http://localhost:3101';
  await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados',{timeout:15000});
  ok(/3\.600\.000/.test(await p.innerText('main')),'precio «3.600.000» guardado');
  await p.click('button:has-text("Editar")');await p.fill('#i-price','');await p.click('button:has-text("Guardar cambios")');
- await p.waitForSelector('text=No se guardó');ok(/No se guardó: Escribe el precio de venta/.test(await p.innerText('main')),'si falla, el aviso sale junto al botón y en español');
- await p.locator('#i-price').pressSequentially('3499000');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados',{timeout:15000});
+ await p.waitForSelector('text=Cambios guardados',{timeout:15000});ok(true,'el precio puede quedar en $0');
+ await p.click('button:has-text("Editar")');await p.fill('#i-warr','99');await p.click('button:has-text("Guardar cambios")');
+ await p.waitForSelector('text=No se guardó');ok(/No se guardó: La garantía es de máximo 60 meses/.test(await p.innerText('main')),'si falla, el aviso sale junto al botón y en español');
+ await p.fill('#i-warr','12');await p.locator('#i-price').pressSequentially('3499000');await p.click('button:has-text("Guardar cambios")');await p.waitForSelector('text=Cambios guardados',{timeout:15000});
  // 4) venta
  await p.goto(B+'/venta?item=I-0002');await p.waitForSelector('text=Cobrar',{timeout:20000});
  await p.click('button:has-text("Cobrar")');await p.waitForURL(/\/ventas\/S-0001/,{timeout:30000});

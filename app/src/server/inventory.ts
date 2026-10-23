@@ -24,7 +24,8 @@ export const itemInput = z.object({
   serial2: z.string().trim().default(""),
   qty: z.coerce.number({ error: "Escribe la cantidad (número entero)" }).int("La cantidad va sin decimales").min(0, "La cantidad no puede ser negativa").default(1),
   cost: copField("el costo").default(0),
-  price: copField("el precio de venta", 1),
+  /** Puede quedar en $0 (sin precio): no se vende hasta ponérselo (en la ficha o al cobrar en caja). */
+  price: copField("el precio de venta", 0, 0).default(0),
   warr: z.coerce.number({ error: "Escribe la garantía en meses" }).int("La garantía va en meses enteros").min(0, "La garantía no puede ser negativa").max(60, "La garantía es de máximo 60 meses").default(12),
   src: z.string().trim().default("Importación"),
   batt: batt.default(null),
@@ -125,6 +126,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
   };
   await tx.insert(items).values(row);
   await addEvent(tx, id, a, how.title ?? (row.src === "Trade-in" ? "Trade-in recibido" : "Ingreso al inventario"), how.detail ?? row.src + (track === "qty" ? " · " + row.qty + " unidades" : ""));
+  if (!row.price) await addEvent(tx, id, a, "Sin precio de venta", "Quedó en $0: ponle precio en «Editar» o escríbelo al cobrar en caja", "warn");
   if (verifyNote) await addEvent(tx, id, a, "Verificación de IMEI", verifyNote.text, verifyNote.tone);
   if (check)
     for (const k of ["crc", "apple"] as const)

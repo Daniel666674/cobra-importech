@@ -22,9 +22,12 @@ describe("pesos escritos a mano", () => {
   it("al crear: acepta formatos colombianos y rechaza con mensaje claro en español", () => {
     expect(itemInput.parse({ ...base, price: "1.500.000", cost: "$ 1,000,000" })).toMatchObject({ price: 1_500_000, cost: 1_000_000 });
     expect(itemInput.parse({ ...base, price: "1.500.000,50" }).price).toBe(1_500_000);
-    expect(msg(() => itemInput.parse({ ...base, price: "" }))).toMatch(/Escribe el precio de venta/);
+    // el precio puede quedar en $0 (sin precio)
+    expect(itemInput.parse({ ...base, price: "" }).price).toBe(0);
+    expect(itemInput.parse({ ...base }).price).toBe(0);
+    expect(itemInput.parse({ ...base, price: "0" }).price).toBe(0);
     expect(msg(() => itemInput.parse({ ...base, price: "abc" }))).toMatch(/Escribe el precio de venta/);
-    expect(msg(() => itemInput.parse({ ...base, price: "0" }))).toMatch(/mayor a \$0/);
+    expect(msg(() => itemInput.parse({ ...base, price: "-1" }))).toMatch(/no puede ser negativo/);
     expect(msg(() => itemInput.parse({ ...base, price: "3.000.000.000" }))).toMatch(/demasiado grande/);
     expect(msg(() => itemInput.parse({ ...base, price: 1, cost: "-5" }))).toMatch(/no puede ser negativo/);
     expect(msg(() => itemInput.parse({ ...base, price: 1, warr: 99 }))).toMatch(/máximo 60 meses/);
@@ -34,7 +37,7 @@ describe("pesos escritos a mano", () => {
   it("al editar: batería vacía queda sin dato (antes se guardaba 0 %)", () => {
     expect(itemPatch.parse({ batt: "" }).batt).toBeNull();
     expect(itemPatch.parse({ price: "2.600.000" }).price).toBe(2_600_000);
-    expect(msg(() => itemPatch.parse({ price: "" }))).toMatch(/Escribe el precio de venta/);
+    expect(itemPatch.parse({ price: "" }).price).toBe(0);
   });
   it("caja, apartados y cartera también aceptan puntos", () => {
     const s = saleInput.parse({ lines: [{ item: "I-1", qty: 1, price: "1.500.000" }], custom: [{ name: "iPhone 12", price: "900.000", batt: 80 }], payments: [{ method: "Efectivo", amount: "2.400.000" }], cash: "2.500.000" });
@@ -57,6 +60,13 @@ describe("guardar precios de verdad", () => {
     await updateItem(db, owner, it.id, { name: "iPhone 13", spec: "", color: "", cond: "Usado", qty: "1", cost: "2000000", price: "2.750.000", warr: "1", batt: null, notes: "", min: "0", serial2: it.serial2, ally: "" });
     const [after] = await db.select().from(items).where(eq(items.id, it.id));
     expect(after).toMatchObject({ price: 2_750_000, serial2: it.serial2 });
+  });
+  it("producto con precio $0: se guarda pero no se vende sin escribir el precio", async () => {
+    const it = await createItem(db, owner, { ...base, name: "Forro", qty: 2, cost: 10_000, price: "" });
+    expect(it.price).toBe(0);
+    await expect(createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [] })).rejects.toThrow(/precio/);
+    const ed = await updateItem(db, owner, it.id, { price: "0" });
+    expect(ed.price).toBe(0);
   });
   it("precio menor al costo se puede guardar (la caja pide autorización al vender)", async () => {
     const it = await createItem(db, owner, { ...base, qty: 3, cost: "50.000", price: "40.000" });
