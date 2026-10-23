@@ -7,6 +7,7 @@ import { ComboSelect } from "@/components/combo-select";
 import { fmt } from "@/lib/format";
 import { officialGate, type ImeiResult } from "@/lib/imei";
 import { DEDUCTIONS, TRADEIN_RATE, tradeQuote, type DeductionKey } from "@/lib/tradein";
+import { MoneyInput } from "@/components/money-input";
 
 const CATS = ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] as const;
 
@@ -116,14 +117,14 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
       </div>
       <aside className="card p-4 space-y-3 self-start lg:sticky lg:top-4">
         <h2 className="font-semibold">Cotización</h2>
-        {f("ref", "Valor de referencia (COP): lo que vale hoy un equipo igual en buen estado", { type: "number", min: 0, step: 10000 })}
+        <div><label className="lb" htmlFor="r-ref">Valor de referencia (COP): lo que vale hoy un equipo igual en buen estado</label><MoneyInput id="r-ref" value={v.ref} onChange={(x) => setV({ ...v, ref: x })} /></div>
         <div className="space-y-1 text-[13px]">
           <div className="flex justify-between"><span className="text-t2">Porcentaje por condición ({v.cond})</span><span>{Math.round(Q.rate * 100)}% = {fmt(Q.base)}</span></div>
           {Q.dedPct > 0 && <div className="flex justify-between"><span className="text-t2">Defectos</span><span className="text-red-t">−{Q.dedPct}%</span></div>}
           <div className="flex justify-between text-lg font-bold"><span>Oferta sugerida</span><span className="tabular-nums">{fmt(Q.offer)}</span></div>
         </div>
-        <div><label className="lb" htmlFor="r-offer">Oferta final (COP)</label><input id="r-offer" type="number" min={0} step={10000} value={offerTouched ? v.offer : String(Q.offer)} onChange={(e) => { setOfferTouched(true); setV({ ...v, offer: e.target.value }); }} /></div>
-        <div><label className="lb" htmlFor="r-resale">Precio de reventa (COP)</label><input id="r-resale" type="number" min={0} step={10000} value={v.resale} placeholder={v.ref} onChange={(e) => setV({ ...v, resale: e.target.value })} />
+        <div><label className="lb" htmlFor="r-offer">Oferta final (COP)</label><MoneyInput id="r-offer" value={offerTouched ? v.offer : String(Q.offer)} onChange={(x) => { setOfferTouched(true); setV({ ...v, offer: x }); }} /></div>
+        <div><label className="lb" htmlFor="r-resale">Precio de reventa (COP)</label><MoneyInput id="r-resale" value={v.resale} placeholder={v.ref} onChange={(x) => setV({ ...v, resale: x })} />
           {resale > 0 && offer > 0 && <p className="note mt-1">Margen al revender: {fmt(resale - offer)} ({Math.round(((resale - offer) / resale) * 100)}%)</p>}</div>
         {phone && gate?.needsOwner && <label className="flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={ok} onChange={(e) => setOk(e.target.checked)} /><span><b>Aprobación del propietario/a</b> por la advertencia.</span></label>}
         <button className="btn primary w-full !py-3" disabled={!!missing || busy || extBusy} onClick={accept}>{buying ? `Aceptar retoma · pagar ${fmt(offer)}` : `Usar como parte de pago · ${fmt(offer)}`}</button>

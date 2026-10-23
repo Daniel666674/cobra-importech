@@ -25,7 +25,7 @@ const w=b=>{let s=0;for(let i=0;i<14;i++){let d=+b[13-i];if(i%2===0){d*=2;if(d>9
  await p.click('button:has-text("Accesorios")');
  ok(await p.locator('#i-ally').inputValue()!=='','la aliada queda preseleccionada al ingresar');
  await pick(p,'#i-name','MacBook Air M2 (consignación)');await p.fill('#i-qty','1');await p.fill('#i-cost','3000000');await p.fill('#i-price','3600000');
- ok(await p.locator('#i-gain').inputValue()==='600000'&&/Gana la tienda/.test(await p.innerText('main')),'muestra cuánto gana la tienda (COP)');
+ ok(await p.locator('#i-gain').inputValue()==='600.000'&&/Gana la tienda/.test(await p.innerText('main')),'muestra cuánto gana la tienda (COP)');
  await p.click('button:has-text("Guardar en inventario")');await p.waitForURL(/\/inventario\/I-/,{timeout:30000});
  ok(/Aliada: Celulares Don Pedro/.test(await p.innerText('main')),'el producto queda con su aliada como origen');
 

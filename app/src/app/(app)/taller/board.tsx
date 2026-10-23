@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { advanceOrderAction, cancelOrderAction, moveOrderAction, updateOrderAction } from "@/app/actions/ops";
 import { fdate, fmt } from "@/lib/format";
+import { MoneyInput } from "@/components/money-input";
 
 export type Card = {
   id: string; st: string; job: string; tech: string; notes: string; cost: number; t: number; stT: number;
@@ -79,7 +80,7 @@ function CostEditor({ card: c, canCost, onSave, busy }: { card: Card; canCost: b
       {open ? (
         <div className="grid gap-1.5 pt-1">
           <label className="note" htmlFor={`cost-${c.id}`}>Costo de la reparación (COP)</label>
-          <input id={`cost-${c.id}`} type="number" min={0} step={10000} value={cost} onChange={(e) => setCost(e.target.value)} />
+          <MoneyInput id={`cost-${c.id}`} value={cost} onChange={(x) => setCost(x)} />
           <label className="note" htmlFor={`notes-${c.id}`}>Notas del técnico</label>
           <textarea id={`notes-${c.id}`} rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Diagnóstico, repuesto pedido…" />
           <div className="flex gap-1.5"><button className="btn sm primary" disabled={busy} onClick={() => { onSave({ cost: +cost || 0, notes }); setOpen(false); }}>Guardar</button><button className="btn sm" onClick={() => setOpen(false)}>Cerrar</button></div>

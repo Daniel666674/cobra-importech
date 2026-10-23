@@ -6,6 +6,7 @@ import { deleteItemAction, reverifyAction, sendToWorkshopAction, updateItemActio
 import { ItemForm, toPayload, type ItemFormValues } from "@/components/item-form";
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import type { Cat } from "@/lib/catalog";
+import { MoneyInput } from "@/components/money-input";
 
 type Item = { id: string; cat: string; name: string; spec: string; color: string; cond: string; qty: number; cost: number; price: number; warr: number; batt: number | null; notes: string; min: number; serial2: string; serial: string; status: string; pendingDel: boolean; repairs: number; track: string; hasHold: boolean };
 type Can = { sell: boolean; credit: boolean; edit: boolean; del: boolean; workshop: boolean; cost: boolean; approve: boolean };
@@ -47,6 +48,7 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
           <h3 className="font-semibold mb-3">Editar producto</h3>
           <ItemForm cat={item.cat as Cat} values={form} onChange={setForm} warrByCond={warr} hideSerial showCost={can.cost} repairs={item.repairs} />
           <button className="btn primary mt-3" disabled={busy} onClick={() => start(async () => done(await updateItemAction(item.id, { ...toPayload(item.cat as Cat, form), serial: undefined, cat: undefined, src: undefined }), "Cambios guardados"))}>Guardar cambios</button>
+          {msg && !msg.ok && <p role="alert" className="chip bad !rounded-md !whitespace-normal mt-2">⚠️ No se guardó: {msg.t}</p>}
         </div>
       )}
       {panel === "verify" && (
@@ -64,8 +66,9 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
         <div className="card p-4 space-y-3">
           <h3 className="font-semibold">Enviar a taller</h3>
           <div><label className="lb" htmlFor="job">Trabajo</label><input id="job" value={job} onChange={(e) => setJob(e.target.value)} placeholder="Cambio de batería" /></div>
-          <div><label className="lb" htmlFor="jc">Costo estimado (COP)</label><input id="jc" type="number" min={0} step={10000} value={jobCost} onChange={(e) => setJobCost(e.target.value)} /></div>
+          <div><label className="lb" htmlFor="jc">Costo estimado (COP)</label><MoneyInput id="jc" value={jobCost} onChange={(x) => setJobCost(x)} /></div>
           <button className="btn primary" disabled={busy || !job.trim()} onClick={() => start(async () => done(await sendToWorkshopAction({ item: item.id, job, cost: jobCost || 0 }), "Orden de taller creada"))}>Crear orden</button>
+          {msg && !msg.ok && <p role="alert" className="chip bad !rounded-md !whitespace-normal">⚠️ {msg.t}</p>}
         </div>
       )}
     </aside>

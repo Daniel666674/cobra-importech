@@ -6,7 +6,7 @@ import { fmt } from "@/lib/format";
 import { uname } from "@/lib/items";
 import { lineNet } from "@/lib/sales";
 import { PAY_METHODS } from "@/lib/cartera";
-import { AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, copField, esc, logFeed, need, nextCounter, type Actor } from "./core";
 
 export const ALLY_MODES = { consignacion: "Se le paga cuando se vende (consignación)", compra: "Se le debe desde que se recibe (compra)" } as const;
 
@@ -42,7 +42,7 @@ export async function saveAlly(db: Db, a: Actor, id: string | null, raw: unknown
 export { PAY_METHODS };
 
 export const payInput = z.object({
-  amount: z.coerce.number().int().min(1, "Escribe el valor del pago").max(1e10),
+  amount: copField("el valor del pago", 1),
   method: z.enum(PAY_METHODS).default("Transferencia Bancolombia"),
   ref: z.string().trim().max(60).default(""),
   note: z.string().trim().max(200).default(""),

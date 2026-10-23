@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { addAbonoAction, extendHoldAction, releaseHoldAction } from "@/app/actions/sales";
 import { fmt } from "@/lib/format";
 import { DateField } from "@/components/date-field";
+import { MoneyInput } from "@/components/money-input";
 
 export function HoldActions({ itemId, balance, methods, expires }: { itemId: string; balance: number; methods: string[]; expires: number }) {
   const router = useRouter();
@@ -30,7 +31,7 @@ export function HoldActions({ itemId, balance, methods, expires }: { itemId: str
       </div>
       {mode === "abono" && (
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-          <input type="number" min={1} max={balance} step={1000} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Hasta ${fmt(balance)}`} aria-label="Valor del abono" />
+          <MoneyInput value={amount} onChange={(x) => setAmount(x)} placeholder={`Hasta ${fmt(balance)}`} aria-label="Valor del abono" />
           <select value={method} onChange={(e) => setMethod(e.target.value)} aria-label="Método">{methods.map((m) => <option key={m}>{m}</option>)}</select>
           <button className="btn primary" disabled={busy || !(+amount > 0)} onClick={() => run(() => addAbonoAction(itemId, +amount, method))}>Registrar</button>
         </div>
