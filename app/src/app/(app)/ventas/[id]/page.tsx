@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { waLink } from "@/lib/whatsapp";
+import { receiptPath } from "@/server/receipt-link";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -19,12 +21,15 @@ export default async function SalePage({ params }: PageProps<"/ventas/[id]">) {
   const [cfg] = await db.select().from(settings).limit(1);
   const [client] = s.client ? await db.select().from(clients).where(eq(clients.id, s.client)) : [];
   const [u] = await db.select().from(users).where(eq(users.id, s.by));
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  const link = origin + receiptPath(s.id);
   return (
     <>
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href="/ventas" className="note hover:underline">← Ventas</Link>
         <div className="flex gap-2">
-          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={waLink(client.phone, `Hola ${client.name.split(" ")[0]}, gracias por tu compra en ${cfg.name}. Comprobante ${s.no}.`)}>💬 WhatsApp</a>}
+          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={waLink(client.phone, `Hola ${client.name.split(" ")[0]}, gracias por tu compra en ${cfg.name}. Aquí está tu comprobante ${s.no}: ${link}`)}>💬 WhatsApp</a>}
           <PrintButton />
         </div>
       </div>
