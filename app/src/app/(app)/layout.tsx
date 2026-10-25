@@ -59,16 +59,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="no-print lg:hidden sticky top-0 z-20 flex items-center justify-between border-b border-line bg-card px-4 py-2.5">
-          {brand}
-          <details className="relative">
+        <header className="no-print lg:hidden sticky top-0 z-20 grid grid-cols-[1fr_auto_1fr] items-center border-b border-line bg-card px-4 py-2.5">
+          <details className="relative justify-self-start">
             <summary className="btn sm list-none">☰ Menú</summary>
-            <div className="card absolute right-0 mt-2 w-64 p-3 shadow-lg">
+            <div className="card absolute left-0 mt-2 w-64 p-3 shadow-lg">
               <Nav items={nav} />
               <Link href="/cuenta" className="btn sm w-full mt-2">🔑 Cambiar contraseña</Link>
               <form action={logout} className="mt-2 border-t border-line pt-2"><button className="btn sm w-full">Salir · {me.name}</button></form>
             </div>
           </details>
+          {brand}
+          <span aria-hidden />
         </header>
         <main className="mx-auto max-w-[1180px] p-4 lg:p-7">{children}</main>
       </div>
