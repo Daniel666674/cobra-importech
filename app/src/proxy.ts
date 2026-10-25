@@ -12,9 +12,7 @@ const DAY_S = 60 * 60 * 24;
  */
 export async function proxy(req: NextRequest) {
   const token = req.cookies.get(COOKIE)?.value;
-  // /comprobante/…: enlace firmado que se manda al cliente por WhatsApp (no requiere sesión).
-  const open = ["/login", "/setup"].includes(req.nextUrl.pathname) || req.nextUrl.pathname.startsWith("/comprobante/");
-  if (!token && !open) return NextResponse.redirect(new URL("/login", req.url));
+  if (!token && !["/login", "/setup"].includes(req.nextUrl.pathname)) return NextResponse.redirect(new URL("/login", req.url));
   const res = NextResponse.next();
   const secret = process.env.AUTH_SECRET;
   if (token && secret) {

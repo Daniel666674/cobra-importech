@@ -144,7 +144,7 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
           tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
         });
         if (!r.ok) return setErr(r.error);
-        router.push(`/ventas/${r.data}`);
+        router.push(`/ventas/${r.data}?nueva=1`);
       }
     });
   }
