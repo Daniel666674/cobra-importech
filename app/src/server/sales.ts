@@ -28,6 +28,8 @@ export const saleInput = z.object({
     batt: z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v), z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
     price: copField("el precio del producto fuera de inventario", 1), cost: copField("el costo").default(0),
     warr: z.coerce.number().int().min(0).max(60).default(0),
+    /** Tienda aliada (proveedor) dueña del equipo: lo que se le paga queda en su cartera. Vacío = propio. */
+    ally: z.string().trim().default(""),
   })).max(20).default([]),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
@@ -122,8 +124,14 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
     for (const c of input.custom) if (/iphone/i.test(c.name) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
+    const allyIds = [...new Set(input.custom.map((c) => c.ally).filter(Boolean))];
+    const found = allyIds.length ? new Set((await tx.select({ id: allies.id }).from(allies).where(inArray(allies.id, allyIds))).map((x) => x.id)) : new Set<string>();
+    for (const c of input.custom) {
+      if (c.ally && !found.has(c.ally)) throw new AppError("La tienda aliada elegida ya no existe", "notfound");
+      if (c.ally && !(c.cost > 0)) throw new AppError(`Escribe lo que se le paga a la aliada por ${c.name}`, "invalid");
+    }
     for (const c of input.custom)
-      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0 });
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0, ...(c.ally ? { ally: c.ally } : {}) });
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
       await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);

@@ -27,10 +27,12 @@ type Props = {
   cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[]; surcharges: Record<string, number> };
   can: { discount: boolean; cost: boolean; credit: boolean; tradein: boolean };
   warr: Record<string, number>;
+  /** Tiendas aliadas activas: proveedor de un producto fuera de inventario. */
+  allies: { id: string; name: string }[];
   start: { item: string; mode: "contado" | "apartado"; hold: string };
 };
 
-export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
+export function PosClient({ items, clients, cfg, can, start, warr, allies }: Props) {
   const router = useRouter();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const finishing = start.hold ? byId.get(start.hold) ?? null : null;
@@ -60,8 +62,8 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
   const [scanMsg, setScanMsg] = useState("");
   const [cq, setCq] = useState("");
   const [today] = useState(() => Date.now());
-  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string };
-  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1) };
+  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; ally: string };
+  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), ally: "" };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
   const [holdUntil, setHoldUntil] = useState<number | null>(() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + cfg.holdDays); return d.getTime(); });
@@ -242,10 +244,11 @@ export function PosClient({ items, clients, cfg, can, start, warr }: Props) {
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
-                {can.cost && <MoneyInput placeholder="Costo (opcional)" aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
+                {allies.length > 0 && <select aria-label="Proveedor" value={cf.ally} onChange={(e) => setCf({ ...cf, ally: e.target.value })}><option value="">Proveedor: propio</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>}
+                {(can.cost || cf.ally) && <MoneyInput placeholder={cf.ally ? "Se le paga a la aliada *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
-                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
+                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.ally && !(+cf.cost > 0)) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
                 <button type="button" className="btn sm" onClick={() => setCf(null)}>Cancelar</button>
               </div>
             </div>
