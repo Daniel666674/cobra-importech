@@ -127,13 +127,32 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
     for (const c of input.custom) if (/iphone/i.test(c.name) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
-    const allyIds = [...new Set(input.custom.map((c) => c.ally).filter(Boolean))];
-    const found = allyIds.length ? new Set((await tx.select({ id: allies.id }).from(allies).where(inArray(allies.id, allyIds))).map((x) => x.id)) : new Set<string>();
-    for (const c of input.custom) {
-      if (c.ally && !found.has(c.ally)) throw new AppError("La tienda aliada elegida ya no existe", "notfound");
-      if (c.ally && !(c.cost > 0)) throw new AppError(`Escribe lo que se le paga a la aliada por ${c.name}`, "invalid");
+    // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
+    const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
+    const customs: (typeof input.custom[number])[] = [];
+    for (const c0 of input.custom) {
+      const c = { ...c0 };
+      if (c.ally) {
+        const [ok] = await tx.select({ id: allies.id }).from(allies).where(eq(allies.id, c.ally));
+        if (!ok) throw new AppError("La tienda aliada elegida ya no existe", "notfound");
+      } else if (c.supplier) {
+        const key = c.supplier.toLowerCase();
+        let hit = known.get(key);
+        if (!hit) {
+          const row = { id: "A" + (await nextCounter(tx, "ally")), name: c.supplier, contact: "", phone: "", doc: "", mode: "consignacion", notes: "Creada al vender un producto fuera de inventario", active: true, t: Date.now(), terms: 0, bank: "", due: null };
+          await tx.insert(allies).values(row);
+          await logFeed(tx, a, "owner", "🤝", `Nueva tienda aliada: <b>${esc(row.name)}</b> (creada desde ${no}) · ${esc(a.name)}`);
+          hit = row; known.set(key, row);
+        } else if (!hit.active) {
+          await tx.update(allies).set({ active: true }).where(eq(allies.id, hit.id));
+          hit.active = true;
+        }
+        c.ally = hit.id;
+      }
+      if (c.ally && !(c.cost > 0)) throw new AppError(`Escribe lo que se le paga a la tienda por ${c.name}`, "invalid");
+      customs.push(c);
     }
-    for (const c of input.custom)
+    for (const c of customs)
       saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0, ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
@@ -316,7 +335,7 @@ async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLin
   const consign = new Set((await tx.select().from(allies).where(inArray(allies.id, ids))).filter((x) => x.mode === "consignacion").map((x) => x.id));
   for (const [i, l] of lines.entries()) {
     const q = qtyOf(l, i);
-    if (!l.ally || !q || !consign.has(l.ally)) continue;
+    if (!l.ally || !q || !(consign.has(l.ally) || !l.item)) continue;
     await tx.insert(allyMoves).values({ ally: l.ally, t: Date.now(), kind: "deuda", amount: q * l.cost, ref, detail: `${what}: ${l.name}${Math.abs(q) > 1 ? " ×" + Math.abs(q) : ""}`, by: a.name });
   }
 }

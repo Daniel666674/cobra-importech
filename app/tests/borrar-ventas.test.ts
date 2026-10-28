@@ -107,7 +107,7 @@ describe("producto fuera de inventario con proveedor", () => {
     const { allies } = await import("@/db/schema");
     await db.insert(allies).values({ id: "al-x", name: "Aliada X", mode: "consignacion", active: true, t: Date.now() }).onConflictDoNothing();
     const custom = { name: "iPhone 14 Pro", spec: "256 GB", color: "Morado", cond: "Usado", serial: "359128122127265", batt: 100, price: 3_000_000, warr: 1, ally: "al-x" };
-    await expect(createSale(db, owner, { custom: [{ ...custom, cost: 0 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] })).rejects.toThrow(/aliada/);
+    await expect(createSale(db, owner, { custom: [{ ...custom, cost: 0 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] })).rejects.toThrow(/se le paga/);
     const s = await createSale(db, owner, { custom: [{ ...custom, cost: 2_500_000 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
     expect(s.lines[0].ally).toBe("al-x");
     const moves = await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no));
@@ -129,9 +129,28 @@ describe("dirección del cliente", () => {
 });
 
 describe("tienda proveedora escrita a mano", () => {
-  it("queda en la línea de la venta", async () => {
-    const custom = { name: "iPhone 14 Pro", spec: "256 GB", color: "Morado", cond: "Usado", serial: "359128122127266", batt: 100, price: 3_000_000, warr: 1, supplier: "  Celulares El Centro " };
-    const s = await createSale(db, owner, { custom: [custom], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
-    expect(s.lines[0].supplier).toBe("Celulares El Centro");
+  const custom = { name: "iPhone 14 Pro", spec: "256 GB", color: "Morado", cond: "Usado", batt: 100, price: 3_000_000, warr: 1, supplier: "  Celulares El Centro " };
+  it("exige lo que se le paga, crea la tienda aliada sola y anota la deuda en su cartera", async () => {
+    const { allies } = await import("@/db/schema");
+    const pay1 = [{ method: "Efectivo", amount: 3_000_000 }];
+    await expect(createSale(db, owner, { custom: [{ ...custom, serial: "359128122127270", cost: 0 }], payments: pay1 })).rejects.toThrow(/se le paga/);
+    const s = await createSale(db, owner, { custom: [{ ...custom, serial: "359128122127271", cost: 2_400_000 }], payments: pay1 });
+    expect(s.lines[0]).toMatchObject({ supplier: "Celulares El Centro" });
+    const found = (await db.select().from(allies)).filter((x) => x.name === "Celulares El Centro");
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ mode: "consignacion", active: true });
+    expect(s.lines[0].ally).toBe(found[0].id);
+    expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ ally: found[0].id, kind: "deuda", amount: 2_400_000 }]);
+    // Segunda venta con el mismo nombre (otras mayúsculas): reutiliza la tienda y suma la deuda.
+    const s2 = await createSale(db, owner, { custom: [{ ...custom, supplier: "celulares el centro", serial: "359128122127272", cost: 1_000_000 }], payments: pay1 });
+    expect((await db.select().from(allies)).filter((x) => x.name.toLowerCase() === "celulares el centro")).toHaveLength(1);
+    expect(s2.lines[0].ally).toBe(found[0].id);
+    expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s2.no))).toMatchObject([{ ally: found[0].id, amount: 1_000_000 }]);
+  });
+  it("una tienda de tipo «compra» también recibe la deuda de un producto fuera de inventario", async () => {
+    const { allies } = await import("@/db/schema");
+    await db.insert(allies).values({ id: "al-compra", name: "Tienda Compra", mode: "compra", active: true, t: Date.now() });
+    const s = await createSale(db, owner, { custom: [{ ...custom, supplier: "Tienda Compra", serial: "359128122127273", cost: 500_000 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
+    expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ ally: "al-compra", amount: 500_000 }]);
   });
 });
