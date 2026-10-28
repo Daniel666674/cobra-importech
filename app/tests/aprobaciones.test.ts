@@ -87,8 +87,10 @@ describe("vender un producto sin precio", () => {
     const s = await createSale(db, emp, { lines: [{ item: it.id, qty: 1, price: 60_000 }], payments: [{ method: "Efectivo", amount: 60_000 }] });
     expect(s.total).toBe(60_000);
     expect((await get(it.id)).price).toBe(60_000);
-    // con precio ya puesto, el de caja se ignora
-    const s2 = await createSale(db, emp, { lines: [{ item: it.id, qty: 1, price: 1_000 }], payments: [{ method: "Efectivo", amount: 60_000 }] });
-    expect(s2.total).toBe(60_000);
+    // con precio ya puesto, cambiarlo en caja pide permiso de descuentos y solo vale para esa venta
+    await expect(createSale(db, emp, { lines: [{ item: it.id, qty: 1, price: 1_000 }], payments: [{ method: "Efectivo", amount: 1_000 }] })).rejects.toThrow(/permiso/);
+    const s2 = await createSale(db, { ...owner, perms: [...owner.perms, "discount"] }, { lines: [{ item: it.id, qty: 1, price: 50_000 }], payments: [{ method: "Efectivo", amount: 50_000 }] });
+    expect(s2.total).toBe(50_000);
+    expect((await get(it.id)).price).toBe(60_000);
   });
 });

@@ -107,7 +107,6 @@ describe("producto fuera de inventario con proveedor", () => {
     const { allies } = await import("@/db/schema");
     await db.insert(allies).values({ id: "al-x", name: "Aliada X", mode: "consignacion", active: true, t: Date.now() }).onConflictDoNothing();
     const custom = { name: "iPhone 14 Pro", spec: "256 GB", color: "Morado", cond: "Usado", serial: "359128122127265", batt: 100, price: 3_000_000, warr: 1, ally: "al-x" };
-    await expect(createSale(db, owner, { custom: [{ ...custom, cost: 0 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] })).rejects.toThrow(/se le paga/);
     const s = await createSale(db, owner, { custom: [{ ...custom, cost: 2_500_000 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
     expect(s.lines[0].ally).toBe("al-x");
     const moves = await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no));
@@ -133,7 +132,6 @@ describe("tienda proveedora escrita a mano", () => {
   it("exige lo que se le paga, crea la tienda aliada sola y anota la deuda en su cartera", async () => {
     const { allies } = await import("@/db/schema");
     const pay1 = [{ method: "Efectivo", amount: 3_000_000 }];
-    await expect(createSale(db, owner, { custom: [{ ...custom, serial: "359128122127270", cost: 0 }], payments: pay1 })).rejects.toThrow(/se le paga/);
     const s = await createSale(db, owner, { custom: [{ ...custom, serial: "359128122127271", cost: 2_400_000 }], payments: pay1 });
     expect(s.lines[0]).toMatchObject({ supplier: "Celulares El Centro" });
     const found = (await db.select().from(allies)).filter((x) => x.name === "Celulares El Centro");
@@ -173,6 +171,39 @@ describe("fecha de la venta y accesorios fuera de inventario", () => {
     expect(s.total).toBe(150_000);
     expect(s.lines[0]).toMatchObject({ qty: 3, supplier: "Accesorios Ruiz" });
     expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ kind: "deuda", amount: 60_000 }]);
-    await expect(createSale(db, owner, { custom: [{ ...acc, cat: "iPhone", supplier: "" }], payments: [{ method: "Efectivo", amount: 150_000 }] })).rejects.toThrow(/batería/);
+    // La batería ya no es obligatoria, ni siquiera en un iPhone.
+    const ph = await createSale(db, owner, { custom: [{ ...acc, cat: "iPhone", qty: 1, supplier: "" }], payments: [{ method: "Efectivo", amount: 50_000 }] });
+    expect(ph.lines[0].batt).toBeUndefined();
+  });
+});
+
+describe("editar una venta guardada y datos incompletos", () => {
+  it("permite productos manuales sin precio, sin batería y con pagos incompletos (saldo pendiente)", async () => {
+    const s = await createSale(db, owner, { custom: [{ cat: "iPhone", name: "iPhone 12", spec: "64 GB", color: "", cond: "Usado", serial: "3591", price: 1_000_000 }], payments: [{ method: "Efectivo", amount: 400_000 }] });
+    expect(s).toMatchObject({ total: 1_000_000, pending: 600_000 });
+    const s0 = await createSale(db, owner, { custom: [{ cat: "Accesorios", name: "Cable", price: 0 }] });
+    expect(s0).toMatchObject({ total: 0, pending: 0 });
+  });
+  it("corrige precio, costo, serial, batería, fecha y pagos; recalcula total y saldo", async () => {
+    const { editSale } = await import("@/server/sales");
+    const s = await createSale(db, owner, { custom: [{ cat: "iPhone", name: "iPhone 12", price: 1_000_000, cost: 700_000, serial: "3591", supplier: "Tienda Editar" }], payments: [{ method: "Efectivo", amount: 400_000 }] });
+    const day = new Date(2026, 6, 4, 12).getTime();
+    const r = await editSale(db, owner, s.id, { date: day, disc: 0, notes: "corregida", lines: [{ price: "1.200.000", cost: "800.000", warr: 3, serial: "359112345678901", serial2: "", batt: 88 }], payments: [{ method: "Transferencia", amount: "700.000" }, { method: "Efectivo", amount: "0" }] });
+    expect(r).toEqual({ total: 1_200_000, pending: 500_000 });
+    const [got] = await db.select().from(sales).where(eq(sales.id, s.id));
+    expect(got).toMatchObject({ t: day, total: 1_200_000, pending: 500_000, method: "Transferencia", notes: "corregida" });
+    expect(got.lines[0]).toMatchObject({ price: 1_200_000, cost: 800_000, warr: 3, serial: "359112345678901", batt: 88 });
+    // la deuda con la tienda proveedora se rehace con el costo nuevo
+    expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ kind: "deuda", amount: 800_000 }]);
+    await expect(editSale(db, seller, s.id, { lines: [{ price: 1, cost: 0 }], payments: [] })).rejects.toThrow(/permiso/);
+    await expect(editSale(db, owner, s.id, { lines: [], payments: [] })).rejects.toThrow(/cambió/);
+  });
+  it("no cambia la cantidad de un producto del inventario desde la edición", async () => {
+    const { editSale } = await import("@/server/sales");
+    const acc = (await db.select().from(items)).find((i) => i.track === "qty" && i.qty >= 3)!;
+    const s = await createSale(db, owner, { lines: [{ item: acc.id, qty: 1 }], payments: [{ method: "Efectivo", amount: acc.price }] });
+    await expect(editSale(db, owner, s.id, { lines: [{ price: acc.price, cost: 0, qty: 2 }], payments: [] })).rejects.toThrow(/devolución/);
+    const ok = await editSale(db, owner, s.id, { lines: [{ price: 12_345, cost: acc.cost }], payments: [{ method: "Efectivo", amount: 12_345 }] });
+    expect(ok).toEqual({ total: 12_345, pending: 0 });
   });
 });

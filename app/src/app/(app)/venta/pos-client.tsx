@@ -71,7 +71,11 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
 
   // Precio escrito en caja para productos sin precio de venta (queda guardado en el producto al cobrar).
   const [typed, setTyped] = useState<Record<string, string>>({});
-  const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it).map((x) => ({ ...x, it: x.it.price > 0 ? x.it : { ...x.it, price: +(typed[x.it.id] ?? "") || 0 }, noPrice: !(x.it.price > 0) }));
+  const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it).map((x) => {
+    const orig = x.it.price, t = typed[x.it.id];
+    const price = (!(orig > 0) || can.discount) && t !== undefined && t !== "" ? +t || 0 : orig;
+    return { ...x, it: { ...x.it, price }, noPrice: !(orig > 0), orig, edited: price !== orig };
+  });
   const T = posTotals([...cart.map((x) => ({ price: x.it.price, cost: x.it.cost, qty: x.l.qty })), ...customs.map((c) => ({ price: +c.price || 0, cost: +c.cost || 0, qty: c.qty }))], { type: discType, value: +disc || 0 }, finishing?.hold?.abono ?? 0);
   const anyItem = cart.length + customs.length > 0;
   const hold = mode === "apartado";
@@ -92,7 +96,6 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
 
   let why = "";
   if (!anyItem) why = "Agrega al menos un producto";
-  else if (cart.some((x) => x.noPrice && !(x.it.price > 0))) why = `Escribe el precio de venta de «${cart.find((x) => x.noPrice && !(x.it.price > 0))!.it.name}»`;
   else if (newC && !nc.name.trim()) why = "Escribe el nombre del cliente nuevo";
   else if (T.pct > 0 && !reason.trim()) why = "Indica el motivo del descuento";
   else if (T.pct > cfg.maxDisc && !can.discount) why = `El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`;
@@ -108,9 +111,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   } else if (due < 0) why = `La retoma supera el total por ${fmt(-due)}: regístrala sola en «Retomas»`;
   else if (trades.length && (!(client || newC) || !clientDoc)) why = "Para recibir un equipo en parte de pago, elige o crea el cliente con su cédula";
   else if (due > 0) {
-    if (resolved.some((p) => p.amount <= 0)) why = "Cada método de pago debe tener un valor";
-    else if (paid < due) why = `Falta asignar ${fmt(due - paid)} en los pagos`;
-    else if (paid > due) why = `Los pagos superan el total por ${fmt(paid - due)}`;
+    if (paid > due) why = `Los pagos superan el total por ${fmt(paid - due)}`;
   }
 
   const filtered = items.filter((i) => {
@@ -142,7 +143,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
       } else {
         const r = await createSaleAction({
           ...(saleDate ? { date: saleDate } : {}),
-          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice ? { price: x.it.price } : {}) })), client: client_, newClient,
+          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice || x.edited ? { price: x.it.price } : {}) })), client: client_, newClient,
           custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0, batt: c.batt === "" ? null : +c.batt })),
           discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
           tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
@@ -214,10 +215,10 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
             </div>
           ) : (
             <ul className="space-y-2">
-              {cart.map(({ l, it, noPrice }) => (
+              {cart.map(({ l, it, noPrice, orig, edited }) => (
                 <li key={l.id} className="flex flex-wrap items-center gap-2">
-                  <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí" : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
-                  {noPrice && <MoneyInput className={`!w-32 ${it.price > 0 ? "" : "!border-amber-t"}`} placeholder="Precio venta" aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} autoFocus />}
+                  <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí (o déjalo en $0)" : edited ? `${fmt(it.price)} (antes ${fmt(orig)})` : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
+                  {(noPrice || can.discount) && <MoneyInput className="!w-32" placeholder={noPrice ? "Precio venta" : String(orig)} aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} />}
                   {isQty(it) && <input type="number" aria-label="Cantidad" className="!w-16" min={1} max={it.qty} value={l.qty} onChange={(e) => setQty(l.id, +e.target.value)} />}
                   <b className="tabular-nums w-24 text-right">{fmt(it.price * l.qty)}</b>
                   {!(finishing && finishing.id === l.id) && <button type="button" className="btn sm" aria-label={`Quitar ${it.name}`} onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}>✕</button>}
@@ -243,18 +244,18 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 <ComboSelect ariaLabel="Color" value={cf.color} options={COLOR_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, color: x })} placeholder="Color…" />
                 {cf.cat !== "Accesorios" && <input className="mono" placeholder={cf.cat === "iPhone" ? "IMEI 1 / serial" : "Serial (opcional)"} aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />}
                 {cf.cat === "iPhone" && <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />}
-                {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder={cf.cat === "iPhone" ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
+                {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder="Batería % (opcional)" aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
                 {(cf.cat === "AirPods" || cf.cat === "Accesorios") && <input type="number" min={1} max={1000} placeholder="Cantidad" aria-label="Cantidad fuera de inventario" value={cf.qty} onChange={(e) => setCf({ ...cf, qty: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />}
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
-                <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
+                <MoneyInput placeholder="Precio de venta (puede quedar vacío)" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
                 <input className="col-span-2" list="tiendas-aliadas" placeholder="Tienda proveedora (de dónde se consiguió)" aria-label="Tienda proveedora" maxLength={80} value={cf.supplier} onChange={(e) => setCf({ ...cf, supplier: e.target.value })} />
                 <datalist id="tiendas-aliadas">{allies.map((a) => <option key={a.id} value={a.name} />)}</datalist>
                 {cf.supplier.trim() && <p className="note col-span-2">{allies.some((a) => a.name.trim().toLowerCase() === cf.supplier.trim().toLowerCase()) ? "Tienda aliada existente: se suma a lo que se le debe." : "Tienda nueva: se crea sola en Cartera → Tiendas aliadas."}</p>}
-                {(can.cost || cf.supplier.trim()) && <MoneyInput placeholder={cf.supplier.trim() ? "Lo que se le paga a la tienda *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
+                {(can.cost || cf.supplier.trim()) && <MoneyInput placeholder={cf.supplier.trim() ? "Lo que se le paga a la tienda" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
-                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.supplier.trim() && !(+cf.cost > 0)) || (cf.cat === "iPhone" && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
+                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
                 <button type="button" className="btn sm" onClick={() => setCf(null)}>Cancelar</button>
               </div>
             </div>
@@ -369,6 +370,8 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : due > 0 ? `Cobrar ${fmt(due + feeTotal)}` : "Emitir comprobante"}
         </button>
         {why && cart.length > 0 && <p className="note" role="status">{why}</p>}
+        {!why && !hold && due > 0 && paid < due && <p className="chip warn !rounded-md !whitespace-normal" role="status">Los pagos no cubren todo: quedará un saldo pendiente de {fmt(due - paid)} en la venta.</p>}
+        {!why && anyItem && !hold && customs.some((c) => !(+c.price > 0)) && <p className="note" role="status">Hay productos sin precio: se registran en $0.</p>}
         {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{err}</p>}
       </section>
       {scanOpen && <ScanDialog onClose={() => setScanOpen(false)} onUse={(r) => {

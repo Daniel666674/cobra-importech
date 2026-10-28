@@ -1,0 +1,1 @@
+ALTER TABLE "sales" ADD COLUMN "pending" integer DEFAULT 0 NOT NULL;

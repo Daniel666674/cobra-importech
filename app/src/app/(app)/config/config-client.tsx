@@ -34,7 +34,7 @@ async function processLogo(file: File): Promise<string> {
 
 const now = Date.now();
 const SAMPLE_SALE = {
-  id: "S-0000", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
+  id: "S-0000", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, pending: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
   payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000, tradeins: [], surcharge: 0,
   lines: [
     { item: "", name: "iPhone 15 Pro 256 GB", color: "Titanio natural", cond: "Nuevo", serial: "356789123456789", qty: 1, price: 4_550_000, cost: 0, warr: 12, ret: 0 },

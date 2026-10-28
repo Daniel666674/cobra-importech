@@ -38,7 +38,7 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
                   <td className="max-w-[320px]"><span className="line-clamp-2">{s.lines.map((l) => (l.qty > 1 ? `${l.qty}× ` : "") + l.name).join(", ")}</span></td>
                   <td>{s.method}</td>
                   <td>{(un.get(s.by) ?? s.notes.match(/Vendedor: ([^·]+)/)?.[1]?.trim() ?? "—").split(" ")[0]}</td>
-                  <td className="num"><b>{fmt(saleNet(s))}</b> {saleVoid(s) && <Chip tone="bad">Devuelta</Chip>}</td>
+                  <td className="num"><b>{fmt(saleNet(s))}</b> {saleVoid(s) && <Chip tone="bad">Devuelta</Chip>} {s.pending > 0 && <Chip tone="warn">Debe {fmt(s.pending)}</Chip>}</td>
                 </tr>
               ))}
             </tbody>

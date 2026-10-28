@@ -117,6 +117,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
           {pays.map((p, i) => <div key={i} className="flex justify-between"><span>{p.method}{p.fee ? ` (incluye recargo ${fmt(p.fee)})` : ""}</span><span className="tabular-nums">{fmt(p.amount + (p.fee ?? 0))}</span></div>)}
           {s.cash && <div className="flex justify-between"><span>Efectivo recibido · cambio</span><span className="tabular-nums">{fmt(s.cash.given)} · {fmt(s.cash.change)}</span></div>}
           <div className="flex justify-between border-t border-gray-200 pt-2 font-bold"><span>Total pagado</span><span className="tabular-nums">{fmt(paidNow)}</span></div>
+          {s.pending > 0 && <div className="flex justify-between font-bold text-red-700"><span>Saldo pendiente</span><span className="tabular-nums">{fmt(s.pending)}</span></div>}
         </div>
       </div>
       <p className="mt-4 rounded bg-gray-50 px-3 py-2 text-[12px] font-semibold tracking-wide text-gray-700">{inWords(s.total)}</p>
