@@ -20,8 +20,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ kind: string }
     head = ["id", "comprobante", "fecha", "cliente_id", "vendedor_id", "metodo", "total", "descuento_pct", "productos", "origen"];
     rows = (await db.select().from(sales)).map((s) => [s.id, s.no, new Date(s.t).toISOString(), s.client, s.by, s.method, s.total, s.disc, s.lines.map((l) => `${l.qty}x ${l.name}`).join(" | "), s.source]);
   } else if (kind === "clientes") {
-    head = ["id", "nombre", "documento", "telefono", "correo", "notas"];
-    rows = (await db.select().from(clients)).map((c) => [c.id, c.name, c.doc, c.phone, c.email, c.notes]);
+    head = ["id", "nombre", "documento", "telefono", "correo", "direccion", "notas"];
+    rows = (await db.select().from(clients)).map((c) => [c.id, c.name, c.doc, c.phone, c.email, c.address, c.notes]);
   } else if (kind === "pagos-aliadas") {
     const sp = new URL(_req.url).searchParams, d = (k: string) => (sp.get(k) ? new Date(sp.get(k) + "T12:00:00").getTime() : null);
     const log = await paymentsLog(db, { from: d("desde"), to: d("hasta"), ally: sp.get("tienda") ?? "", method: sp.get("forma") ?? "" });

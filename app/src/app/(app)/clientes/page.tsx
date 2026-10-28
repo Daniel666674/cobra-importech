@@ -13,7 +13,7 @@ export default async function Clientes({ searchParams }: PageProps<"/clientes">)
   const q = ((Array.isArray(sp.q) ? sp.q[0] : sp.q) ?? "").toLowerCase().trim();
   const db = await getDb();
   const [cl, ss, its] = await Promise.all([db.select().from(clients), db.select().from(sales), db.select().from(items)]);
-  const rows = cl.filter((c) => !q || `${c.name} ${c.doc} ${c.phone} ${c.email}`.toLowerCase().includes(q)).map((c) => {
+  const rows = cl.filter((c) => !q || `${c.name} ${c.doc} ${c.phone} ${c.email} ${c.address}`.toLowerCase().includes(q)).map((c) => {
     const mine = ss.filter((s) => s.client === c.id && !saleVoid(s));
     return { c, n: mine.length, total: mine.reduce((a, s) => a + saleNet(s), 0), last: mine.reduce((a, s) => Math.max(a, s.t), 0), holds: its.filter((i) => i.hold?.client === c.id).length };
   }).sort((a, b) => b.total - a.total);

@@ -41,7 +41,7 @@ const SAMPLE_SALE = {
     { item: "", name: "Cargador USB-C 20 W", color: "", cond: "Nuevo", serial: "", qty: 1, price: 200_000, cost: 0, warr: 3, ret: 0 },
   ],
 };
-const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", email: "maria@correo.com", notes: "" };
+const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", address: "Calle 10 # 5-20, Medellín", email: "maria@correo.com", notes: "" };
 
 export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, sources, salesCount }: {
   initialTab: string; cfg: Cfg; logo: string;

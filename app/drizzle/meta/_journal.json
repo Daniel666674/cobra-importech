@@ -92,6 +92,13 @@
       "when": 1792732055888,
       "tag": "0012_fechas_calendario",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793154048090,
+      "tag": "0013_direccion_cliente",
+      "breakpoints": true
     }
   ]
 }

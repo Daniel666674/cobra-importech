@@ -17,6 +17,7 @@ export const clientInput = z.object({
   phone: z.string().trim().default(""),
   email: z.string().trim().default(""),
   doc: z.string().trim().default(""),
+  address: z.string().trim().max(200, "La dirección es muy larga (máximo 200 caracteres)").default(""),
   notes: z.string().trim().default(""),
 });
 export async function saveClient(db: Db, a: Actor, id: string | null, raw: unknown) {

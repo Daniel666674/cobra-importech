@@ -16,6 +16,7 @@ const clientNew = z.object({
   phone: z.string().trim().default(""),
   email: z.string().trim().default(""),
   doc: z.string().trim().default(""),
+  address: z.string().trim().max(200, "La dirección es muy larga (máximo 200 caracteres)").default(""),
 });
 
 export const saleInput = z.object({
@@ -52,7 +53,7 @@ export async function ensureClient(db: Db, client: string | null, nc: z.infer<ty
   }
   if (!nc) return null;
   const id = "c" + (await nextCounter(db, "client"));
-  const row = { id, name: nc.name, phone: nc.phone, email: nc.email, doc: nc.doc, notes: "" };
+  const row = { id, name: nc.name, phone: nc.phone, email: nc.email, doc: nc.doc, address: nc.address, notes: "" };
   await db.insert(clients).values(row);
   return row;
 }

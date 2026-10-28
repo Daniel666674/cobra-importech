@@ -70,7 +70,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
   return (
     <ReceiptFrame cfg={cfg} kind={cfg.invTitle || "Comprobante de venta"} no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : s.mode === "historico" ? ["HISTÓRICA", "warn"] : ["PAGADA", "ok"]}>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Card title="Cliente" rows={[["Nombre", client?.name ?? "Cliente de mostrador"], ["Documento", client?.doc ?? ""], ["Teléfono", client?.phone ?? ""], ["Correo", client?.email ?? ""]]} />
+        <Card title="Cliente" rows={[["Nombre", client?.name ?? "Cliente de mostrador"], ["Documento", client?.doc ?? ""], ["Teléfono", client?.phone ?? ""], ["Dirección", client?.address ?? ""], ["Correo", client?.email ?? ""]]} />
         <Card title="Detalles de la venta" rows={[["Atendió", seller], ["Forma de pago", s.method], ["Descuento", s.disc ? `${+s.disc.toFixed(1)}%${s.discReason ? " · " + s.discReason : ""}` : ""], ["Observaciones", s.notes]]} />
       </div>
       <div className="mt-5 overflow-x-auto">
