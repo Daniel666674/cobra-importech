@@ -5,7 +5,7 @@ import { allyMoves, claims, clients, counters, items, sales, tacModels } from "@
 import { withCheck } from "@/lib/imei-test";
 import type { Actor } from "@/server/core";
 import { openClaim } from "@/server/ops";
-import { DELETE_ALL_PHRASE, createSale, deleteAllSales, deleteSale } from "@/server/sales";
+import { DELETE_ALL_PHRASE, createSale, deleteAllSales, deleteSale, renameSale } from "@/server/sales";
 import { freshDb } from "./helpers";
 
 const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "sell", "discount", "refund", "tradein", "cost_view", "settings"], locked: false };
@@ -85,5 +85,19 @@ describe("borrar ventas", () => {
     expect((await db.select().from(sales).where(eq(sales.source, ""))).length).toBe(skip);
     const [c] = await db.select().from(counters).where(eq(counters.key, "invoice"));
     expect(skip === 0 ? c.value : -1).toBe(skip === 0 ? 1000 : -1);
+  });
+});
+
+describe("cambiar el número de comprobante", () => {
+  it("lo cambia a mano, no deja repetir y solo con permiso", async () => {
+    const it = await stockPhone();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: await pay(it.id) });
+    const it2 = await stockPhone();
+    const s2 = await createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id) });
+    expect(await renameSale(db, owner, s.id, " A-2001 ")).toBe("A-2001");
+    expect((await db.select().from(sales).where(eq(sales.id, s.id)))[0].no).toBe("A-2001");
+    await expect(renameSale(db, owner, s2.id, "A-2001")).rejects.toThrow(/Ya existe/);
+    await expect(renameSale(db, owner, s2.id, "mal número!")).rejects.toThrow(/Solo letras/);
+    await expect(renameSale(db, seller, s2.id, "B-1")).rejects.toThrow(/permiso/);
   });
 });

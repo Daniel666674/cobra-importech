@@ -354,6 +354,23 @@ export async function deleteSale(db: Db, a: Actor, saleId: string) {
   });
 }
 
+/** Cambia a mano el número de comprobante de una venta (por ejemplo, para que coincida con el de la factura física). */
+export async function renameSale(db: Db, a: Actor, saleId: string, rawNo: unknown) {
+  need(a, "settings");
+  const no = z.string().trim().min(1, "Escribe el número de comprobante").max(20, "Máximo 20 caracteres").regex(/^[A-Za-z0-9-]+$/, "Solo letras, números y guion").parse(rawNo);
+  return db.transaction(async (tx) => {
+    const [s] = await tx.select().from(sales).where(eq(sales.id, saleId)).for("update");
+    if (!s) throw new AppError("Venta no encontrada", "notfound");
+    if (s.no === no) return no;
+    const [dup] = await tx.select({ id: sales.id }).from(sales).where(eq(sales.no, no)).limit(1);
+    if (dup) throw new AppError(`Ya existe una venta con el número ${no}`, "conflict");
+    await tx.update(sales).set({ no }).where(eq(sales.id, saleId));
+    await tx.update(allyMoves).set({ ref: no }).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
+    await logFeed(tx, a, "owner", "🔢", `Comprobante <b>${esc(s.no)}</b> cambiado a <b>${esc(no)}</b> por ${esc(a.name)}`);
+    return no;
+  });
+}
+
 export const DELETE_ALL_PHRASE = "BORRAR VENTAS";
 
 /**

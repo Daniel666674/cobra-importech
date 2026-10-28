@@ -1,6 +1,6 @@
 "use server";
 import { act } from "@/server/act";
-import { addAbono, createHold, createSale, deleteAllSales, deleteSale, extendHold, refundSale, releaseHold } from "@/server/sales";
+import { addAbono, createHold, createSale, deleteAllSales, deleteSale, extendHold, renameSale, refundSale, releaseHold } from "@/server/sales";
 import { openClaim, resolveClaim, saveClient } from "@/server/ops";
 
 const P = ["/", "/inventario", "/ventas", "/apartados", "/garantias", "/clientes"];
@@ -38,4 +38,7 @@ export async function deleteSaleAction(id: string) {
 }
 export async function deleteAllSalesAction(confirm: string, skip: number, restart: string) {
   return act((db, a) => deleteAllSales(db, a, confirm, skip, restart), P);
+}
+export async function renameSaleAction(id: string, no: string) {
+  return act((db, a) => renameSale(db, a, id, no), P);
 }
