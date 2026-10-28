@@ -18,7 +18,7 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
   const cn = new Map(cl.map((c) => [c.id, c.name]));
   const cd = new Map(cl.map((c) => [c.id, `${c.doc} ${c.phone}`]));
   const un = new Map(us.map((u) => [u.id, u.name]));
-  const rows = all.filter((s) => !q || `${s.no} ${cn.get(s.client ?? "") ?? ""} ${cd.get(s.client ?? "") ?? ""} ${s.lines.map((l) => l.name + l.serial).join(" ")}`.toLowerCase().includes(q));
+  const rows = all.filter((s) => !q || `${s.no} ${cn.get(s.client ?? "") ?? ""} ${cd.get(s.client ?? "") ?? ""} ${s.lines.map((l) => l.name + l.serial + (l.supplier ?? "")).join(" ")}`.toLowerCase().includes(q));
   const limit = Math.max(PAGE, Number(Array.isArray(sp.n) ? sp.n[0] : sp.n) || PAGE);
   const shown = rows.slice(0, limit);
   const more = new URLSearchParams({ ...(q ? { q } : {}), n: String(limit + PAGE) });
