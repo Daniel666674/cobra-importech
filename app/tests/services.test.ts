@@ -67,9 +67,12 @@ describe("ventas", () => {
     expect(s.cash?.change).toBe(1000);
     expect((await db.select().from(items).where(eq(items.id, acc.id)))[0].qty).toBe(before - 2);
   });
-  it("no vende si los pagos no cuadran", async () => {
-    const [it] = await db.select().from(items).where(eq(items.status, "En vitrina"));
-    await rejects(createSale(db, emp, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: 1000 }] }), /Falta asignar/);
+  it("los pagos pueden quedar incompletos (saldo pendiente) pero no pasarse del total", async () => {
+    const it = (await db.select().from(items).where(eq(items.status, "En vitrina"))).reverse().find((i) => i.id !== "I-0001" && i.track === "unit" && i.price > 5000)!;
+    await rejects(createSale(db, emp, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price + 1 }] }), /superan/);
+    const s = await createSale(db, emp, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: 1000 }] });
+    expect(s.pending).toBe(it.price - 1000);
+    expect(s.total).toBe(it.price);
   });
   it("vende un equipo único una sola vez", async () => {
     const [it] = await db.select().from(items).where(eq(items.id, "I-0001"));

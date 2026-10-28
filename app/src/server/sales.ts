@@ -21,7 +21,7 @@ const clientNew = z.object({
 
 export const saleInput = z.object({
   /** `price`: solo para productos sin precio de venta (se escribe en caja y queda guardado en el producto). */
-  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 1).optional() })).default([]),
+  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 0).optional() })).default([]),
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     /** Categoría del producto fuera de inventario (la batería solo se exige a los iPhone). */
@@ -29,7 +29,7 @@ export const saleInput = z.object({
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
     cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), serial2: z.string().trim().max(40).default(""),
     batt: z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v), z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
-    price: copField("el precio del producto fuera de inventario", 1), cost: copField("el costo").default(0),
+    price: copField("el precio del producto fuera de inventario", 0).default(0), cost: copField("el costo").default(0),
     warr: z.coerce.number().int().min(0).max(60).default(0),
     /** Tienda aliada (proveedor) dueña del equipo: lo que se le paga queda en su cartera. Vacío = propio. */
     ally: z.string().trim().default(""),
@@ -97,9 +97,16 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const priced: { id: string; price: number }[] = [];
     for (const { it, qty, price } of lines) {
       if (!isAvail(it) && it.id !== input.holdItem) throw new AppError(`«${uname(it)}» ya no está disponible`, "conflict");
-      // Sin precio de venta: se toma el que se escribió en caja y se guarda en el producto.
-      if (!(it.price > 0) && price) { it.price = price; priced.push({ id: it.id, price }); }
-      if (!(it.price > 0)) throw new AppError(`«${uname(it)}» no tiene precio de venta: escríbelo en la venta`, "invalid");
+      if (!(it.price > 0) && price !== undefined) {
+        // Sin precio de venta: se toma el que se escribió en caja (si es mayor a 0 queda guardado en el producto; en $0 se vende así).
+        it.price = price;
+        if (price > 0) priced.push({ id: it.id, price });
+      } else if (price !== undefined && price !== it.price) {
+        // Cambiar el precio de un producto que ya tiene precio solo vale para esta venta y pide permiso de descuentos.
+        if (!can(a, "discount")) throw new AppError(`No tienes permiso para cambiar el precio de «${uname(it)}»: pide autorización`, "forbidden");
+        it.price = price;
+      }
+      if (!(it.price > 0) && price === undefined) throw new AppError(`«${uname(it)}» no tiene precio de venta: escríbelo en la venta`, "invalid");
       if (isQty(it) ? qty > it.qty : qty !== 1) throw new AppError(isQty(it) ? `Solo hay ${it.qty} de «${it.name}»` : `«${uname(it)}» es un equipo único`, "conflict");
     }
     let hold: Hold | null = null;
@@ -117,7 +124,9 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const cashDue = T.due - tradeTotal;
     const pays: Payment[] = input.payments;
     const sum = pays.reduce((s, p) => s + p.amount, 0);
-    if (cashDue > 0 && sum !== cashDue) throw new AppError(sum < cashDue ? `Falta asignar ${fmt(cashDue - sum)} en los pagos` : `Los pagos superan el total por ${fmt(sum - cashDue)}`, "invalid");
+    // Los pagos pueden quedar incompletos (ventas viejas, datos que faltan): lo que no se cobró queda como saldo pendiente.
+    if (sum > Math.max(0, cashDue)) throw new AppError(`Los pagos superan el total por ${fmt(sum - Math.max(0, cashDue))}`, "invalid");
+    const pending = Math.max(0, cashDue - sum);
     if (cashDue === 0 && pays.length) throw new AppError(tradeTotal ? "La retoma cubre todo: no hay nada más por cobrar" : "Con el apartado pagado completo no hay nada por cobrar", "invalid");
 
     const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient);
@@ -133,7 +142,6 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
-    for (const c of input.custom) if ((c.cat === "iPhone" || (!c.cat && /iphone/i.test(c.name))) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
     // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
     const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
     const customs: (typeof input.custom[number])[] = [];
@@ -156,7 +164,6 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
         }
         c.ally = hit.id;
       }
-      if (c.ally && !(c.cost > 0)) throw new AppError(`Escribe lo que se le paga a la tienda por ${c.name}`, "invalid");
       customs.push(c);
     }
     for (const c of customs)
@@ -178,7 +185,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const row = {
       id, no, t: when, client: client?.id ?? null, by: a.id,
       method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received, surcharge,
-      disc: T.pct, total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
+      disc: T.pct, total: 0, prepaid: T.prepaid, pending, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,
       holdPays: hold ? hold.pays.map((y) => ({ t: y.t, amount: y.amount, method: y.method, no: y.no })) : null,
     };
@@ -343,7 +350,7 @@ async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLin
   const consign = new Set((await tx.select().from(allies).where(inArray(allies.id, ids))).filter((x) => x.mode === "consignacion").map((x) => x.id));
   for (const [i, l] of lines.entries()) {
     const q = qtyOf(l, i);
-    if (!l.ally || !q || !(consign.has(l.ally) || !l.item)) continue;
+    if (!l.ally || !q || !(l.cost > 0) || !(consign.has(l.ally) || !l.item)) continue;
     await tx.insert(allyMoves).values({ ally: l.ally, t: Date.now(), kind: "deuda", amount: q * l.cost, ref, detail: `${what}: ${l.name}${Math.abs(q) > 1 ? " ×" + Math.abs(q) : ""}`, by: a.name });
   }
 }
@@ -406,6 +413,73 @@ export async function renameSale(db: Db, a: Actor, saleId: string, rawNo: unknow
     await tx.update(allyMoves).set({ ref: no }).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
     await logFeed(tx, a, "owner", "🔢", `Comprobante <b>${esc(s.no)}</b> cambiado a <b>${esc(no)}</b> por ${esc(a.name)}`);
     return no;
+  });
+}
+
+const editLine = z.object({
+  price: copField("el precio", 0),
+  cost: copField("el costo", 0),
+  warr: z.coerce.number().int().min(0).max(60).default(0),
+  serial: z.string().trim().max(40).default(""),
+  serial2: z.string().trim().max(40).default(""),
+  batt: z.preprocess((v) => (v === "" || v == null ? null : v), z.coerce.number().int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null),
+  /** Solo se cambia en productos fuera de inventario (los del inventario se corrigen con una devolución). */
+  qty: z.coerce.number().int().min(1).max(1000).optional(),
+});
+export const editSaleInput = z.object({
+  date: z.coerce.number().int().min(Date.UTC(2020, 0, 1), "La fecha de la venta no es válida").optional(),
+  notes: z.string().trim().max(500).optional(),
+  disc: z.coerce.number().min(0, "El descuento va de 0 a 100").max(100, "El descuento va de 0 a 100").optional(),
+  lines: z.array(editLine),
+  payments: z.array(z.object({ method: z.string().trim().min(1).max(40), amount: copField("el valor de cada pago", 0) })).max(12),
+});
+
+/**
+ * Corrige una venta ya guardada: fecha, precios, costos, seriales, batería, garantía, cantidades de productos manuales,
+ * descuento y pagos. El total y el saldo pendiente se recalculan solos. Solo quien puede cambiar la configuración.
+ */
+export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
+  need(a, "settings");
+  const v = editSaleInput.parse(raw);
+  const cfg = await getSettings(db);
+  return db.transaction(async (tx) => {
+    const [s] = await tx.select().from(sales).where(eq(sales.id, saleId)).for("update");
+    if (!s) throw new AppError("Venta no encontrada", "notfound");
+    if (v.lines.length !== s.lines.length) throw new AppError("La venta cambió: abre la venta de nuevo e inténtalo otra vez", "conflict");
+    const lines: SaleLine[] = s.lines.map((l, i) => {
+      const e = v.lines[i];
+      if (e.qty !== undefined && e.qty !== l.qty) {
+        if (l.item) throw new AppError(`«${l.name}» es del inventario: su cantidad se corrige con una devolución`, "invalid");
+        if (e.qty < (l.ret || 0)) throw new AppError(`«${l.name}»: ya hay ${l.ret} devueltos`, "invalid");
+      }
+      const next: SaleLine = { ...l, price: e.price, cost: e.cost, warr: e.warr, serial: e.serial, qty: e.qty ?? l.qty };
+      if (e.serial2) next.serial2 = e.serial2; else delete next.serial2;
+      if (e.batt != null) next.batt = e.batt; else delete next.batt;
+      return next;
+    });
+    const now = Date.now();
+    if (v.date && v.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
+    const t = v.date ? Math.min(v.date, now) : s.t;
+    const okMethods = new Set<string>([...METHODS, "Retoma", "Abono previo"]);
+    const payments: Payment[] = v.payments.filter((p) => p.amount > 0).map((p) => {
+      if (!okMethods.has(p.method)) throw new AppError(`Forma de pago no válida: ${p.method}`, "invalid");
+      const fee = p.method === "Retoma" || p.method === "Abono previo" ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount);
+      return fee ? { method: p.method, amount: p.amount, fee } : { method: p.method, amount: p.amount };
+    });
+    const disc = v.disc ?? s.disc;
+    const total = saleNet({ lines, disc });
+    const paid = payments.reduce((x, p) => x + p.amount, 0);
+    const pending = Math.max(0, total - s.prepaid - paid);
+    const surcharge = payments.reduce((x, p) => x + (p.fee ?? 0), 0);
+    const method = payments.length > 1 ? "Mixto" : payments[0]?.method ?? (s.prepaid ? "Abono previo" : "");
+    await tx.update(sales).set({ lines, payments, disc, total, pending, surcharge, method, t, ...(v.notes !== undefined ? { notes: v.notes } : {}) }).where(eq(sales.id, saleId));
+    // Si cambió algo que afecta lo que se le debe a una tienda proveedora, se rehace su deuda de esta venta.
+    if (lines.some((l) => l.ally)) {
+      await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
+      await allyDebts(tx, a, lines, (l) => lineNet(l), s.no, "Vendido");
+    }
+    await logFeed(tx, a, "owner", "✏️", `Venta <b>${esc(s.no)}</b> corregida por ${esc(a.name)}: total ${fmt(s.total)} → ${fmt(total)}${pending ? ` · saldo pendiente ${fmt(pending)}` : ""}`);
+    return { total, pending };
   });
 }
 

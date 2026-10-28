@@ -198,6 +198,8 @@ export const sales = pgTable("sales", {
   disc: doublePrecision("disc").notNull().default(0),
   total: integer("total").notNull(),
   prepaid: integer("prepaid").notNull().default(0),
+  /** Saldo que quedó sin cobrar al registrar la venta (datos incompletos o ventas viejas). */
+  pending: integer("pending").notNull().default(0),
   notes: text("notes").notNull().default(""),
   discReason: text("disc_reason").notNull().default(""),
   cash: jsonb("cash").$type<{ given: number; change: number } | null>(),
