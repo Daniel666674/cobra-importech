@@ -151,7 +151,7 @@ export function buildItems(rows: string[][], map: InvMapping, opts: BuildOpts) {
     if (extra) notes.unshift(/^\d+$/.test(extra) ? `Lote ${extra}` : title(extra));
     for (let c = 0; c < copies; c++) items.push({
       key: serial ? "s:" + serial : `r:${row}${copies > 1 ? "." + (c + 1) : ""}`, cat, name, spec: prettySpec(get(r, "spec")), color: title(get(r, "color")), cond, serial, serial2,
-      qty, cost: Math.round(cost), price: Math.round(price), warr: Number.isNaN(w) ? (opts.warr[cond] ?? 0) : Math.max(0, Math.min(60, Math.round(w))),
+      qty, cost: Math.round(cost), price: Math.round(price), warr: Number.isNaN(w) || w < 1 ? (opts.warr[cond] || 1) : Math.min(60, Math.round(w)),
       batt, min: Number.isNaN(m) ? (unit ? 0 : 3) : Math.max(0, Math.round(m)), notes: notes.join(" · "),
       acq: Number.isNaN(acqT) || acqT > Date.now() + 86_400_000 ? null : acqT,
     });

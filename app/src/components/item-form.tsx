@@ -86,7 +86,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       <Field id="i-price" label="Precio de venta (COP)">
         <MoneyInput id="i-price" value={v.price} onChange={(x) => set({ price: x })} />
       </Field>
-      <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={0} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
+      <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={1} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
         <Field id="i-batt" label={cat === "iPhone" ? "Salud de batería (%) *" : "Batería (%)"}><input id="i-batt" type="number" required={cat === "iPhone"} placeholder="Ej. 87" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
       )}

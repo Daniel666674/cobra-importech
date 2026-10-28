@@ -21,7 +21,7 @@ const clientNew = z.object({
 
 export const saleInput = z.object({
   /** `price`: solo para productos sin precio de venta (se escribe en caja y queda guardado en el producto). */
-  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 0).optional() })).default([]),
+  lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 0).optional(), warr: z.coerce.number().int().min(0).max(60).optional() })).default([]),
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     /** Categoría del producto fuera de inventario (la batería solo se exige a los iPhone). */
@@ -93,7 +93,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const rows = await tx.select().from(items).where(inArray(items.id, ids)).for("update");
     if (rows.length !== ids.length) throw new AppError("Un producto de la venta ya no existe", "notfound");
     const byId = new Map(rows.map((r) => [r.id, r]));
-    const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty, price: l.price }));
+    const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty, price: l.price, warr: l.warr }));
     const priced: { id: string; price: number }[] = [];
     for (const { it, qty, price } of lines) {
       if (!isAvail(it) && it.id !== input.holdItem) throw new AppError(`«${uname(it)}» ya no está disponible`, "conflict");
@@ -138,9 +138,11 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const inv = await nextCounter(tx, "invoice");
     const id = "S-" + String(n).padStart(4, "0");
     const no = (cfg.invPrefix ?? "FV-") + inv;
-    const saleLines: SaleLine[] = lines.map(({ it, qty }) => ({
+    // Todo producto lleva garantía: la que se escribió en la venta, la del producto o, si no hay, la de su condición (mínimo 1 mes).
+    const months = (cond: string, ...v: (number | undefined)[]) => v.find((x) => x != null && x > 0) ?? (cfg.warr[cond] > 0 ? cfg.warr[cond] : 1);
+    const saleLines: SaleLine[] = lines.map(({ it, qty, warr: w }) => ({
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
-      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
+      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: months(it.cond, w, it.warr), ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
     // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
     const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
@@ -167,7 +169,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       customs.push(c);
     }
     for (const c of customs)
-      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0, ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: months(c.cond, c.warr), ret: 0, ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
       await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);
@@ -452,7 +454,7 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
         if (l.item) throw new AppError(`«${l.name}» es del inventario: su cantidad se corrige con una devolución`, "invalid");
         if (e.qty < (l.ret || 0)) throw new AppError(`«${l.name}»: ya hay ${l.ret} devueltos`, "invalid");
       }
-      const next: SaleLine = { ...l, price: e.price, cost: e.cost, warr: e.warr, serial: e.serial, qty: e.qty ?? l.qty };
+      const next: SaleLine = { ...l, price: e.price, cost: e.cost, warr: e.warr > 0 ? e.warr : cfg.warr[l.cond] > 0 ? cfg.warr[l.cond] : 1, serial: e.serial, qty: e.qty ?? l.qty };
       if (e.serial2) next.serial2 = e.serial2; else delete next.serial2;
       if (e.batt != null) next.batt = e.batt; else delete next.batt;
       return next;

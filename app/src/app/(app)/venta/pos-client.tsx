@@ -71,6 +71,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
 
   // Precio escrito en caja para productos sin precio de venta (queda guardado en el producto al cobrar).
   const [typed, setTyped] = useState<Record<string, string>>({});
+  const [warrTyped, setWarrTyped] = useState<Record<string, string>>({});
   const cart = lines.map((l) => ({ l, it: byId.get(l.id)! })).filter((x) => x.it).map((x) => {
     const orig = x.it.price, t = typed[x.it.id];
     const price = (!(orig > 0) || can.discount) && t !== undefined && t !== "" ? +t || 0 : orig;
@@ -143,7 +144,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
       } else {
         const r = await createSaleAction({
           ...(saleDate ? { date: saleDate } : {}),
-          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice || x.edited ? { price: x.it.price } : {}) })), client: client_, newClient,
+          lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice || x.edited ? { price: x.it.price } : {}), ...(+(warrTyped[x.it.id] ?? "") > 0 ? { warr: +warrTyped[x.it.id] } : {}) })), client: client_, newClient,
           custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0, batt: c.batt === "" ? null : +c.batt })),
           discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
           tradeins: trades.map((t) => ({ item: t.item, official: t.official, ownerApproved: t.ownerApproved })),
@@ -219,6 +220,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 <li key={l.id} className="flex flex-wrap items-center gap-2">
                   <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí (o déjalo en $0)" : edited ? `${fmt(it.price)} (antes ${fmt(orig)})` : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
                   {(noPrice || can.discount) && <MoneyInput className="!w-32" placeholder={noPrice ? "Precio venta" : String(orig)} aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} />}
+                  <input type="number" min={1} max={60} className="!w-16" aria-label={`Garantía en meses de ${it.name}`} title="Garantía (meses)" placeholder={`${it.warr > 0 ? it.warr : (warr[it.cond] > 0 ? warr[it.cond] : 1)} m`} value={warrTyped[it.id] ?? ""} onChange={(e) => setWarrTyped({ ...warrTyped, [it.id]: e.target.value })} />
                   {isQty(it) && <input type="number" aria-label="Cantidad" className="!w-16" min={1} max={it.qty} value={l.qty} onChange={(e) => setQty(l.id, +e.target.value)} />}
                   <b className="tabular-nums w-24 text-right">{fmt(it.price * l.qty)}</b>
                   {!(finishing && finishing.id === l.id) && <button type="button" className="btn sm" aria-label={`Quitar ${it.name}`} onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))}>✕</button>}
@@ -247,7 +249,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder="Batería % (opcional)" aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
                 {(cf.cat === "AirPods" || cf.cat === "Accesorios") && <input type="number" min={1} max={1000} placeholder="Cantidad" aria-label="Cantidad fuera de inventario" value={cf.qty} onChange={(e) => setCf({ ...cf, qty: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />}
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
-                <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
+                <input type="number" min={1} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta (puede quedar vacío)" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
                 <input className="col-span-2" list="tiendas-aliadas" placeholder="Tienda proveedora (de dónde se consiguió)" aria-label="Tienda proveedora" maxLength={80} value={cf.supplier} onChange={(e) => setCf({ ...cf, supplier: e.target.value })} />
                 <datalist id="tiendas-aliadas">{allies.map((a) => <option key={a.id} value={a.name} />)}</datalist>
@@ -347,6 +349,14 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}
+              {paid > due ? (
+                <div className="rounded-md border border-red-300 p-2 text-[12.5px]" role="alert">
+                  <b className="text-red-600">Los pagos superan el valor de los productos por {fmt(paid - due)}.</b> Escribe aquí el valor <u>sin recargo</u> (los productos suman {fmt(due)}); el recargo de Addi o tarjeta se suma solo en el total.
+                  <button type="button" className="btn sm ml-2" onClick={() => { const last = pays.length - 1; setPays(pays.map((x, j) => (j === last ? { ...x, amount: String(Math.max(0, resolved[last].amount - (paid - due))) } : x))); }}>Ajustar el último pago</button>
+                </div>
+              ) : paid < due ? (
+                <p className="note">Falta asignar {fmt(due - paid)} (valor sin recargo). Si no se asigna, queda como saldo pendiente.</p>
+              ) : <p className="note">✓ Pagos completos ({fmt(due)} sin recargo).</p>}
               <button type="button" className="btn sm" onClick={() => setPays([...pays.map((p, i) => (p.amount === "" ? { ...p, amount: String(resolved[i].amount) } : p)), { method: cfg.methods.find((m) => m !== pays[pays.length - 1]?.method) ?? cfg.methods[0], amount: "" }])}>+ Dividir pago</button>
             </div>
             {pays.length === 1 && pays[0].method === "Efectivo" && (

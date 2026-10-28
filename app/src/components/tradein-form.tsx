@@ -37,7 +37,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const [res, setRes] = useState<(ImeiResult & { imei: string }) | null>(null);
   const [off, setOff] = useState<OfficialValue>({});
   const [ok, setOk] = useState(false);
-  const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "" });
+  const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "", warr: "" });
   const [ded, setDed] = useState<DeductionKey[]>([]);
   const [offerTouched, setOfferTouched] = useState(false);
   const [err, setErr] = useState("");
@@ -69,7 +69,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
     const serial = phone ? res!.imei : v.serial;
     onAccept({
-      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: warr[v.cond] ?? 1, src: "Trade-in", batt: v.batt === "" ? null : v.batt, notes },
+      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", batt: v.batt === "" ? null : v.batt, notes },
       official: phone ? off : undefined, ownerApproved: ok, offer,
       label: [v.name, v.spec, v.cond].filter(Boolean).join(" · ") + (serial ? ` · ••${serial.slice(-6)}` : ""),
     });
@@ -124,6 +124,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
           <div className="flex justify-between text-lg font-bold"><span>Oferta sugerida</span><span className="tabular-nums">{fmt(Q.offer)}</span></div>
         </div>
         <div><label className="lb" htmlFor="r-offer">Oferta final (COP)</label><MoneyInput id="r-offer" value={offerTouched ? v.offer : String(Q.offer)} onChange={(x) => { setOfferTouched(true); setV({ ...v, offer: x }); }} /></div>
+        <div><label className="lb" htmlFor="r-warr">Garantía al revender (meses)</label><input id="r-warr" type="number" min={1} max={60} placeholder={String(warr[v.cond] > 0 ? warr[v.cond] : 1)} value={v.warr} onChange={(e) => setV({ ...v, warr: e.target.value })} /></div>
         <div><label className="lb" htmlFor="r-resale">Precio de reventa (COP)</label><MoneyInput id="r-resale" value={v.resale} placeholder={v.ref} onChange={(x) => setV({ ...v, resale: x })} />
           {resale > 0 && offer > 0 && <p className="note mt-1">Margen al revender: {fmt(resale - offer)} ({Math.round(((resale - offer) / resale) * 100)}%)</p>}</div>
         {phone && gate?.needsOwner && <label className="flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={ok} onChange={(e) => setOk(e.target.checked)} /><span><b>Aprobación del propietario/a</b> por la advertencia.</span></label>}
