@@ -244,7 +244,8 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
-                {allies.length > 0 && <select aria-label="Proveedor" value={cf.ally} onChange={(e) => setCf({ ...cf, ally: e.target.value })}><option value="">Proveedor: propio</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>}
+                <select aria-label="Proveedor" value={cf.ally} onChange={(e) => setCf({ ...cf, ally: e.target.value })}><option value="">Proveedor: propio</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>
+                {!allies.length && <p className="note col-span-2">No hay tiendas aliadas activas. Créalas en <a className="underline" href="/cartera">Cartera</a> para elegirlas aquí como proveedor.</p>}
                 {(can.cost || cf.ally) && <MoneyInput placeholder={cf.ally ? "Se le paga a la aliada *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
