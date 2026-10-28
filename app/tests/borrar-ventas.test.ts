@@ -115,3 +115,15 @@ describe("producto fuera de inventario con proveedor", () => {
     await expect(createSale(db, owner, { custom: [{ ...custom, ally: "no-existe", cost: 1 }], payments: [{ method: "Efectivo", amount: 3_000_000 }] })).rejects.toThrow(/ya no existe/);
   });
 });
+
+describe("dirección del cliente", () => {
+  it("se guarda al crear o editar un cliente y al crearlo en una venta", async () => {
+    const { saveClient } = await import("@/server/ops");
+    const id = await saveClient(db, { ...owner, perms: [...owner.perms, "clients"] }, null, { name: "Ana", address: "Calle 10 # 5-20" });
+    expect((await db.select().from(clients).where(eq(clients.id, id)))[0].address).toBe("Calle 10 # 5-20");
+    const it = await stockPhone();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], newClient: { name: "Pedro", address: " Carrera 7 # 1-2 " }, payments: await pay(it.id) });
+    const [c] = await db.select().from(clients).where(eq(clients.id, s.client!));
+    expect(c.address).toBe("Carrera 7 # 1-2");
+  });
+});

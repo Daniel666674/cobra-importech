@@ -135,6 +135,8 @@ export const clients = pgTable("clients", {
   phone: text("phone").notNull().default(""),
   email: text("email").notNull().default(""),
   doc: text("doc").notNull().default(""),
+  /** Dirección del cliente (aparece en el comprobante). */
+  address: text("address").notNull().default(""),
   notes: text("notes").notNull().default(""),
 });
 

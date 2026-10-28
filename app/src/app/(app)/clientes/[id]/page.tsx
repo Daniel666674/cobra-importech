@@ -26,7 +26,7 @@ export default async function ClienteDetalle({ params }: PageProps<"/clientes/[i
   return (
     <>
       <div className="mb-3"><Link href="/clientes" className="note hover:underline">← Clientes</Link></div>
-      <PageHeader title={c.name} subtitle={[c.doc, c.phone, c.email].filter(Boolean).join(" · ") || "Sin datos de contacto"} actions={<EditClient id={c.id} init={{ name: c.name, doc: c.doc, phone: c.phone, email: c.email, notes: c.notes }} />} />
+      <PageHeader title={c.name} subtitle={[c.doc, c.phone, c.address, c.email].filter(Boolean).join(" · ") || "Sin datos de contacto"} actions={<EditClient id={c.id} init={{ name: c.name, doc: c.doc, phone: c.phone, address: c.address, email: c.email, notes: c.notes }} />} />
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <div className="card p-4"><div className="note">Total comprado</div><div className="text-xl font-bold">{fmt(total)}</div></div>
         <div className="card p-4"><div className="note">Compras</div><div className="text-xl font-bold">{valid.length}</div></div>

@@ -45,7 +45,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   const [mode, setMode] = useState<"contado" | "apartado">(finishing ? "contado" : start.mode);
   const [client, setClient] = useState(finishing?.hold?.client ?? "");
   const [newC, setNewC] = useState(false);
-  const [nc, setNc] = useState({ name: "", phone: "", email: "", doc: "" });
+  const [nc, setNc] = useState({ name: "", phone: "", email: "", doc: "", address: "" });
   const [discType, setDiscType] = useState<"pct" | "cop">("pct");
   const [disc, setDisc] = useState("");
   const [reason, setReason] = useState("");
@@ -286,6 +286,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
               <input className="col-span-2" placeholder="Nombre completo" value={nc.name} onChange={(e) => setNc({ ...nc, name: e.target.value })} aria-label="Nombre del cliente" />
               <input placeholder="Cédula / NIT" value={nc.doc} onChange={(e) => setNc({ ...nc, doc: e.target.value })} />
               <input placeholder="Celular" value={nc.phone} onChange={(e) => setNc({ ...nc, phone: e.target.value })} />
+              <input className="col-span-2" placeholder="Dirección" aria-label="Dirección del cliente" value={nc.address} onChange={(e) => setNc({ ...nc, address: e.target.value })} />
               <input className="col-span-2" placeholder="Correo" value={nc.email} onChange={(e) => setNc({ ...nc, email: e.target.value })} />
               <button type="button" className="btn sm col-span-2" onClick={() => setNewC(false)}>Usar un cliente existente</button>
             </div>
