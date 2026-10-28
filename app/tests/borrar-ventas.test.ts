@@ -207,3 +207,25 @@ describe("editar una venta guardada y datos incompletos", () => {
     expect(ok).toEqual({ total: 12_345, pending: 0 });
   });
 });
+
+describe("garantía en todos los productos", () => {
+  it("se puede escoger los meses al vender y nunca queda en 0", async () => {
+    const it = await stockPhone();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1, warr: 7 }], payments: await pay(it.id) });
+    expect(s.lines[0].warr).toBe(7);
+    const m = await createSale(db, owner, { custom: [{ cat: "Accesorios", name: "Cable", cond: "Nuevo", price: 10_000, warr: 0 }], payments: [{ method: "Efectivo", amount: 10_000 }] });
+    expect(m.lines[0].warr).toBeGreaterThan(0);
+    const m2 = await createSale(db, owner, { custom: [{ cat: "Accesorios", name: "Cable", cond: "Nuevo", price: 10_000, warr: 18 }], payments: [{ method: "Efectivo", amount: 10_000 }] });
+    expect(m2.lines[0].warr).toBe(18);
+  });
+});
+
+describe("pagos: el recargo no cuenta como pago", () => {
+  it("rechaza pagos que incluyen el recargo y acepta el valor sin recargo", async () => {
+    const it = await stockPhone();
+    await expect(createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: it.price - 200_000 }, { method: "Transferencia", amount: 609_000 }] })).rejects.toThrow(/superan/);
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: it.price - 200_000 }, { method: "Transferencia", amount: 200_000 }] });
+    expect(s.pending).toBe(0);
+    expect(s.surcharge).toBeGreaterThan(0);
+  });
+});

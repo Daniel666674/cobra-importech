@@ -160,7 +160,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
           <h2 className="font-semibold mb-1">Meses de garantía por condición</h2>
           <p className="note mb-3">Es el valor sugerido al ingresar un producto; en cada uno se puede cambiar.</p>
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
-            {Object.keys(warr).map((c) => <div key={c}><label className="lb" htmlFor={"w-" + c}>{c}</label><input id={"w-" + c} type="number" min={0} max={60} value={warr[c]} onChange={(e) => setWarr({ ...warr, [c]: Number(e.target.value) })} /></div>)}
+            {Object.keys(warr).map((c) => <div key={c}><label className="lb" htmlFor={"w-" + c}>{c}</label><input id={"w-" + c} type="number" min={1} max={60} value={warr[c]} onChange={(e) => setWarr({ ...warr, [c]: Number(e.target.value) })} /></div>)}
           </div>
         </div>
         <div className="card p-4">

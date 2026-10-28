@@ -126,7 +126,7 @@ export async function saveNumbering(db: Db, a: Actor, raw: unknown) {
 export async function saveWarranty(db: Db, a: Actor, raw: unknown) {
   need(a, "settings");
   const v = z.object({
-    warr: z.record(z.enum(CONDS), z.coerce.number().int().min(0, "Los meses no pueden ser negativos").max(60, "Máximo 60 meses")),
+    warr: z.record(z.enum(CONDS), z.coerce.number().int().min(1, "Todo producto lleva garantía: mínimo 1 mes").max(60, "Máximo 60 meses")),
     terms: z.array(z.string().trim().max(300)).max(12, "Máximo 12 condiciones").transform((t) => t.filter(Boolean)),
   }).parse(raw);
   await db.update(settings).set({ warr: v.warr, warrTerms: v.terms }).where(eq(settings.id, 1));

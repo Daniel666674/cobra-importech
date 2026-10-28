@@ -50,7 +50,7 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
       const status = it.cat === "iPhone" ? "En revisión" : "En vitrina";
       await tx.insert(items).values({
         id, sku: CAT_SKU[it.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond,
-        serial: it.serial, serial2: it.serial2, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr, branch, status, acq: it.acq ?? Date.now(), src,
+        serial: it.serial, serial2: it.serial2, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr > 0 ? it.warr : 1, branch, status, acq: it.acq ?? Date.now(), src,
         batt: it.batt, notes: [it.notes, it.serial ? "" : `[${it.key}]`].filter(Boolean).join(" "), repairs: 0, min: track === "qty" ? it.min : 0, track, imeiCheck: null, hold: null, approval: pendingAlta(a),
       });
       await addEvent(tx, id, a, "Ingreso al inventario", `Importado de ${source}`);
