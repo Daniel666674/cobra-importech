@@ -32,7 +32,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
       </div>
       <ReceiptPdf no={s.no} auto={sp.nueva === "1"} whatsapp={!!client?.phone} />
       <div id="receipt-print"><SaleReceipt s={s} cfg={cfg} client={client ?? null} seller={u?.name ?? "—"} /></div>
-      <SaleActions sale={{ id: s.id, no: s.no, lines: s.lines.map((l) => ({ name: l.name, qty: l.qty, ret: l.ret })) }} canRefund={hasPerm(me, "refund")} />
+      <SaleActions sale={{ id: s.id, no: s.no, lines: s.lines.map((l) => ({ name: l.name, qty: l.qty, ret: l.ret })) }} canRefund={hasPerm(me, "refund")} canDelete={hasPerm(me, "settings")} />
     </>
   );
 }

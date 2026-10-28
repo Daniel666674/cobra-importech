@@ -1,7 +1,7 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { allies, allyMoves, clients, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
+import { allies, allyMoves, claims, clients, counters, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
 import { CONDS, METHODS, feeFor, surchargeOf } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
@@ -312,4 +312,85 @@ async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLin
 
 export async function listSales(db: Db) {
   return db.select().from(sales).orderBy(desc(sales.t));
+}
+
+/**
+ * Borra una venta como si no se hubiera hecho: los equipos vuelven al inventario, las retomas que entraron con ella se quitan
+ * y las deudas a tiendas aliadas que generó se anulan. Se niega si ya no se puede deshacer sin perder información.
+ */
+async function removeSale(tx: Db, a: Actor, s: typeof sales.$inferSelect) {
+  if (s.holdPays != null) throw new AppError(`${s.no} viene de un apartado y no se puede borrar (usa «Devolución»)`, "conflict");
+  const [claim] = await tx.select({ id: claims.id }).from(claims).where(eq(claims.sale, s.id)).limit(1);
+  if (claim) throw new AppError(`${s.no} tiene un reclamo de garantía y no se puede borrar`, "conflict");
+  const tradeIds = s.tradeins.map((t) => t.item);
+  const trades = tradeIds.length ? await tx.select().from(items).where(inArray(items.id, tradeIds)).for("update") : [];
+  const used = trades.find((t) => t.status !== "En vitrina" && t.status !== "En revisión");
+  if (used) throw new AppError(`${s.no}: la retoma «${uname(used)}» ya se vendió o está en uso y no se puede borrar`, "conflict");
+  for (const l of s.lines) {
+    const net = lineNet(l);
+    if (!l.item || net <= 0) continue;
+    const [it] = await tx.select().from(items).where(eq(items.id, l.item)).for("update");
+    if (!it) continue;
+    if (isQty(it)) await tx.update(items).set({ qty: it.qty + net }).where(eq(items.id, it.id));
+    else if (it.status === "Vendido") await tx.update(items).set({ status: "En vitrina" }).where(eq(items.id, it.id));
+    else continue;
+    await addEvent(tx, it.id, a, "Venta eliminada", `${s.no} borrada por ${a.name}: ${isQty(it) ? `+${net} al inventario` : "vuelve a vitrina"}`, "warn");
+  }
+  if (trades.length) await tx.delete(items).where(inArray(items.id, trades.map((t) => t.id)));
+  await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
+  await tx.delete(sales).where(eq(sales.id, s.id));
+  return s;
+}
+
+/** Borra una sola venta (ver `removeSale`). Solo quien puede cambiar la configuración. */
+export async function deleteSale(db: Db, a: Actor, saleId: string) {
+  need(a, "settings");
+  return db.transaction(async (tx) => {
+    const [s] = await tx.select().from(sales).where(eq(sales.id, saleId)).for("update");
+    if (!s) throw new AppError("Venta no encontrada", "notfound");
+    await removeSale(tx, a, s);
+    await logFeed(tx, a, "owner", "🗑️", `Venta <b>${s.no}</b> (${fmt(saleNet(s))}) borrada por ${esc(a.name)}`);
+    return s.no;
+  });
+}
+
+export const DELETE_ALL_PHRASE = "BORRAR VENTAS";
+
+/**
+ * Borra, por tandas, las ventas hechas en el sistema (no las importadas: esas se deshacen en «Importar»).
+ * `skip` = cuántas ventas que no se pudieron borrar ya quedaron al principio de la lista.
+ */
+export async function deleteAllSales(db: Db, a: Actor, rawConfirm: unknown, rawSkip: unknown = 0, rawRestart: unknown = null, batch = 25) {
+  need(a, "settings");
+  if (rawConfirm !== DELETE_ALL_PHRASE) throw new AppError(`Escribe «${DELETE_ALL_PHRASE}» para confirmar`, "invalid");
+  const skip = z.coerce.number().int().min(0).parse(rawSkip);
+  const restart = rawRestart == null || rawRestart === "" ? null : z.coerce.number().int().min(1).max(99_999_999).parse(rawRestart);
+  const todo = await db.select({ id: sales.id, no: sales.no }).from(sales).where(eq(sales.source, "")).orderBy(asc(sales.id)).limit(batch).offset(skip);
+  let deleted = 0;
+  const blocked: string[] = [];
+  for (const { id, no } of todo) {
+    try {
+      await db.transaction(async (tx) => {
+        const [s] = await tx.select().from(sales).where(eq(sales.id, id)).for("update");
+        if (s) await removeSale(tx, a, s);
+      });
+      deleted++;
+    } catch (e) {
+      if (!(e instanceof AppError)) throw e;
+      blocked.push(e.message || no);
+    }
+  }
+  if (deleted) await logFeed(db, a, "owner", "🗑️", `${deleted} venta${deleted !== 1 ? "s" : ""} borrada${deleted !== 1 ? "s" : ""} por ${esc(a.name)}`);
+  const done = todo.length < batch;
+  let restarted = false;
+  // Con todas las ventas del sistema borradas, la numeración puede empezar de nuevo.
+  if (done && restart && skip + blocked.length === 0) {
+    const [left] = await db.select({ id: sales.id }).from(sales).where(eq(sales.source, "")).limit(1);
+    if (!left) {
+      await db.insert(counters).values({ key: "invoice", value: restart - 1 }).onConflictDoUpdate({ target: counters.key, set: { value: restart - 1 } });
+      await logFeed(db, a, "owner", "🔢", `Numeración de comprobantes reiniciada: el siguiente será <b>${restart}</b> · ${esc(a.name)}`);
+      restarted = true;
+    }
+  }
+  return { deleted, blocked, done, skip: skip + blocked.length, restarted };
 }
