@@ -154,3 +154,25 @@ describe("tienda proveedora escrita a mano", () => {
     expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ ally: "al-compra", amount: 500_000 }]);
   });
 });
+
+describe("fecha de la venta y accesorios fuera de inventario", () => {
+  it("guarda el día escogido, no acepta fechas futuras y el comprobante usa esa fecha", async () => {
+    const it = await stockPhone();
+    const day = new Date(2026, 8, 10, 12).getTime();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: await pay(it.id), date: day });
+    expect(s.t).toBe(day);
+    const it2 = await stockPhone();
+    await expect(createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id), date: Date.now() + 3 * 864e5 })).rejects.toThrow(/futura/);
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const s2 = await createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id), date: today.getTime() + 864e5 / 2 });
+    expect(s2.t).toBeLessThanOrEqual(Date.now());
+  });
+  it("un accesorio manual no pide batería aunque diga iPhone, usa la cantidad y su tienda genera deuda", async () => {
+    const acc = { cat: "Accesorios", name: "Funda iPhone 15 Pro", spec: "", color: "Negro", cond: "Nuevo", qty: 3, price: 50_000, cost: 20_000, warr: 0, supplier: "Accesorios Ruiz" };
+    const s = await createSale(db, owner, { custom: [acc], payments: [{ method: "Efectivo", amount: 150_000 }] });
+    expect(s.total).toBe(150_000);
+    expect(s.lines[0]).toMatchObject({ qty: 3, supplier: "Accesorios Ruiz" });
+    expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ kind: "deuda", amount: 60_000 }]);
+    await expect(createSale(db, owner, { custom: [{ ...acc, cat: "iPhone", supplier: "" }], payments: [{ method: "Efectivo", amount: 150_000 }] })).rejects.toThrow(/batería/);
+  });
+});

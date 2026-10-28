@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, claims, clients, counters, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
-import { CONDS, METHODS, feeFor, surchargeOf } from "@/lib/catalog";
+import { CATS, CONDS, METHODS, feeFor, surchargeOf } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
@@ -24,6 +24,8 @@ export const saleInput = z.object({
   lines: z.array(z.object({ item: z.string(), qty: z.coerce.number().int().min(1), price: copField("el precio de venta", 1).optional() })).default([]),
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
+    /** Categoría del producto fuera de inventario (la batería solo se exige a los iPhone). */
+    cat: z.enum([...CATS, ""]).default(""),
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
     cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), serial2: z.string().trim().max(40).default(""),
     batt: z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v), z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
@@ -34,6 +36,8 @@ export const saleInput = z.object({
     /** Nombre de la tienda de donde se consiguió (a veces prestado), escrito a mano. */
     supplier: z.string().trim().max(80, "El nombre de la tienda es muy largo (máximo 80)").default(""),
   })).max(20).default([]),
+  /** Día de la venta (ms) para registrar ventas de otra fecha; vacío = ahora. No puede ser futuro. */
+  date: z.coerce.number().int().min(Date.UTC(2020, 0, 1), "La fecha de la venta no es válida").optional(),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
   discount: z.object({ type: z.enum(["pct", "cop"]), value: z.coerce.number().min(0) }).default({ type: "pct", value: 0 }),
@@ -118,6 +122,9 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
 
     const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient);
     if (trades.length && !client?.doc) throw new AppError("Para recibir un equipo en parte de pago, el cliente debe tener nombre y cédula (soporta el origen del equipo)", "invalid");
+    const now = Date.now();
+    if (input.date && input.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
+    const when = input.date ? Math.min(input.date, now) : now;
     const n = await nextCounter(tx, "sale");
     const inv = await nextCounter(tx, "invoice");
     const id = "S-" + String(n).padStart(4, "0");
@@ -126,7 +133,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
       cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.warr, ret: 0, ...(it.ally ? { ally: it.ally } : {}),
     }));
-    for (const c of input.custom) if (/iphone/i.test(c.name) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
+    for (const c of input.custom) if ((c.cat === "iPhone" || (!c.cat && /iphone/i.test(c.name))) && c.batt == null) throw new AppError(`Escribe la salud de la batería (%) de ${c.name}`, "invalid");
     // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
     const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
     const customs: (typeof input.custom[number])[] = [];
@@ -169,7 +176,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...charged];
     const surcharge = charged.reduce((x, p) => x + (p.fee ?? 0), 0);
     const row = {
-      id, no, t: Date.now(), client: client?.id ?? null, by: a.id,
+      id, no, t: when, client: client?.id ?? null, by: a.id,
       method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received, surcharge,
       disc: T.pct, total: 0, prepaid: T.prepaid, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,
@@ -194,6 +201,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
         await addEvent(tx, it.id, a, "Garantía activada", it.warr + " meses", "ok");
       }
     }
+    if (now - when > 36 * 3600_000) await logFeed(tx, a, "owner", "📅", `Venta <b>${no}</b> registrada con fecha del ${new Date(when).toLocaleDateString("es-CO")} · ${esc(a.name)}`);
     await logFeed(tx, a, "fe", "🧾", `Comprobante <b>${no}</b> emitido · ${fmt(row.total)}${client ? " · " + esc(client.name) : ""}`);
     if (T.pct > cfg.maxDisc) await logFeed(tx, a, "owner", "🚨", `Alerta al dueño: descuento de <b>${T.pct.toFixed(1)}%</b> en ${no} (${esc(input.discReason)}) · ${esc(a.name)}`);
     if (T.total < T.cost) await logFeed(tx, a, "owner", "🚨", `Alerta al dueño: <b>venta bajo costo</b> en ${no} (${esc(a.name)})`);

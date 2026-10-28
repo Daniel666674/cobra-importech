@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
-import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor } from "@/lib/catalog";
+import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor, type Cat } from "@/lib/catalog";
 import { ComboSelect } from "@/components/combo-select";
 import { DateField } from "@/components/date-field";
 import { fmt } from "@/lib/format";
@@ -62,10 +62,11 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   const [scanMsg, setScanMsg] = useState("");
   const [cq, setCq] = useState("");
   const [today] = useState(() => Date.now());
-  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; supplier: string };
-  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), supplier: "" };
+  type Custom = { cat: Cat; name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; supplier: string };
+  const blankCustom: Custom = { cat: "iPhone", name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), supplier: "" };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
+  const [saleDate, setSaleDate] = useState<number | null>(null);
   const [holdUntil, setHoldUntil] = useState<number | null>(() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + cfg.holdDays); return d.getTime(); });
 
   // Precio escrito en caja para productos sin precio de venta (queda guardado en el producto al cobrar).
@@ -140,6 +141,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
         router.push("/apartados");
       } else {
         const r = await createSaleAction({
+          ...(saleDate ? { date: saleDate } : {}),
           lines: cart.map((x) => ({ item: x.it.id, qty: x.l.qty, ...(x.noPrice ? { price: x.it.price } : {}) })), client: client_, newClient,
           custom: customs.map((c) => ({ ...c, price: +c.price || 0, cost: +c.cost || 0, warr: +c.warr || 0, batt: c.batt === "" ? null : +c.batt })),
           discount: { type: discType, value: +disc || 0 }, discReason: reason, payments: due > 0 ? resolved.filter((p) => p.amount > 0) : [], notes, cash: +cash || 0, holdItem: finishing?.id ?? null,
@@ -226,7 +228,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           {customs.length > 0 && (
             <ul className="mt-2 space-y-2">{customs.map((c, k) => (
               <li key={k} className="flex items-center gap-2">
-                <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{c.name}{c.spec ? ` · ${c.spec}` : ""}</b><span className="note">Fuera de inventario · {c.cond}{c.supplier ? ` · de ${c.supplier}` : ""}{c.serial ? ` · ••${c.serial.slice(-6)}` : ""}</span></div>
+                <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{c.name}{c.spec ? ` · ${c.spec}` : ""}</b><span className="note">Fuera de inventario · {c.cat}{c.qty > 1 ? ` ×${c.qty}` : ""} · {c.cond}{c.supplier ? ` · de ${c.supplier}` : ""}{c.serial ? ` · ••${c.serial.slice(-6)}` : ""}</span></div>
                 <b className="tabular-nums w-24 text-right">{fmt((+c.price || 0) * c.qty)}</b>
                 <button type="button" className="btn sm" aria-label={`Quitar ${c.name}`} onClick={() => setCustoms(customs.filter((_, x) => x !== k))}>✕</button>
               </li>))}</ul>
@@ -234,13 +236,15 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           {!finishing && !hold && (cf ? (
             <div className="mt-3 space-y-2 rounded-lg border border-dashed border-line p-3">
               <b className="block text-[13px]">Producto fuera de inventario</b>
-              <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder="Modelo…" />
+              <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", qty: 1 })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
+              <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.filter((c) => c.cat === cf.cat).map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder={cf.cat === "Accesorios" ? "Producto…" : "Modelo…"} />
               <div className="grid grid-cols-2 gap-2">
-                <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS.iPhone} onChange={(x) => setCf({ ...cf, spec: x })} placeholder="Capacidad…" />
-                <ComboSelect ariaLabel="Color" value={cf.color} options={COLOR_OPTIONS.iPhone} onChange={(x) => setCf({ ...cf, color: x })} placeholder="Color…" />
-                <input className="mono" placeholder="IMEI 1 / serial" aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />
-                <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
-                <input type="number" min={0} max={100} placeholder={/iphone/i.test(cf.name) ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />
+                <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, spec: x })} placeholder={cf.cat === "iPhone" || cf.cat === "iPad" ? "Capacidad…" : "Detalle…"} />
+                <ComboSelect ariaLabel="Color" value={cf.color} options={COLOR_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, color: x })} placeholder="Color…" />
+                {cf.cat !== "Accesorios" && <input className="mono" placeholder={cf.cat === "iPhone" ? "IMEI 1 / serial" : "Serial (opcional)"} aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />}
+                {cf.cat === "iPhone" && <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />}
+                {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder={cf.cat === "iPhone" ? "Salud batería % *" : "Batería % (opcional)"} aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
+                {(cf.cat === "AirPods" || cf.cat === "Accesorios") && <input type="number" min={1} max={1000} placeholder="Cantidad" aria-label="Cantidad fuera de inventario" value={cf.qty} onChange={(e) => setCf({ ...cf, qty: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />}
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
@@ -250,7 +254,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 {(can.cost || cf.supplier.trim()) && <MoneyInput placeholder={cf.supplier.trim() ? "Lo que se le paga a la tienda *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
-                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.supplier.trim() && !(+cf.cost > 0)) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
+                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.supplier.trim() && !(+cf.cost > 0)) || (cf.cat === "iPhone" && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
                 <button type="button" className="btn sm" onClick={() => setCf(null)}>Cancelar</button>
               </div>
             </div>
@@ -259,6 +263,11 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           ))}
         </div>
 
+        {!finishing && !hold && (
+          <div>
+            <DateField id="sale-date" label="Fecha de la venta" value={saleDate} maxDays={0} onChange={setSaleDate} quick={[["Hoy", 0], ["Ayer", -1]]} clearable hint="Vacío = hoy, ahora" />
+          </div>
+        )}
         <div>
           <div className="mb-2 flex items-center justify-between"><h3 className="text-[12px] font-bold uppercase tracking-widest text-t2">Cliente</h3><span className="note">{hold || trades.length ? "obligatorio" : "opcional"}</span></div>
           {finishing ? <p className="text-t2">{clients.find((c) => c.id === client)?.name ?? "—"}</p> : !newC ? (client ? (
