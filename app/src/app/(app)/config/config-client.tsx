@@ -5,6 +5,7 @@ import type { settings } from "@/db/schema";
 import { importTacAction, saveLogoAction, saveMethodsAction, saveNumberingAction, saveSettingsAction, saveWarrantyAction, undoImportAction } from "@/app/actions/admin";
 import { SaleReceipt } from "@/components/receipt";
 import { fdatey, fmt } from "@/lib/format";
+import { DeleteSales } from "./delete-sales";
 import { ImportSales } from "./import-sales";
 
 type Full = typeof settings.$inferSelect;
@@ -42,12 +43,13 @@ const SAMPLE_SALE = {
 };
 const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", email: "maria@correo.com", notes: "" };
 
-export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, sources }: {
+export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, sources, salesCount }: {
   initialTab: string; cfg: Cfg; logo: string;
   numbering: { prefix: string; last: number };
   warranty: { warr: Record<string, number>; terms: string[]; custom: boolean };
   methods: { all: string[]; on: string[]; surcharges: Record<string, number> };
   sources: Source[];
+  salesCount: number;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<string>(TABS.some(([k]) => k === initialTab) ? initialTab : "negocio");
@@ -238,6 +240,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
             <a className="btn" href="/api/export/clientes" download>👥 Clientes (CSV)</a>
           </div>
         </div>
+        <DeleteSales count={salesCount} />
         <div className="card p-4">
           <h2 className="font-semibold mb-1">Modelos por TAC</h2>
           <p className="note mb-3">El sistema aprende el modelo de cada TAC al ingresar equipos. Si tienes un CSV con «tac,marca,modelo» (por ejemplo de tacdb.osmocom.org, licencia CC-BY-SA), impórtalo aquí: solo se guardan los de Apple.</p>

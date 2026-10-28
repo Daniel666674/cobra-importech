@@ -1,11 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { openClaimAction, refundAction } from "@/app/actions/sales";
+import { deleteSaleAction, openClaimAction, refundAction } from "@/app/actions/sales";
 
 const REASONS = ["Falla del producto", "Cliente se arrepintió", "Error de facturación", "Otro"];
 
-export function SaleActions({ sale, canRefund }: { sale: { id: string; no: string; lines: { name: string; qty: number; ret: number }[] }; canRefund: boolean }) {
+export function SaleActions({ sale, canRefund, canDelete }: { sale: { id: string; no: string; lines: { name: string; qty: number; ret: number }[] }; canRefund: boolean; canDelete: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<"" | "refund" | "claim">("");
   const [ret, setRet] = useState<number[]>(sale.lines.map(() => 0));
@@ -19,6 +19,7 @@ export function SaleActions({ sale, canRefund }: { sale: { id: string; no: strin
     <div className="no-print mx-auto mt-5 max-w-[820px] space-y-3">
       <div className="flex flex-wrap gap-2">
         <button className="btn" onClick={() => setMode(mode === "claim" ? "" : "claim")}>🛡️ Abrir reclamo de garantía</button>
+        {canDelete && <button className="btn danger" disabled={busy} onClick={() => { if (confirm(`¿Borrar la venta ${sale.no}? Los equipos vuelven al inventario y la venta desaparece. No se puede deshacer.`)) start(async () => { const r = await deleteSaleAction(sale.id); if (r.ok) router.push("/ventas"); else setMsg({ ok: false, t: r.error }); }); }}>🗑️ Borrar venta</button>}
         {canRefund && refundable && <button className="btn danger" onClick={() => setMode(mode === "refund" ? "" : "refund")}>↩️ Devolución</button>}
       </div>
       {msg && <p role="status" className={`chip ${msg.ok ? "ok" : "bad"} !rounded-md !whitespace-normal`}>{msg.t}</p>}

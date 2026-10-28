@@ -1,6 +1,6 @@
 "use server";
 import { act } from "@/server/act";
-import { addAbono, createHold, createSale, extendHold, refundSale, releaseHold } from "@/server/sales";
+import { addAbono, createHold, createSale, deleteAllSales, deleteSale, extendHold, refundSale, releaseHold } from "@/server/sales";
 import { openClaim, resolveClaim, saveClient } from "@/server/ops";
 
 const P = ["/", "/inventario", "/ventas", "/apartados", "/garantias", "/clientes"];
@@ -31,4 +31,11 @@ export async function resolveClaimAction(id: string, resolution: string) {
 }
 export async function saveClientAction(id: string | null, data: unknown) {
   return act((db, a) => saveClient(db, a, id, data), P);
+}
+
+export async function deleteSaleAction(id: string) {
+  return act((db, a) => deleteSale(db, a, id), P);
+}
+export async function deleteAllSalesAction(confirm: string, skip: number, restart: string) {
+  return act((db, a) => deleteAllSales(db, a, confirm, skip, restart), P);
 }
