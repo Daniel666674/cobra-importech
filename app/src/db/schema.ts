@@ -32,6 +32,8 @@ export type SaleLine = {
   ret: number;
   /** Tienda aliada dueña del producto (si no es propio). */
   ally?: string;
+  /** Nombre de la tienda de donde se consiguió el producto (productos fuera de inventario). Solo uso interno. */
+  supplier?: string;
 };
 /** Solicitud pendiente sobre un producto: nada cambia hasta que la propietaria la apruebe. */
 export type Approval = { kind: "alta" | "baja"; by: string; name: string; t: number; note?: string };

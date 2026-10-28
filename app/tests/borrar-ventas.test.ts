@@ -127,3 +127,11 @@ describe("dirección del cliente", () => {
     expect(c.address).toBe("Carrera 7 # 1-2");
   });
 });
+
+describe("tienda proveedora escrita a mano", () => {
+  it("queda en la línea de la venta", async () => {
+    const custom = { name: "iPhone 14 Pro", spec: "256 GB", color: "Morado", cond: "Usado", serial: "359128122127266", batt: 100, price: 3_000_000, warr: 1, supplier: "  Celulares El Centro " };
+    const s = await createSale(db, owner, { custom: [custom], payments: [{ method: "Efectivo", amount: 3_000_000 }] });
+    expect(s.lines[0].supplier).toBe("Celulares El Centro");
+  });
+});

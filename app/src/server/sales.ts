@@ -31,6 +31,8 @@ export const saleInput = z.object({
     warr: z.coerce.number().int().min(0).max(60).default(0),
     /** Tienda aliada (proveedor) dueña del equipo: lo que se le paga queda en su cartera. Vacío = propio. */
     ally: z.string().trim().default(""),
+    /** Nombre de la tienda de donde se consiguió (a veces prestado), escrito a mano. */
+    supplier: z.string().trim().max(80, "El nombre de la tienda es muy largo (máximo 80)").default(""),
   })).max(20).default([]),
   client: z.string().nullable().default(null),
   newClient: clientNew.nullable().default(null),
@@ -132,7 +134,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       if (c.ally && !(c.cost > 0)) throw new AppError(`Escribe lo que se le paga a la aliada por ${c.name}`, "invalid");
     }
     for (const c of input.custom)
-      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0, ...(c.ally ? { ally: c.ally } : {}) });
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.warr, ret: 0, ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
       await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);
