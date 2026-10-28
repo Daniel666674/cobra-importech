@@ -62,8 +62,8 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   const [scanMsg, setScanMsg] = useState("");
   const [cq, setCq] = useState("");
   const [today] = useState(() => Date.now());
-  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; ally: string; supplier: string };
-  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), ally: "", supplier: "" };
+  type Custom = { name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; supplier: string };
+  const blankCustom: Custom = { name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), supplier: "" };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
   const [holdUntil, setHoldUntil] = useState<number | null>(() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + cfg.holdDays); return d.getTime(); });
@@ -244,13 +244,13 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={0} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
-                <input className="col-span-2" placeholder="Tienda de donde se consiguió (nombre)" aria-label="Tienda proveedora" maxLength={80} value={cf.supplier} onChange={(e) => setCf({ ...cf, supplier: e.target.value })} />
-                <select aria-label="Proveedor" value={cf.ally} onChange={(e) => setCf({ ...cf, ally: e.target.value })}><option value="">Proveedor: propio</option>{allies.map((a) => <option key={a.id} value={a.id}>Tienda aliada: {a.name}</option>)}</select>
-                {!allies.length && <p className="note col-span-2">No hay tiendas aliadas activas. Créalas en <a className="underline" href="/cartera">Cartera</a> para elegirlas aquí como proveedor.</p>}
-                {(can.cost || cf.ally) && <MoneyInput placeholder={cf.ally ? "Se le paga a la aliada *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
+                <input className="col-span-2" list="tiendas-aliadas" placeholder="Tienda proveedora (de dónde se consiguió)" aria-label="Tienda proveedora" maxLength={80} value={cf.supplier} onChange={(e) => setCf({ ...cf, supplier: e.target.value })} />
+                <datalist id="tiendas-aliadas">{allies.map((a) => <option key={a.id} value={a.name} />)}</datalist>
+                {cf.supplier.trim() && <p className="note col-span-2">{allies.some((a) => a.name.trim().toLowerCase() === cf.supplier.trim().toLowerCase()) ? "Tienda aliada existente: se suma a lo que se le debe." : "Tienda nueva: se crea sola en Cartera → Tiendas aliadas."}</p>}
+                {(can.cost || cf.supplier.trim()) && <MoneyInput placeholder={cf.supplier.trim() ? "Lo que se le paga a la tienda *" : "Costo (opcional)"} aria-label="Costo fuera de inventario" value={cf.cost} onChange={(x) => setCf({ ...cf, cost: x })} />}
               </div>
               <div className="flex gap-2">
-                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.ally && !(+cf.cost > 0)) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
+                <button type="button" className="btn primary sm" disabled={cf.name.trim().length < 2 || !(+cf.price > 0) || (!!cf.supplier.trim() && !(+cf.cost > 0)) || (/iphone/i.test(cf.name) && cf.batt === "")} onClick={() => { setCustoms([...customs, cf]); setCf(null); }}>Agregar a la venta</button>
                 <button type="button" className="btn sm" onClick={() => setCf(null)}>Cancelar</button>
               </div>
             </div>
