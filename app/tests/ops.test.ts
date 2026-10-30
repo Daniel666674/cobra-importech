@@ -48,7 +48,8 @@ describe("taller", () => {
     const id = await createOrder(db, emp, { item: "I-0011", job: "Diagnóstico", cost: 0 });
     await cancelOrder(db, emp, id);
     expect((await db.select().from(items).where(eq(items.id, "I-0011")))[0].status).toBe("En vitrina");
-    expect((await db.select().from(orders).where(eq(orders.id, id))).length).toBe(0);
+    // el ticket no se borra: queda en el historial como cancelado
+    expect((await db.select().from(orders).where(eq(orders.id, id)))[0]).toMatchObject({ outcome: "cancelada" });
   });
 });
 

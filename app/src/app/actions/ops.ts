@@ -1,11 +1,20 @@
 "use server";
 import { act } from "@/server/act";
-import { advanceOrder, cancelOrder, moveOrder, updateOrder, createPurchase, receivePurchase } from "@/server/ops";
+import { addExtra, advanceOrder, cancelOrder, createOrder, moveOrder, removeExtra, updateOrder, createPurchase, receivePurchase } from "@/server/ops";
 
-const P = ["/", "/inventario", "/taller", "/compras"];
+const P = ["/", "/inventario", "/taller", "/compras", "/tecnicos", "/caja"];
 
-export async function advanceOrderAction(id: string) {
-  return act((db, a) => advanceOrder(db, a, id), P);
+export async function advanceOrderAction(id: string, pay?: { amount: string; method: string }) {
+  return act((db, a) => advanceOrder(db, a, id, pay), P);
+}
+export async function createTicketAction(data: unknown) {
+  return act((db, a) => createOrder(db, a, data), P);
+}
+export async function addExtraAction(id: string, data: unknown) {
+  return act((db, a) => addExtra(db, a, id, data), P);
+}
+export async function removeExtraAction(id: string, index: number) {
+  return act((db, a) => removeExtra(db, a, id, index), P);
 }
 export async function cancelOrderAction(id: string) {
   return act((db, a) => cancelOrder(db, a, id), P);
