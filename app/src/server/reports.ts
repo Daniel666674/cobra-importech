@@ -33,6 +33,9 @@ export async function dashboard(db: Db, now = Date.now()) {
   const open = cl.filter((c) => c.status !== "Resuelto");
   if (open.length) alerts.push({ key: "claims", level: "info", title: `${open.length} reclamo(s) de garantía abiertos`, detail: "Revisa la sección de garantías.", href: "/garantias" });
 
+  const owing = valid.filter((s) => s.pending > 0);
+  if (owing.length) alerts.push({ key: "pending", level: "warn", title: `${owing.length} venta(s) con saldo pendiente`, detail: `Por cobrar ${owing.reduce((x, s) => x + s.pending, 0).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })}`, href: "/cobrar" });
+
   const byProduct = new Map<string, number>();
   for (const s of month) for (const l of s.lines) byProduct.set(l.name, (byProduct.get(l.name) ?? 0) + lineNet(l));
   const top = [...byProduct.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);

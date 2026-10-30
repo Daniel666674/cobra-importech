@@ -1,5 +1,6 @@
 "use server";
 import { act } from "@/server/act";
+import { payPending } from "@/server/caja";
 import { addAbono, createHold, createSale, deleteAllSales, deleteSale, editSale, extendHold, renameSale, refundSale, releaseHold } from "@/server/sales";
 import { openClaim, resolveClaim, saveClient } from "@/server/ops";
 
@@ -44,4 +45,7 @@ export async function renameSaleAction(id: string, no: string) {
 }
 export async function editSaleAction(id: string, data: unknown) {
   return act((db, a) => editSale(db, a, id, data), P);
+}
+export async function payPendingAction(id: string, amount: string, method: string) {
+  return act((db, a) => payPending(db, a, id, { amount, method }), [...P, "/cobrar", "/caja"]);
 }

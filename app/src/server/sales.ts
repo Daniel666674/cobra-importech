@@ -433,7 +433,7 @@ export const editSaleInput = z.object({
   notes: z.string().trim().max(500).optional(),
   disc: z.coerce.number().min(0, "El descuento va de 0 a 100").max(100, "El descuento va de 0 a 100").optional(),
   lines: z.array(editLine),
-  payments: z.array(z.object({ method: z.string().trim().min(1).max(40), amount: copField("el valor de cada pago", 0) })).max(12),
+  payments: z.array(z.object({ method: z.string().trim().min(1).max(40), amount: copField("el valor de cada pago", 0), t: z.coerce.number().int().optional() })).max(12),
 });
 
 /**
@@ -466,7 +466,7 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
     const payments: Payment[] = v.payments.filter((p) => p.amount > 0).map((p) => {
       if (!okMethods.has(p.method)) throw new AppError(`Forma de pago no válida: ${p.method}`, "invalid");
       const fee = p.method === "Retoma" || p.method === "Abono previo" ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount);
-      return fee ? { method: p.method, amount: p.amount, fee } : { method: p.method, amount: p.amount };
+      return { method: p.method, amount: p.amount, ...(fee ? { fee } : {}), ...(p.t ? { t: p.t } : {}) };
     });
     const disc = v.disc ?? s.disc;
     const total = saleNet({ lines, disc });

@@ -161,8 +161,7 @@ describe("fecha de la venta y accesorios fuera de inventario", () => {
     expect(s.t).toBe(day);
     const it2 = await stockPhone();
     await expect(createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id), date: Date.now() + 3 * 864e5 })).rejects.toThrow(/futura/);
-    const today = new Date(); today.setHours(12, 0, 0, 0);
-    const s2 = await createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id), date: today.getTime() + 864e5 / 2 });
+    const s2 = await createSale(db, owner, { lines: [{ item: it2.id, qty: 1 }], payments: await pay(it2.id), date: Date.now() + 3600_000 });
     expect(s2.t).toBeLessThanOrEqual(Date.now());
   });
   it("un accesorio manual no pide batería aunque diga iPhone, usa la cantidad y su tienda genera deuda", async () => {

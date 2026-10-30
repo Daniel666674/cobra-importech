@@ -16,7 +16,8 @@ import {
 const ms = (name: string) => bigint(name, { mode: "number" });
 
 /** amount = parte del total de la venta; fee = recargo de esa forma de pago (Addi, Vanti, crédito…). */
-export type Payment = { method: string; amount: number; fee?: number };
+/** `t`: cuándo entró ese dinero (pagos de saldos pendientes que llegan después de la venta). */
+export type Payment = { method: string; amount: number; fee?: number; t?: number };
 export type SaleLine = {
   item: string;
   name: string;
@@ -335,3 +336,26 @@ export const allyMoves = pgTable("ally_moves", {
   /** Pago anulado (queda en la historia pero no cuenta). */
   voided: boolean("voided").notNull().default(false),
 }, (t) => [index("ally_moves_ally").on(t.ally)]);
+
+/** Gastos, retiros e ingresos de caja que no son ventas (el día se cuadra con ellos). */
+export const cashMoves = pgTable("cash_moves", {
+  id: serial("id").primaryKey(),
+  t: ms("t").notNull(),
+  kind: text("kind").notNull(), // gasto | retiro | ingreso
+  method: text("method").notNull().default("Efectivo"),
+  amount: integer("amount").notNull(),
+  concept: text("concept").notNull().default(""),
+  by: text("by").notNull().default(""),
+  voided: boolean("voided").notNull().default(false),
+});
+
+/** Cierre de caja de un día: lo que debía haber en efectivo contra lo que se contó. */
+export const cashCloses = pgTable("cash_closes", {
+  id: serial("id").primaryKey(),
+  day: text("day").notNull(),
+  t: ms("t").notNull(),
+  by: text("by").notNull().default(""),
+  expected: integer("expected").notNull(),
+  counted: integer("counted").notNull(),
+  notes: text("notes").notNull().default(""),
+});
