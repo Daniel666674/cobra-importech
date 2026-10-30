@@ -10,7 +10,7 @@ import { saleNet } from "@/lib/sales";
 export type EditableSale = {
   id: string; no: string; t: number; disc: number; notes: string; prepaid: number;
   lines: { name: string; item: string; qty: number; ret: number; price: number; cost: number; warr: number; serial: string; serial2: string; batt: number | null }[];
-  payments: { method: string; amount: number }[];
+  payments: { method: string; amount: number; t?: number }[];
 };
 
 /** Corrige una venta guardada: fecha, precios, costos, seriales, batería, garantía, descuento y pagos. */
@@ -21,7 +21,7 @@ export function EditSale({ sale, methods }: { sale: EditableSale; methods: strin
   const [disc, setDisc] = useState(String(sale.disc));
   const [notes, setNotes] = useState(sale.notes);
   const [lines, setLines] = useState(sale.lines.map((l) => ({ ...l, price: String(l.price), cost: String(l.cost), warr: String(l.warr), qty: String(l.qty), batt: l.batt == null ? "" : String(l.batt) })));
-  const [pays, setPays] = useState(sale.payments.map((p) => ({ method: p.method, amount: String(p.amount) })));
+  const [pays, setPays] = useState(sale.payments.map((p) => ({ method: p.method, amount: String(p.amount), t: p.t })));
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
   if (!open) return <button className="btn" onClick={() => setOpen(true)}>✏️ Editar venta</button>;
@@ -35,7 +35,7 @@ export function EditSale({ sale, methods }: { sale: EditableSale; methods: strin
     const r = await editSaleAction(sale.id, {
       date, notes, disc: +disc || 0,
       lines: lines.map((l) => ({ price: l.price, cost: l.cost, warr: l.warr, serial: l.serial, serial2: l.serial2, batt: l.batt, ...(l.item ? {} : { qty: l.qty }) })),
-      payments: pays.map((p) => ({ method: p.method, amount: p.amount || "0" })),
+      payments: pays.map((p) => ({ method: p.method, amount: p.amount || "0", t: p.t })),
     });
     if (r.ok) { setOpen(false); router.refresh(); } else setErr(r.error);
   });
@@ -71,7 +71,7 @@ export function EditSale({ sale, methods }: { sale: EditableSale; methods: strin
             <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button type="button" className="btn sm" onClick={() => setPays([...pays, { method: methods[0], amount: "" }])}>+ Agregar pago</button>
+        <button type="button" className="btn sm" onClick={() => setPays([...pays, { method: methods[0], amount: "", t: undefined }])}>+ Agregar pago</button>
       </div>
       <p className="text-[13px]">Total: <b>{fmt(total)}</b> · Pagado: <b>{fmt(paid + sale.prepaid)}</b>{pending > 0 && <> · <b className="text-red-600">Saldo pendiente: {fmt(pending)}</b></>}</p>
       {err && <p role="alert" className="chip bad !rounded-md !whitespace-normal">{err}</p>}
