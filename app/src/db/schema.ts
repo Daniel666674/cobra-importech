@@ -36,6 +36,17 @@ export type SaleLine = {
   /** Nombre de la tienda de donde se consiguió el producto (productos fuera de inventario). Solo uso interno. */
   supplier?: string;
 };
+/** Revisión del equipo (qué funciona y qué no, bloqueos, región, garantía de Apple). */
+export type Inspection = {
+  checks: Record<string, "ok" | "falla">;
+  icloud: "" | "libre" | "bloqueado"; carrier: "" | "libre" | "bloqueado";
+  region: string; appleWarrEnd: number | null; originalParts: "" | "si" | "no"; notes: string;
+  by: string; t: number;
+};
+/** Quien entregó el equipo en una retoma o compra (soporta el origen legítimo del equipo). */
+export type Seller = {
+  name: string; docType: string; doc: string; phone: string; address: string; declared: boolean; idCopy: boolean; by: string; t: number;
+};
 /** Solicitud pendiente sobre un producto: nada cambia hasta que la propietaria la apruebe. */
 export type Approval = { kind: "alta" | "baja"; by: string; name: string; t: number; note?: string };
 /** Equipo recibido como parte de pago de una venta. */
@@ -173,6 +184,8 @@ export const items = pgTable("items", {
   hold: jsonb("hold").$type<Hold | null>(),
   /** Pendiente de aprobación de la propietaria: «alta» (producto nuevo, no se vende) o «baja» (pidieron eliminarlo). */
   approval: jsonb("approval").$type<Approval | null>(),
+  inspection: jsonb("inspection").$type<Inspection | null>(),
+  seller: jsonb("seller").$type<Seller | null>(),
 });
 
 export const itemEvents = pgTable("item_events", {

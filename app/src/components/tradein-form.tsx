@@ -8,6 +8,8 @@ import { fmt } from "@/lib/format";
 import { officialGate, type ImeiResult } from "@/lib/imei";
 import { DEDUCTIONS, TRADEIN_RATE, tradeQuote, type DeductionKey } from "@/lib/tradein";
 import { MoneyInput } from "@/components/money-input";
+import { InspectionForm } from "@/components/inspection-form";
+import { blankInspection, DOC_TYPES, type InspectionInput } from "@/lib/inspection";
 
 const CATS = ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] as const;
 
@@ -39,6 +41,9 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const [ok, setOk] = useState(false);
   const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "", warr: "" });
   const [ded, setDed] = useState<DeductionKey[]>([]);
+  const [ins, setIns] = useState<InspectionInput>(blankInspection());
+  const [insOpen, setInsOpen] = useState(false);
+  const [sl, setSl] = useState({ docType: "CC", address: "", declared: false, idCopy: false });
   const [offerTouched, setOfferTouched] = useState(false);
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
@@ -62,14 +67,16 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const buying = mode === "compra";
-  const missing = !v.name.trim() ? "Escribe el modelo" : !(+v.ref > 0) ? "Escribe el valor de referencia" : buying && (!v.vendor.trim() || !v.doc.trim()) ? "Registra el nombre y la cédula de quien entrega el equipo" : phone && !res ? "Verifica el IMEI" : phone && v.batt === "" ? "Escribe la salud de la batería" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : !(offer > 0) ? "La oferta debe ser mayor a 0" : "";
+  const missing = !v.name.trim() ? "Escribe el modelo" : !(+v.ref > 0) ? "Escribe el valor de referencia" : buying && (!v.vendor.trim() || !v.doc.trim()) ? "Registra el nombre y la cédula de quien entrega el equipo" : !sl.declared ? "Marca que quien entrega el equipo declara ser su dueño legítimo" : phone && !res ? "Verifica el IMEI" : phone && v.batt === "" ? "Escribe la salud de la batería" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : !(offer > 0) ? "La oferta debe ser mayor a 0" : "";
 
   const accept = () => {
     const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
     const serial = phone ? res!.imei : v.serial;
     onAccept({
-      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", batt: v.batt === "" ? null : v.batt, notes },
+      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in",
+        seller: { name: buying ? v.vendor : "", docType: sl.docType, doc: buying ? v.doc : "", phone: buying ? v.phone : "", address: sl.address, declared: sl.declared, idCopy: sl.idCopy },
+        inspection: Object.keys(ins.checks).length || ins.icloud || ins.carrier || ins.region || ins.appleWarrEnd || ins.originalParts || ins.notes ? ins : null, batt: v.batt === "" ? null : v.batt, notes },
       official: phone ? off : undefined, ownerApproved: ok, offer,
       label: [v.name, v.spec, v.cond].filter(Boolean).join(" · ") + (serial ? ` · ••${serial.slice(-6)}` : ""),
     });
@@ -107,11 +114,21 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
               </div>
               <fieldset className="mt-3"><legend className="lb">Defectos</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{DEDUCTIONS.map((d) => <label key={d.key} className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" className="!w-auto" checked={Q.applied.includes(d.key)} disabled={d.key === "battery" && v.batt !== "" && +v.batt < 80} onChange={(e) => setDed(e.target.checked ? [...ded, d.key] : ded.filter((x) => x !== d.key))} />{d.label} (−{d.pct}%)</label>)}</div></fieldset>
             </div>
-            {buying && <div className="card p-4">
-              <h2 className="font-semibold mb-3">Quien entrega el equipo</h2>
-              <div className="grid gap-3 sm:grid-cols-3">{f("vendor", "Nombre completo")}{f("doc", "Cédula")}{f("phone", "Celular")}</div>
-              <p className="note mt-2">Se guarda en el historial del equipo para soportar el origen del producto.</p>
-            </div>}
+            <div className="card p-4">
+              <button type="button" className="flex w-full items-center justify-between font-semibold" aria-expanded={insOpen} onClick={() => setInsOpen(!insOpen)}><span>🔍 Inspección del equipo (opcional)</span><span>{insOpen ? "−" : "+"}</span></button>
+              {insOpen && <div className="mt-3"><InspectionForm cat={cat} value={ins} onChange={setIns} /></div>}
+            </div>
+            <div className="card p-4">
+              <h2 className="font-semibold mb-3">{buying ? "Quien entrega el equipo" : "Origen del equipo"}</h2>
+              {buying && <div className="grid gap-3 sm:grid-cols-3">{f("vendor", "Nombre completo")}{f("doc", "Número de documento")}{f("phone", "Celular")}</div>}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {buying && <div><label className="lb" htmlFor="r-doctype">Tipo de documento</label><select id="r-doctype" value={sl.docType} onChange={(e) => setSl({ ...sl, docType: e.target.value })}>{DOC_TYPES.map((d) => <option key={d}>{d}</option>)}</select></div>}
+                {buying && <div><label className="lb" htmlFor="r-address">Dirección</label><input id="r-address" value={sl.address} onChange={(e) => setSl({ ...sl, address: e.target.value })} /></div>}
+              </div>
+              <label className="mt-3 flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={sl.idCopy} onChange={(e) => setSl({ ...sl, idCopy: e.target.checked })} /><span>Se recibió copia del documento de identidad</span></label>
+              <label className="mt-2 flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={sl.declared} onChange={(e) => setSl({ ...sl, declared: e.target.checked })} /><span><b>Quien entrega declara ser el dueño legítimo</b> del equipo, que no tiene reporte de robo ni de pérdida y que no está bloqueado por iCloud.</span></label>
+              <p className="note mt-2">Se guarda en el historial del equipo y se puede imprimir como acta de compra para que el vendedor la firme.</p>
+            </div>
           </>
         )}
       </div>

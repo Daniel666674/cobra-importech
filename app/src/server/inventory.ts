@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, imeiBlocklist, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
+import { inspectionSchema, inspectionSummary, sellerSchema } from "@/lib/inspection";
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
@@ -33,6 +34,8 @@ export const itemInput = z.object({
   min: z.coerce.number({ error: "Escribe el stock mínimo" }).int("El stock mínimo va sin decimales").min(0, "El stock mínimo no puede ser negativo").default(0),
   /** Tienda aliada dueña del producto; vacío = propio. */
   ally: z.string().trim().default(""),
+  inspection: inspectionSchema.nullable().default(null),
+  seller: sellerSchema.nullable().default(null),
 });
 export type ItemInput = z.infer<typeof itemInput>;
 
@@ -84,6 +87,7 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
     input.src = "Aliada: " + ally.name;
   }
 
+  if (input.src === "Trade-in" && !input.seller?.declared) throw new AppError("Marca que quien entrega el equipo declara ser su dueño legítimo", "invalid");
   if (isPhone && input.batt == null) throw new AppError("Escribe la salud de la batería (%) del equipo", "invalid");
   if (isPhone && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
   if (isPhone) {
@@ -123,6 +127,8 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
     color: input.color, cond: input.cond, serial: input.serial, serial2: input.serial2, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
     warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
     min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "", approval: pendingAlta(a),
+    inspection: input.inspection ? { ...input.inspection, by: a.name, t: Date.now() } : null,
+    seller: input.seller ? { ...input.seller, by: a.name, t: Date.now() } : null,
   };
   await tx.insert(items).values(row);
   await addEvent(tx, id, a, how.title ?? (row.src === "Trade-in" ? "Trade-in recibido" : "Ingreso al inventario"), how.detail ?? row.src + (track === "qty" ? " · " + row.qty + " unidades" : ""));
@@ -131,6 +137,8 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
   if (check)
     for (const k of ["crc", "apple"] as const)
       await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
+  if (row.inspection) await addEvent(tx, id, a, "Inspección registrada", inspectionSummary(row.inspection), Object.values(row.inspection.checks).includes("falla") || row.inspection.icloud === "bloqueado" ? "warn" : "ok");
+  if (row.seller?.declared) await addEvent(tx, id, a, "Acta de compra", `Entregó ${row.seller.name || "el cliente"}${row.seller.doc ? ` (${row.seller.docType} ${row.seller.doc})` : ""} · declaró ser el dueño${row.seller.idCopy ? " · copia de documento recibida" : ""}`);
   if (row.approval) await logFeed(tx, a, "owner", "🕒", `${esc(a.name)} ingresó <b>${esc(uname(row))}</b> · espera tu aprobación para venderse`);
   await addEvent(tx, id, a, "En vitrina", branch);
   if (ally?.mode === "compra") {
@@ -288,4 +296,15 @@ export async function priceUnpriced(db: Db, a: Actor, gain: number) {
     if (rows.length) await logFeed(tx, a, "reprice", "🏷️", `${rows.length} productos sin precio quedaron en costo + ${fmt(g)} · ${esc(a.name)}`);
     return rows.length;
   });
+}
+
+/** Guarda (o corrige) la inspección de un equipo ya ingresado. */
+export async function saveInspection(db: Db, a: Actor, id: string, raw: unknown) {
+  if (!can(a, "inv_edit") && !can(a, "tradein")) need(a, "inv_edit");
+  const v = inspectionSchema.parse(raw);
+  const [it] = await db.select().from(items).where(eq(items.id, id));
+  if (!it) throw new AppError("Producto no encontrado", "notfound");
+  const ins = { ...v, by: a.name, t: Date.now() };
+  await db.update(items).set({ inspection: ins }).where(eq(items.id, id));
+  await addEvent(db, id, a, "Inspección registrada", inspectionSummary(ins), Object.values(ins.checks).includes("falla") || ins.icloud === "bloqueado" ? "warn" : "ok");
 }

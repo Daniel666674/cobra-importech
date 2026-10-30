@@ -10,6 +10,8 @@ import { daysIn, isAvail, isQty, itemState, uname } from "@/lib/items";
 import { hasPerm } from "@/server/auth";
 import { getItem } from "@/server/inventory";
 import { requireMe } from "@/server/session";
+import { CHECKS } from "@/lib/inspection";
+import { InspectionEditor } from "./inspection-editor";
 import { ItemActions } from "./item-actions";
 import { ApprovalButtons } from "@/components/approval-buttons";
 
@@ -81,6 +83,33 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
                   ))}
                 </ul>
               ) : <p className="note">Sin verificación oficial registrada.</p>}
+            </div>
+          )}
+          {!isQty(it) && (
+            <div className="card p-4">
+              <h2 className="font-semibold mb-2">🔍 Estado del equipo</h2>
+              {it.inspection ? (
+                <div className="space-y-2 text-[13px]">
+                  <ul className="grid gap-x-4 sm:grid-cols-2">{Object.entries(it.inspection.checks).map(([k, r]) => <li key={k}><b className={r === "ok" ? "text-green-t" : "text-red-t"}>{r === "ok" ? "✓" : "✕"}</b> {CHECKS.find((c) => c.key === k)?.label.split(" (")[0] ?? k}{r === "falla" ? " — falla" : ""}</li>)}</ul>
+                  <div className="flex flex-wrap gap-1.5">
+                    {it.inspection.icloud && <Chip tone={it.inspection.icloud === "libre" ? "ok" : "bad"}>iCloud {it.inspection.icloud}</Chip>}
+                    {it.inspection.carrier && <Chip tone={it.inspection.carrier === "libre" ? "ok" : "warn"}>Operador {it.inspection.carrier}</Chip>}
+                    {it.inspection.region && <Chip tone="gray">Región {it.inspection.region}</Chip>}
+                    {it.inspection.appleWarrEnd && <Chip tone="info">Garantía Apple hasta {fdatey(it.inspection.appleWarrEnd)}</Chip>}
+                    {it.inspection.originalParts && <Chip tone={it.inspection.originalParts === "si" ? "ok" : "warn"}>{it.inspection.originalParts === "si" ? "Piezas originales" : "Piezas cambiadas"}</Chip>}
+                  </div>
+                  {it.inspection.notes && <p className="text-t2">{it.inspection.notes}</p>}
+                  <p className="note">Revisó {it.inspection.by} · {fdt(it.inspection.t)}</p>
+                </div>
+              ) : <p className="note">Sin inspección registrada.</p>}
+              {(hasPerm(me, "inv_edit") || hasPerm(me, "tradein")) && <InspectionEditor id={it.id} cat={it.cat} initial={it.inspection ? { checks: it.inspection.checks, icloud: it.inspection.icloud, carrier: it.inspection.carrier, region: it.inspection.region, appleWarrEnd: it.inspection.appleWarrEnd, originalParts: it.inspection.originalParts, notes: it.inspection.notes } : null} />}
+            </div>
+          )}
+          {it.seller?.declared && (
+            <div className="card p-4">
+              <h2 className="font-semibold mb-1">📄 Acta de compra</h2>
+              <p className="text-t2 text-[13px]">Entregó <b>{it.seller.name || "el cliente"}</b>{it.seller.doc ? ` · ${it.seller.docType} ${it.seller.doc}` : ""}{it.seller.phone ? ` · ${it.seller.phone}` : ""}. Declaró ser el dueño legítimo{it.seller.idCopy ? "; se recibió copia del documento" : ""}.</p>
+              <Link href={`/retomas/acta/${it.id}`} target="_blank" className="btn sm mt-3">🖨️ Ver e imprimir el acta</Link>
             </div>
           )}
           <div className="card p-4">
