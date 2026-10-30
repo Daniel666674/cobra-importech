@@ -228,6 +228,41 @@ export const orders = pgTable("orders", {
   stT: ms("st_t").notNull().default(0),
   /** Notas del técnico (diagnóstico, repuesto pedido…). */
   notes: text("notes").notNull().default(""),
+  /** Ticket de un cliente (equipo que no es del inventario): cliente, descripción del equipo y serial. */
+  client: text("client"),
+  device: text("device").notNull().default(""),
+  serial: text("serial").notNull().default(""),
+  /** Lo que se le cobra al cliente por el trabajo principal (tickets de clientes). */
+  price: integer("price").notNull().default(0),
+  /** Reparaciones adicionales del mismo ticket: costo interno (repuestos) y cobro al cliente. */
+  extras: jsonb("extras").$type<{ job: string; cost: number; price: number }[]>().notNull().default([]),
+  /** Técnico y lo que se le paga por este ticket (queda en su cartera al entregar). */
+  techId: text("tech_id").notNull().default(""),
+  techFee: integer("tech_fee").notNull().default(0),
+  /** Vacío = abierta en el tablero; «entregada» o «cancelada» = en el historial. */
+  outcome: text("outcome").notNull().default(""),
+  doneT: ms("done_t").notNull().default(0),
+});
+
+/** Técnicos del taller: se les paga por reparación y su cartera dice cuánto se les debe. */
+export const technicians = pgTable("technicians", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull().default(""),
+  active: boolean("active").notNull().default(true),
+  t: ms("t").notNull(),
+});
+export const techMoves = pgTable("tech_moves", {
+  id: serial("id").primaryKey(),
+  tech: text("tech").notNull().references(() => technicians.id),
+  t: ms("t").notNull(),
+  kind: text("kind").notNull(), // deuda (reparación entregada) | pago
+  amount: integer("amount").notNull(),
+  ref: text("ref").notNull().default(""),
+  detail: text("detail").notNull().default(""),
+  method: text("method").notNull().default(""),
+  by: text("by").notNull().default(""),
+  voided: boolean("voided").notNull().default(false),
 });
 
 export const purchases = pgTable("purchases", {

@@ -20,6 +20,8 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
   const [off, setOff] = useState<OfficialValue>({});
   const [job, setJob] = useState("");
   const [jobCost, setJobCost] = useState("");
+  const [jobTech, setJobTech] = useState("");
+  const [jobFee, setJobFee] = useState("");
   const isPhone = item.cat === "iPhone";
   const qty = item.track === "qty";
 
@@ -67,7 +69,9 @@ export function ItemActions({ item, sellable, can, warr }: { item: Item; sellabl
           <h3 className="font-semibold">Enviar a taller</h3>
           <div><label className="lb" htmlFor="job">Trabajo</label><input id="job" value={job} onChange={(e) => setJob(e.target.value)} placeholder="Cambio de batería" /></div>
           <div><label className="lb" htmlFor="jc">Costo estimado (COP)</label><MoneyInput id="jc" value={jobCost} onChange={(x) => setJobCost(x)} /></div>
-          <button className="btn primary" disabled={busy || !job.trim()} onClick={() => start(async () => done(await sendToWorkshopAction({ item: item.id, job, cost: jobCost || 0 }), "Orden de taller creada"))}>Crear orden</button>
+          <div><label className="lb" htmlFor="jt">Técnico (opcional)</label><input id="jt" value={jobTech} onChange={(e) => setJobTech(e.target.value)} placeholder="Nombre del técnico" /></div>
+          <div><label className="lb" htmlFor="jf">Se le paga al técnico (COP, opcional)</label><MoneyInput id="jf" value={jobFee} onChange={(x) => setJobFee(x)} /></div>
+          <button className="btn primary" disabled={busy || !job.trim()} onClick={() => start(async () => done(await sendToWorkshopAction({ item: item.id, job, cost: jobCost || 0, tech: jobTech, techFee: jobFee || 0 }), "Orden de taller creada"))}>Crear orden</button>
           {msg && !msg.ok && <p role="alert" className="chip bad !rounded-md !whitespace-normal">⚠️ {msg.t}</p>}
         </div>
       )}

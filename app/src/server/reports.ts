@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import { claims, items, orders, sales, settings } from "@/db/schema";
 import { DAY, daysAgo } from "@/lib/format";
@@ -73,7 +74,7 @@ export async function reportData(db: Db, days: number, now = Date.now()) {
     for (const p of s.payments) byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + p.amount);
     byUser.set(s.by, (byUser.get(s.by) ?? 0) + saleNet(s));
   }
-  const ords = await db.select().from(orders);
+  const ords = await db.select().from(orders).where(eq(orders.outcome, ""));
   return {
     total: ss.reduce((a, s) => a + saleNet(s), 0), count: ss.length, margin: ss.reduce((a, s) => a + saleNet(s) - saleCost(s), 0),
     byCat: [...byCat.entries()].map(([cat, v]) => ({ cat, ...v })).sort((a, b) => b.total - a.total),

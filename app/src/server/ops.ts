@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { claims, clients, items, orders, purchases, sales } from "@/db/schema";
+import { cashMoves, claims, clients, items, orders, purchases, sales, techMoves, technicians } from "@/db/schema";
 import { CATS, CAT_SKU, CONDS, listPrice, type Cat } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
@@ -10,6 +10,7 @@ import { pendingAlta } from "./approvals";
 import { AppError, copField, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { verifyImei } from "./imei";
 import { branchName } from "./inventory";
+import { ensureClient } from "./sales";
 
 /* ---------- Clientes ---------- */
 export const clientInput = z.object({
@@ -62,41 +63,92 @@ export async function resolveClaim(db: Db, a: Actor, id: string, resolution: str
 
 /* ---------- Taller ---------- */
 export const ORDER_FLOW = ["Diagnóstico", "Esperando repuesto", "En reparación", "Listo"] as const;
+type Order = typeof orders.$inferSelect;
+export const orderCost = (o: Pick<Order, "cost" | "extras">) => o.cost + o.extras.reduce((a, x) => a + x.cost, 0);
+export const orderPrice = (o: Pick<Order, "price" | "extras">) => o.price + o.extras.reduce((a, x) => a + x.price, 0);
+
+/** Busca al técnico por nombre (sin importar mayúsculas) y, si no existe, lo crea. */
+async function techByName(tx: Db, name: string) {
+  const n = name.trim();
+  if (!n) return null;
+  const all = await tx.select().from(technicians);
+  const hit = all.find((x) => x.name.trim().toLowerCase() === n.toLowerCase());
+  if (hit) { if (!hit.active) await tx.update(technicians).set({ active: true }).where(eq(technicians.id, hit.id)); return hit; }
+  const row = { id: "TC" + (await nextCounter(tx, "tech")), name: n, phone: "", active: true, t: Date.now() };
+  await tx.insert(technicians).values(row);
+  return row;
+}
+
+const newOrderInput = z.object({
+  /** Equipo del inventario; vacío = ticket de un cliente. */
+  item: z.string().default(""),
+  job: z.string().trim().min(1, "Describe el trabajo"),
+  cost: copField("el costo de la reparación").default(0),
+  price: copField("el cobro al cliente").default(0),
+  tech: z.string().trim().max(60).default(""),
+  techFee: copField("lo que se le paga al técnico").default(0),
+  client: z.string().nullable().default(null),
+  newClient: z.object({ name: z.string().trim().min(1, "Escribe el nombre del cliente"), phone: z.string().trim().default(""), email: z.string().trim().default(""), doc: z.string().trim().default(""), address: z.string().trim().default("") }).nullable().default(null),
+  device: z.string().trim().max(120).default(""),
+  serial: z.string().trim().max(40).default(""),
+});
 export async function createOrder(db: Db, a: Actor, raw: unknown) {
   need(a, "workshop");
-  const v = z.object({ item: z.string(), job: z.string().trim().min(1, "Describe el trabajo"), cost: copField("el costo de la reparación").default(0), tech: z.string().default("") }).parse(raw);
+  const v = newOrderInput.parse(raw);
+  if (!v.item && !v.device) throw new AppError("Escribe qué equipo es (por ejemplo «iPhone 13 azul»)", "invalid");
   return db.transaction(async (tx) => {
-    const [it] = await tx.select().from(items).where(eq(items.id, v.item)).for("update");
-    if (!it) throw new AppError("Equipo no encontrado", "notfound");
-    if (isQty(it) || it.status === "Vendido" || it.status === "En taller") throw new AppError("Este equipo no se puede enviar a taller", "conflict");
     const id = "T-" + String(await nextCounter(tx, "order")).padStart(3, "0");
-    await tx.insert(orders).values({ id, item: it.id, job: v.job, st: "Diagnóstico", cost: v.cost, tech: v.tech || a.name.split(" ")[0], prev: it.status, t: Date.now(), stT: Date.now() });
-    await tx.update(items).set({ status: "En taller" }).where(eq(items.id, it.id));
-    await addEvent(tx, it.id, a, "Entró a taller", v.job, "warn");
+    const tech = await techByName(tx, v.tech || a.name.split(" ")[0]);
+    const base = { id, job: v.job, st: "Diagnóstico", cost: v.cost, tech: tech?.name ?? "", techId: tech?.id ?? "", techFee: v.techFee, t: Date.now(), stT: Date.now() };
+    if (v.item) {
+      const [it] = await tx.select().from(items).where(eq(items.id, v.item)).for("update");
+      if (!it) throw new AppError("Equipo no encontrado", "notfound");
+      if (isQty(it) || it.status === "Vendido" || it.status === "En taller") throw new AppError("Este equipo no se puede enviar a taller", "conflict");
+      await tx.insert(orders).values({ ...base, item: it.id, prev: it.status });
+      await tx.update(items).set({ status: "En taller" }).where(eq(items.id, it.id));
+      await addEvent(tx, it.id, a, "Entró a taller", v.job, "warn");
+    } else {
+      const client = await ensureClient(tx, v.client, v.newClient);
+      await tx.insert(orders).values({ ...base, item: null, prev: "", client: client?.id ?? null, device: v.device, serial: v.serial, price: v.price });
+      await logFeed(tx, a, "owner", "🔧", `Ticket de taller <b>${id}</b>: ${esc(v.device)}${client ? " de " + esc(client.name) : ""} · ${esc(v.job)}`);
+    }
     return id;
   });
 }
 type OrderTx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
-/** Termina la reparación: el costo se suma al costo real del equipo y, para no perder la ganancia, también al precio. */
-async function finishOrder(tx: OrderTx, a: Actor, o: typeof orders.$inferSelect) {
-  const [it] = o.item ? await tx.select().from(items).where(eq(items.id, o.item)) : [];
-  if (it) {
-    const price = it.price ? it.price + o.cost : it.price;
-    await tx.update(items).set({ status: "En vitrina", repairs: it.repairs + o.cost, price }).where(eq(items.id, it.id));
-    await addEvent(tx, it.id, a, "Reparación terminada", `${o.job} · costo ${fmt(o.cost)} sumado al costo real (${fmt(it.cost + it.repairs)} → ${fmt(it.cost + it.repairs + o.cost)})${price !== it.price ? ` y al precio (${fmt(it.price)} → ${fmt(price)})` : ""}`, "ok");
-    await addEvent(tx, it.id, a, "En vitrina", it.branch);
-    await logFeed(tx, a, "owner", "🔧", `Reparación terminada: <b>${esc(uname(it))}</b> (${esc(o.job)}) · costo ${fmt(o.cost)}${price !== it.price ? ` · nuevo precio ${fmt(price)}` : ""}`);
+const deliverInput = z.object({ amount: copField("lo que pagó el cliente").default(0), method: z.string().trim().min(1).max(40).default("Efectivo") }).optional();
+
+/** Termina la reparación. Del inventario: el costo (con las reparaciones adicionales) se suma al costo real del equipo y al precio.
+ *  De un cliente: se registra lo que pagó en la caja. En los dos casos se anota lo que se le debe al técnico y el ticket queda en el historial. */
+async function finishOrder(tx: OrderTx, a: Actor, o: Order, pay?: z.infer<typeof deliverInput>) {
+  const cost = orderCost(o);
+  const jobs = [o.job, ...o.extras.map((x) => x.job)].join(" + ");
+  if (o.item) {
+    const [it] = await tx.select().from(items).where(eq(items.id, o.item));
+    if (it) {
+      const price = it.price ? it.price + cost : it.price;
+      await tx.update(items).set({ status: "En vitrina", repairs: it.repairs + cost, price }).where(eq(items.id, it.id));
+      await addEvent(tx, it.id, a, "Reparación terminada", `${jobs} · costo ${fmt(cost)} sumado al costo real (${fmt(it.cost + it.repairs)} → ${fmt(it.cost + it.repairs + cost)})${price !== it.price ? ` y al precio (${fmt(it.price)} → ${fmt(price)})` : ""}`, "ok");
+      await addEvent(tx, it.id, a, "En vitrina", it.branch);
+      await logFeed(tx, a, "owner", "🔧", `Reparación terminada: <b>${esc(uname(it))}</b> (${esc(jobs)}) · costo ${fmt(cost)}${price !== it.price ? ` · nuevo precio ${fmt(price)}` : ""}`);
+    }
+  } else {
+    if (!pay) throw new AppError("Indica cuánto pagó el cliente al recibir el equipo (puede ser 0)", "invalid");
+    if (pay.amount > 0) await tx.insert(cashMoves).values({ t: Date.now(), kind: "ingreso", method: pay.method, amount: pay.amount, concept: `Reparación ${o.id}: ${o.device}`, by: a.name });
+    await logFeed(tx, a, "owner", "🔧", `Reparación entregada al cliente: <b>${esc(o.device)}</b> (${esc(jobs)}) · cobro ${fmt(orderPrice(o))}${pay.amount ? ` · pagó ${fmt(pay.amount)} (${esc(pay.method)})` : " · sin pago"}`);
   }
-  await tx.delete(orders).where(eq(orders.id, o.id));
+  if (o.techId && o.techFee > 0) await tx.insert(techMoves).values({ tech: o.techId, t: Date.now(), kind: "deuda", amount: o.techFee, ref: o.id, detail: jobs, by: a.name });
+  await tx.update(orders).set({ outcome: "entregada", doneT: Date.now() }).where(eq(orders.id, o.id));
 }
 
-export async function advanceOrder(db: Db, a: Actor, id: string) {
+export async function advanceOrder(db: Db, a: Actor, id: string, rawPay?: unknown) {
   need(a, "workshop");
+  const pay = deliverInput.parse(rawPay);
   return db.transaction(async (tx) => {
     const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
-    if (!o) throw new AppError("Orden no encontrada", "notfound");
-    if (o.st === "Listo") { await finishOrder(tx, a, o); return "done"; }
+    if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
+    if (o.st === "Listo") { await finishOrder(tx, a, o, pay); return "done"; }
     const next = ORDER_FLOW[ORDER_FLOW.indexOf(o.st as (typeof ORDER_FLOW)[number]) + 1];
     await tx.update(orders).set({ st: next, stT: Date.now() }).where(eq(orders.id, id));
     if (o.item) await addEvent(tx, o.item, a, "Taller: " + next, o.job);
@@ -110,7 +162,7 @@ export async function moveOrder(db: Db, a: Actor, id: string, st: string) {
   const to = z.enum(ORDER_FLOW).parse(st);
   return db.transaction(async (tx) => {
     const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
-    if (!o) throw new AppError("Orden no encontrada", "notfound");
+    if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
     if (o.st === to) return to;
     await tx.update(orders).set({ st: to, stT: Date.now() }).where(eq(orders.id, id));
     if (o.item) await addEvent(tx, o.item, a, "Taller: " + to, `${o.st} → ${to} · ${o.job}`);
@@ -118,24 +170,55 @@ export async function moveOrder(db: Db, a: Actor, id: string, st: string) {
   });
 }
 
-/** Actualiza el costo de la reparación (p. ej. tras el diagnóstico) y las notas del técnico. */
+/** Cambia costo, cobro, notas, técnico y su pago de un ticket abierto. */
 export async function updateOrder(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "workshop");
-  const v = z.object({ cost: copField("el costo de la reparación").optional(), notes: z.string().trim().max(500).optional(), tech: z.string().trim().max(60).optional() }).parse(raw);
-  const [o] = await db.select().from(orders).where(eq(orders.id, id));
-  if (!o) throw new AppError("Orden no encontrada", "notfound");
-  await db.update(orders).set(v).where(eq(orders.id, id));
-  if (o.item && v.cost != null && v.cost !== o.cost) await addEvent(db, o.item, a, "Costo de reparación", `${fmt(o.cost)} → ${fmt(v.cost)} · ${o.job}`, "warn");
+  const v = z.object({
+    cost: copField("el costo de la reparación").optional(), price: copField("el cobro al cliente").optional(), techFee: copField("lo que se le paga al técnico").optional(),
+    notes: z.string().trim().max(500).optional(), tech: z.string().trim().max(60).optional(), job: z.string().trim().min(1).max(200).optional(),
+  }).parse(raw);
+  return db.transaction(async (tx) => {
+    const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
+    if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
+    const { tech, ...rest } = v;
+    const set: Partial<Order> = { ...rest };
+    if (tech !== undefined) { const t = await techByName(tx, tech); set.tech = t?.name ?? ""; set.techId = t?.id ?? ""; }
+    await tx.update(orders).set(set).where(eq(orders.id, id));
+    if (o.item && v.cost != null && v.cost !== o.cost) await addEvent(tx, o.item, a, "Costo de reparación", `${fmt(o.cost)} → ${fmt(v.cost)} · ${o.job}`, "warn");
+  });
 }
+
+/** Reparación adicional dentro del mismo ticket (otro trabajo con su propio costo y cobro). */
+export async function addExtra(db: Db, a: Actor, id: string, raw: unknown) {
+  need(a, "workshop");
+  const v = z.object({ job: z.string().trim().min(1, "Describe la reparación adicional").max(200), cost: copField("el costo").default(0), price: copField("el cobro al cliente").default(0) }).parse(raw);
+  return db.transaction(async (tx) => {
+    const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
+    if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
+    if (o.extras.length >= 10) throw new AppError("Máximo 10 reparaciones adicionales por ticket", "invalid");
+    await tx.update(orders).set({ extras: [...o.extras, v] }).where(eq(orders.id, id));
+    if (o.item) await addEvent(tx, o.item, a, "Reparación adicional", `${v.job} · costo ${fmt(v.cost)} · ${o.id}`, "warn");
+  });
+}
+export async function removeExtra(db: Db, a: Actor, id: string, index: unknown) {
+  need(a, "workshop");
+  const i = z.coerce.number().int().min(0).parse(index);
+  return db.transaction(async (tx) => {
+    const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
+    if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
+    await tx.update(orders).set({ extras: o.extras.filter((_, k) => k !== i) }).where(eq(orders.id, id));
+  });
+}
+
 export async function cancelOrder(db: Db, a: Actor, id: string) {
   need(a, "workshop");
   const [o] = await db.select().from(orders).where(eq(orders.id, id));
-  if (!o) throw new AppError("Orden no encontrada", "notfound");
+  if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
   if (o.item) {
     await db.update(items).set({ status: o.prev }).where(eq(items.id, o.item));
     await addEvent(db, o.item, a, "Orden de taller cancelada", o.job, "warn");
   }
-  await db.delete(orders).where(eq(orders.id, id));
+  await db.update(orders).set({ outcome: "cancelada", doneT: Date.now() }).where(eq(orders.id, id));
 }
 
 /* ---------- Compras / importaciones ---------- */
