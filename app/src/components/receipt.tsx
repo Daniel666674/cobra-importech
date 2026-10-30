@@ -16,7 +16,7 @@ export const WARR_TERMS = [
   "Los accesorios se cambian solo por defecto de fábrica, en su empaque original cuando aplique.",
 ];
 
-export function ReceiptFrame({ cfg, kind, no, t, stamp, children }: { cfg: Cfg; kind: string; no: string; t: number; stamp?: [string, "ok" | "bad" | "warn"]; children: ReactNode }) {
+export function ReceiptFrame({ cfg, kind, no, t, stamp, children, plainFooter }: { cfg: Cfg; kind: string; no: string; t: number; stamp?: [string, "ok" | "bad" | "warn"]; children: ReactNode; plainFooter?: boolean }) {
   const tone = { ok: "text-green-700 border-green-700", bad: "text-red-700 border-red-700", warn: "text-amber-700 border-amber-700" };
   return (
     <article className="mx-auto max-w-[820px] overflow-hidden rounded-xl border border-line bg-white text-[#111827] shadow-sm print:shadow-none print:border-0" style={{ colorScheme: "light" }}>
@@ -43,11 +43,11 @@ export function ReceiptFrame({ cfg, kind, no, t, stamp, children }: { cfg: Cfg; 
           </div>
         </header>
         {children}
-        <footer className="mt-7 border-t border-gray-200 pt-3 text-center text-[11.5px] text-gray-500">
+        {!plainFooter && <footer className="mt-7 border-t border-gray-200 pt-3 text-center text-[11.5px] text-gray-500">
           {cfg.footer}
           {cfg.legalNote && <span className="mt-1 block whitespace-pre-line">{cfg.legalNote}</span>}
           <i className="mt-1 block">Comprobante interno de venta. No reemplaza la factura electrónica DIAN. Valores en pesos colombianos (COP).</i>
-        </footer>
+        </footer>}
       </div>
     </article>
   );

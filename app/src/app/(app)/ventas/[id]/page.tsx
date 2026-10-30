@@ -34,6 +34,11 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
       </div>
       <ReceiptPdf no={s.no} auto={sp.nueva === "1"} whatsapp={!!client?.phone} />
       <div id="receipt-print"><SaleReceipt s={s} cfg={cfg} client={client ?? null} seller={u?.name ?? "—"} /></div>
+      {s.tradeins?.length > 0 && (
+        <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">
+          <b>Retomas recibidas:</b> {s.tradeins.map((t) => <Link key={t.item} className="ml-2 underline" target="_blank" href={`/retomas/acta/${t.item}`}>📄 Acta de {t.name}</Link>)}
+        </div>
+      )}
       {s.lines.some((l) => l.supplier) && (
         <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">
           <b>Proveedor (uso interno):</b> {s.lines.filter((l) => l.supplier).map((l) => `${l.name} — ${l.supplier}`).join(" · ")}

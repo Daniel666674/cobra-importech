@@ -46,7 +46,7 @@ describe("borrar ventas", () => {
   it("quita la retoma que entró con la venta (para poder registrarla de nuevo)", async () => {
     const it = await stockPhone();
     const imei = withCheck("35822002100777");
-    const trade = { cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost: 1_500_000, price: 2_100_000, warr: 1 };
+    const trade = { cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost: 1_500_000, price: 2_100_000, warr: 1, seller: { declared: true } };
     const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], client: "c-del", tradeins: [{ item: trade, official: OK }], payments: [{ method: "Transferencia", amount: it.price - 1_500_000 }] });
     expect(await db.select().from(items).where(eq(items.serial, imei))).toHaveLength(1);
     await deleteSale(db, owner, s.id);
@@ -55,7 +55,7 @@ describe("borrar ventas", () => {
   it("no borra si la retoma ya se vendió ni si tiene reclamo de garantía", async () => {
     const it = await stockPhone();
     const imei = withCheck("35822002100778");
-    const trade = { cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost: 1_500_000, price: 2_100_000, warr: 1 };
+    const trade = { cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost: 1_500_000, price: 2_100_000, warr: 1, seller: { declared: true } };
     const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], client: "c-del", tradeins: [{ item: trade, official: OK }], payments: [{ method: "Transferencia", amount: it.price - 1_500_000 }] });
     const [t] = await db.select().from(items).where(eq(items.serial, imei));
     await createSale(db, owner, { lines: [{ item: t.id, qty: 1 }], payments: [{ method: "Efectivo", amount: t.price }] });

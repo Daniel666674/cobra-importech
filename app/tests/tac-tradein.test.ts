@@ -44,7 +44,7 @@ describe("retomas", () => {
   });
   it("quien tiene permiso de trade-in puede recibirla sin editar inventario", async () => {
     const imei = withCheck("49015420333333");
-    const r = await createItem(db, emp, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado" }, { official: ok });
+    const r = await createItem(db, emp, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado", seller: { name: "Pedro", doc: "123", declared: true } }, { official: ok });
     expect(r.src).toBe("Trade-in");
     await expect(createItem(db, emp, { cat: "iPhone", batt: 90, name: "iPhone 14", serial: withCheck("49015420444444"), price: 1, src: "Importación" }, { official: ok })).rejects.toThrow(/permiso/);
     expect((await db.select().from(items).where(eq(items.id, r.id)))[0].cost).toBe(1500000);
@@ -55,5 +55,24 @@ describe("WhatsApp", () => {
   it("agrega el indicativo de Colombia y codifica el mensaje", () => {
     expect(waLink("300 111 2222", "Hola ñandú")).toBe("https://wa.me/573001112222?text=Hola%20%C3%B1and%C3%BA");
     expect(waLink("573001112222", "x")).toContain("wa.me/573001112222");
+  });
+});
+
+describe("acta de compra e inspección de una retoma", () => {
+  it("exige la declaración del dueño y guarda al vendedor, la inspección y el historial", async () => {
+    const { withCheck } = await import("@/lib/imei-test");
+    const imei = withCheck("35822002100999");
+    const base = { cat: "iPhone", batt: 88, name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado" };
+    await expect(createItem(db, emp, base, { official: ok, ownerApproved: true })).rejects.toThrow(/dueño legítimo/);
+    await expect(createItem(db, emp, { ...base, seller: { name: "Pedro", doc: "123", declared: false } }, { official: ok, ownerApproved: true })).rejects.toThrow(/dueño legítimo/);
+    const r = await createItem(db, emp, { ...base, seller: { name: "Pedro Ruiz", docType: "CC", doc: "1010", phone: "300", address: "Calle 1 # 2-3", declared: true, idCopy: true }, inspection: { checks: { pantalla: "ok", faceid: "falla" }, icloud: "libre", carrier: "libre", region: "LL/A", originalParts: "si" } }, { official: ok, ownerApproved: true });
+    expect(r.seller).toMatchObject({ name: "Pedro Ruiz", doc: "1010", declared: true, idCopy: true, by: "Anderson" });
+    expect(r.inspection).toMatchObject({ icloud: "libre", region: "LL/A", checks: { faceid: "falla" } });
+    const { getItem, saveInspection } = await import("@/server/inventory");
+    const ev = (await getItem(db, r.id))!.events.map((e) => e.title);
+    expect(ev).toEqual(expect.arrayContaining(["Inspección registrada", "Acta de compra"]));
+    await saveInspection(db, emp, r.id, { checks: { faceid: "ok", pantalla: "ok" }, icloud: "libre" });
+    const [after] = await db.select().from(items).where(eq(items.id, r.id));
+    expect(after.inspection!.checks.faceid).toBe("ok");
   });
 });

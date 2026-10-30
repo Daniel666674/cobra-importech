@@ -120,6 +120,13 @@
       "when": 1793337522973,
       "tag": "0016_taller_clientes_tecnicos",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793337976845,
+      "tag": "0017_inspeccion_acta",
+      "breakpoints": true
     }
   ]
 }

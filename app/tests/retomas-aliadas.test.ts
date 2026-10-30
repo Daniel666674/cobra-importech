@@ -13,7 +13,7 @@ import { freshDb } from "./helpers";
 const owner: Actor = { id: "u2", name: "Angelica", perms: ["approve", "inv_view", "inv_edit", "sell", "discount", "refund", "tradein", "cost_view", "purchase"], locked: false };
 const seller: Actor = { id: "u3", name: "Anderson", perms: ["inv_view", "sell"], locked: false };
 const OK = { crc: "clean", apple: "clean" };
-const tradePhone = (imei: string, cost = 1_500_000) => ({ cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost, price: 2_100_000, warr: 1 });
+const tradePhone = (imei: string, cost = 1_500_000) => ({ cat: "iPhone", batt: 90, name: "iPhone 13", spec: "128 GB", color: "Azul", cond: "Usado", serial: imei, cost, price: 2_100_000, warr: 1, seller: { declared: true } });
 
 let db: Db;
 let clientId: string;

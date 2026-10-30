@@ -176,6 +176,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     }
     const received = [];
     for (const p of trades) {
+      p.input.seller = { name: client!.name, docType: p.input.seller?.docType ?? "CC", doc: client!.doc, phone: client!.phone, address: client!.address, declared: true, idCopy: p.input.seller?.idCopy ?? false };
       p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");
       const row = await insertItem(tx, a, p, { title: "Retoma recibida en venta", detail: `${no} · ${client!.name} · ${fmt(p.input.cost)}` });
       received.push({ item: row.id, name: uname(row), serial: row.serial, cond: row.cond, amount: row.cost });
