@@ -219,12 +219,31 @@ describe("garantía en todos los productos", () => {
   });
 });
 
-describe("pagos: el recargo no cuenta como pago", () => {
-  it("rechaza pagos que incluyen el recargo y acepta el valor sin recargo", async () => {
+describe("pagos con recargo", () => {
+  it("acepta el valor sin recargo y rechaza pagos que pasan incluso del recargo", async () => {
     const it = await stockPhone();
-    await expect(createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: it.price - 200_000 }, { method: "Transferencia", amount: 609_000 }] })).rejects.toThrow(/superan/);
+    await expect(createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: it.price - 200_000 }, { method: "Transferencia", amount: 5_000_000 }] })).rejects.toThrow(/superan/);
     const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Addi", amount: it.price - 200_000 }, { method: "Transferencia", amount: 200_000 }] });
     expect(s.pending).toBe(0);
     expect(s.surcharge).toBeGreaterThan(0);
+  });
+});
+
+describe("recargo cobrado dentro de otro pago (factura de papel: Addi + transferencia de más)", () => {
+  const trade = (imei: string, cost: number) => ({ item: { cat: "iPhone", name: "iPhone 13", spec: "128 GB", color: "Blanco", cond: "Usado", serial: imei, batt: 75, cost, price: cost + 300_000, warr: 1, seller: { declared: true } }, official: OK, ownerApproved: true });
+  const sale = (payments: { method: string; amount: number }[], i1 = "355623120003124", i2 = "354300902608104") => ({
+    custom: [{ cat: "iPhone", name: "iPhone 17 Pro", spec: "256 GB", color: "Blanco", cond: "Nuevo", serial: "354723578317181", batt: 100, price: 3_950_000, cost: 3_650_000, warr: 12, supplier: "Doña Martha" }],
+    newClient: { name: "Erika Sánchez", doc: "1007161130", phone: "3206397418", address: "Calle 41 # 35-80" },
+    tradeins: [trade(i1, 500_000), trade(i2, 250_000)], payments,
+  });
+  it("acepta Addi 3.000.000 + transferencia 609.000: 200.000 son del valor y 409.000 del recargo", async () => {
+    const s = await createSale(db, owner, sale([{ method: "Addi", amount: 3_000_000 }, { method: "Transferencia", amount: 609_000 }]));
+    expect(s.total).toBe(3_950_000);
+    expect(s.surcharge).toBe(409_000);
+    expect(s.pending).toBe(0);
+    expect(s.payments.filter((p) => p.method !== "Retoma")).toEqual([{ method: "Addi", amount: 3_000_000 }, { method: "Transferencia", amount: 609_000 }]);
+  });
+  it("sigue rechazando pagos que pasan incluso del valor más el recargo", async () => {
+    await expect(createSale(db, owner, sale([{ method: "Addi", amount: 3_000_000 }, { method: "Transferencia", amount: 700_000 }], withCheck("35562312000411"), withCheck("35430090260822")))).rejects.toThrow(/incluso sumando el recargo/);
   });
 });

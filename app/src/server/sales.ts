@@ -125,7 +125,10 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const pays: Payment[] = input.payments;
     const sum = pays.reduce((s, p) => s + p.amount, 0);
     // Los pagos pueden quedar incompletos (ventas viejas, datos que faltan): lo que no se cobró queda como saldo pendiente.
-    if (sum > Math.max(0, cashDue)) throw new AppError(`Los pagos superan el total por ${fmt(sum - Math.max(0, cashDue))}`, "invalid");
+    // El recargo de Addi, Vanti o tarjeta se puede cobrar dentro de otro pago (p. ej. una transferencia de más): hasta ese tope se acepta.
+    const feeMax = pays.reduce((x, p) => x + feeFor(surchargeOf(cfg, p.method), p.amount), 0);
+    const over = sum - Math.max(0, cashDue);
+    if (over > feeMax) throw new AppError(`Los pagos superan el total por ${fmt(over - feeMax)}${feeMax ? " (incluso sumando el recargo)" : ""}`, "invalid");
     const pending = Math.max(0, cashDue - sum);
     if (cashDue === 0 && pays.length) throw new AppError(tradeTotal ? "La retoma cubre todo: no hay nada más por cobrar" : "Con el apartado pagado completo no hay nada por cobrar", "invalid");
 
@@ -182,9 +185,11 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       received.push({ item: row.id, name: uname(row), serial: row.serial, cond: row.cond, amount: row.cost });
     }
     // Recargo por forma de pago (Addi, Vanti, tarjeta de crédito…): se cobra aparte del valor de los productos.
-    const charged = pays.map((p) => { const fee = feeFor(surchargeOf(cfg, p.method), p.amount); return fee ? { ...p, fee } : p; });
+    // Si los pagos pasan del valor de los productos, lo que pasa es el recargo cobrado dentro de esos pagos: no se suma otra vez.
+    const surchargePaidInside = over > 0;
+    const charged = pays.map((p) => { const fee = surchargePaidInside ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount); return fee ? { ...p, fee } : p; });
     const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...charged];
-    const surcharge = charged.reduce((x, p) => x + (p.fee ?? 0), 0);
+    const surcharge = surchargePaidInside ? over : charged.reduce((x, p) => x + (p.fee ?? 0), 0);
     const row = {
       id, no, t: when, client: client?.id ?? null, by: a.id,
       method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received, surcharge,
@@ -464,16 +469,24 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
     if (v.date && v.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
     const t = v.date ? Math.min(v.date, now) : s.t;
     const okMethods = new Set<string>([...METHODS, "Retoma", "Abono previo"]);
-    const payments: Payment[] = v.payments.filter((p) => p.amount > 0).map((p) => {
+    const isMoney = (m: string) => m !== "Retoma" && m !== "Abono previo";
+    const clean = v.payments.filter((p) => p.amount > 0).map((p) => {
       if (!okMethods.has(p.method)) throw new AppError(`Forma de pago no válida: ${p.method}`, "invalid");
-      const fee = p.method === "Retoma" || p.method === "Abono previo" ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount);
-      return { method: p.method, amount: p.amount, ...(fee ? { fee } : {}), ...(p.t ? { t: p.t } : {}) };
+      return p;
     });
     const disc = v.disc ?? s.disc;
     const total = saleNet({ lines, disc });
-    const paid = payments.reduce((x, p) => x + p.amount, 0);
+    const paid = clean.reduce((x, p) => x + p.amount, 0);
+    const cashDue = total - s.prepaid - clean.filter((p) => !isMoney(p.method)).reduce((x, p) => x + p.amount, 0);
+    const moneySum = clean.filter((p) => isMoney(p.method)).reduce((x, p) => x + p.amount, 0);
+    // Si los pagos pasan del valor de los productos, lo que pasa es el recargo cobrado dentro de esos pagos (no se suma otra vez).
+    const over = moneySum - Math.max(0, cashDue);
+    const payments: Payment[] = clean.map((p) => {
+      const fee = over > 0 || !isMoney(p.method) ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount);
+      return { method: p.method, amount: p.amount, ...(fee ? { fee } : {}), ...(p.t ? { t: p.t } : {}) };
+    });
     const pending = Math.max(0, total - s.prepaid - paid);
-    const surcharge = payments.reduce((x, p) => x + (p.fee ?? 0), 0);
+    const surcharge = over > 0 ? over : payments.reduce((x, p) => x + (p.fee ?? 0), 0);
     const method = payments.length > 1 ? "Mixto" : payments[0]?.method ?? (s.prepaid ? "Abono previo" : "");
     await tx.update(sales).set({ lines, payments, disc, total, pending, surcharge, method, t, ...(v.notes !== undefined ? { notes: v.notes } : {}) }).where(eq(sales.id, saleId));
     // Si cambió algo que afecta lo que se le debe a una tienda proveedora, se rehace su deuda de esta venta.

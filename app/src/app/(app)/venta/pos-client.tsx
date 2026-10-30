@@ -93,6 +93,8 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   const pct = (m: string) => cfg.surcharges[m] ?? 0;
   const fees = resolved.map((p) => feeFor(pct(p.method), p.amount));
   const feeTotal = hold ? 0 : fees.reduce((a, x) => a + x, 0);
+  // Si los pagos pasan del valor de los productos, lo que pasa es el recargo cobrado dentro de otro pago (p. ej. una transferencia de más).
+  const feeShown = !hold && paid > due ? Math.min(paid - due, feeTotal) : feeTotal;
   const min = hold ? holdMin(T.total, cfg.apartadoMinPct) : 0;
 
   let why = "";
@@ -112,7 +114,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   } else if (due < 0) why = `La retoma supera el total por ${fmt(-due)}: regístrala sola en «Retomas»`;
   else if (trades.length && (!(client || newC) || !clientDoc)) why = "Para recibir un equipo en parte de pago, elige o crea el cliente con su cédula";
   else if (due > 0) {
-    if (paid > due) why = `Los pagos superan el total por ${fmt(paid - due)}`;
+    if (paid > due + feeTotal) why = `Los pagos superan el total por ${fmt(paid - due - feeTotal)}${feeTotal ? " (incluso sumando el recargo)" : ""}`;
   }
 
   const filtered = items.filter((i) => {
@@ -345,15 +347,17 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
                   <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}</option>)}</select>
                   <MoneyInput value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(val) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: val } : x)))} aria-label="Valor del pago" />
-                  {fees[i] > 0 && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
+                  {fees[i] > 0 && paid <= due && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}
-              {paid > due ? (
+              {paid > due + feeTotal ? (
                 <div className="rounded-md border border-red-300 p-2 text-[12.5px]" role="alert">
-                  <b className="text-red-600">Los pagos superan el valor de los productos por {fmt(paid - due)}.</b> Escribe aquí el valor <u>sin recargo</u> (los productos suman {fmt(due)}); el recargo de Addi o tarjeta se suma solo en el total.
-                  <button type="button" className="btn sm ml-2" onClick={() => { const last = pays.length - 1; setPays(pays.map((x, j) => (j === last ? { ...x, amount: String(Math.max(0, resolved[last].amount - (paid - due))) } : x))); }}>Ajustar el último pago</button>
+                  <b className="text-red-600">Los pagos superan el total por {fmt(paid - due - feeTotal)}.</b> Los productos suman {fmt(due)}{feeTotal ? ` y el recargo ${fmt(feeTotal)}` : ""}.
+                  <button type="button" className="btn sm ml-2" onClick={() => { const last = pays.length - 1; setPays(pays.map((x, j) => (j === last ? { ...x, amount: String(Math.max(0, resolved[last].amount - (paid - due - feeTotal))) } : x))); }}>Ajustar el último pago</button>
                 </div>
+              ) : paid > due ? (
+                <p className="note">✓ Los pagos suman {fmt(paid)}: {fmt(due)} de los productos + {fmt(paid - due)} del recargo (cobrado dentro de este pago).</p>
               ) : paid < due ? (
                 <p className="note">Falta asignar {fmt(due - paid)} (valor sin recargo). Si no se asigna, queda como saldo pendiente.</p>
               ) : <p className="note">✓ Pagos completos ({fmt(due)} sin recargo).</p>}
@@ -373,11 +377,11 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           {T.discAmt > 0 && <div className="flex justify-between"><span className="text-t2">Descuento ({+T.pct.toFixed(1)}%)</span><span className="text-red-t">−{fmt(T.discAmt)}</span></div>}
           {T.prepaid > 0 && <div className="flex justify-between"><span className="text-t2">Abonos del apartado</span><span className="text-green-t">−{fmt(T.prepaid)}</span></div>}
           {tradeTotal > 0 && <div className="flex justify-between"><span className="text-t2">Retoma ({trades.length})</span><span className="text-green-t">−{fmt(tradeTotal)}</span></div>}
-          {feeTotal > 0 && <div className="flex justify-between"><span className="text-t2">Recargo por forma de pago</span><span className="text-amber-t">+{fmt(feeTotal)}</span></div>}
-          <div className="flex justify-between text-lg font-bold"><span>{hold ? "Total del equipo" : "Total a pagar"}</span><span className="tabular-nums">{fmt(hold ? T.total : Math.max(0, due) + feeTotal)}</span></div>
+          {feeShown > 0 && <div className="flex justify-between"><span className="text-t2">Recargo por forma de pago</span><span className="text-amber-t">+{fmt(feeShown)}</span></div>}
+          <div className="flex justify-between text-lg font-bold"><span>{hold ? "Total del equipo" : "Total a pagar"}</span><span className="tabular-nums">{fmt(hold ? T.total : Math.max(0, due) + feeShown)}</span></div>
         </div>
         <button type="button" className="btn primary w-full !py-3" disabled={!!why || busy} onClick={confirm}>
-          {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : due > 0 ? `Cobrar ${fmt(due + feeTotal)}` : "Emitir comprobante"}
+          {hold ? `🔒 Crear apartado · abono ${fmt(+abono || 0)}` : due > 0 ? `Cobrar ${fmt(due + feeShown)}` : "Emitir comprobante"}
         </button>
         {why && cart.length > 0 && <p className="note" role="status">{why}</p>}
         {!why && !hold && due > 0 && paid < due && <p className="chip warn !rounded-md !whitespace-normal" role="status">Los pagos no cubren todo: quedará un saldo pendiente de {fmt(due - paid)} en la venta.</p>}
