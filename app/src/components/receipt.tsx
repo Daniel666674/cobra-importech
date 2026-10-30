@@ -68,7 +68,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
   const holdPaid = (s.holdPays ?? []).reduce((a, y) => a + y.amount, 0);
   const paidNow = pays.reduce((a, p) => a + p.amount + (p.fee ?? 0), 0) + holdPaid;
   return (
-    <ReceiptFrame cfg={cfg} kind={cfg.invTitle || "Comprobante de venta"} no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : s.mode === "historico" ? ["HISTÓRICA", "warn"] : ["PAGADA", "ok"]}>
+    <ReceiptFrame cfg={cfg} kind={cfg.invTitle || "Comprobante de venta"} no={s.no} t={s.t} stamp={voided ? ["DEVUELTA", "bad"] : s.mode === "historico" ? ["HISTÓRICA", "warn"] : s.pending > 0 ? ["CON SALDO PENDIENTE", "warn"] : ["PAGADA", "ok"]}>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Card title="Cliente" rows={[["Nombre", client?.name ?? "Cliente de mostrador"], ["Documento", client?.doc ?? ""], ["Teléfono", client?.phone ?? ""], ["Dirección", client?.address ?? ""], ["Correo", client?.email ?? ""]]} />
         <Card title="Detalles de la venta" rows={[["Atendió", seller], ["Forma de pago", s.method], ["Descuento", s.disc ? `${+s.disc.toFixed(1)}%${s.discReason ? " · " + s.discReason : ""}` : ""], ["Observaciones", s.notes]]} />
