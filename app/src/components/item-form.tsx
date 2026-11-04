@@ -6,11 +6,11 @@ import { MoneyInput } from "./money-input";
 
 export type ItemFormValues = {
   name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: string; cost: string; price: string;
-  warr: string; src: string; batt: string; notes: string; min: string; ally: string;
+  warr: string; src: string; batt: string; notes: string; min: string; ally: string; sim: string;
 };
 export const emptyItem = (cat: Cat, warr = 12): ItemFormValues => ({
   name: "", spec: "", color: "", cond: "Nuevo", serial: "", serial2: "", qty: "1", cost: "", price: "", warr: String(warr),
-  src: "Propio", batt: "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0", ally: "",
+  src: "Propio", batt: "", notes: "", min: cat === "AirPods" || cat === "Accesorios" ? "3" : "0", ally: "", sim: "",
 });
 
 type Props = {
@@ -61,6 +61,9 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
           <input id="i-serial" className="mono" value={v.serial} readOnly={serialLocked} onChange={(e) => set({ serial: e.target.value })} />
         </Field>
       )}
+      {cat === "iPhone" && (
+        <Field id="i-sim" label="SIM o eSIM"><select id="i-sim" value={v.sim} onChange={(e) => set({ sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></Field>
+      )}
       {!hideSerial && cat === "iPhone" && (
         <Field id="i-serial2" label="IMEI 2 (opcional)" hint="Equipos con doble SIM / eSIM">
           <input id="i-serial2" className="mono" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
@@ -86,7 +89,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       <Field id="i-price" label="Precio de venta (COP)">
         <MoneyInput id="i-price" value={v.price} onChange={(x) => set({ price: x })} />
       </Field>
-      <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={1} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
+      <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={cat === "Accesorios" ? 0 : 1} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
       {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
         <Field id="i-batt" label={cat === "iPhone" ? "Salud de batería (%) *" : "Batería (%)"}><input id="i-batt" type="number" required={cat === "iPhone"} placeholder="Ej. 87" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
       )}
@@ -98,5 +101,5 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
 
 export const toPayload = (cat: Cat, v: ItemFormValues, extra: Record<string, unknown> = {}) => ({
   cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: v.serial, serial2: v.serial2, qty: v.qty || 1, cost: v.cost || 0,
-  price: v.price, warr: v.warr || 0, src: v.src, batt: v.batt === "" ? null : v.batt, notes: v.notes, min: v.min || 0, ally: v.ally, ...extra,
+  price: v.price, sim: v.sim, warr: v.warr || 0, src: v.src, batt: v.batt === "" ? null : v.batt, notes: v.notes, min: v.min || 0, ally: v.ally, ...extra,
 });

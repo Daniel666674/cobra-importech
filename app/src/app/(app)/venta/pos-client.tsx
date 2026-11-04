@@ -19,12 +19,12 @@ const CAT_ICON: Record<string, string> = { iPhone: "📱", iPad: "📲", Mac: "�
 
 export type PosItem = { id: string; cat: string; name: string; spec: string; color: string; cond: string; serial: string; serial2: string; qty: number; price: number; cost: number; warr: number; track: string; hold: Hold | null };
 type Line = { id: string; qty: number };
-type Pay = { method: string; amount: string };
+type Pay = { method: string; amount: string; bank?: string };
 
 type Props = {
   items: PosItem[];
   clients: { id: string; name: string; doc: string; phone: string }[];
-  cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[]; surcharges: Record<string, number> };
+  cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[]; surcharges: Record<string, number>; banks: string[] };
   can: { discount: boolean; cost: boolean; credit: boolean; tradein: boolean };
   warr: Record<string, number>;
   /** Tiendas aliadas activas: proveedor de un producto fuera de inventario. */
@@ -62,8 +62,8 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   const [scanMsg, setScanMsg] = useState("");
   const [cq, setCq] = useState("");
   const [today] = useState(() => Date.now());
-  type Custom = { cat: Cat; name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; supplier: string };
-  const blankCustom: Custom = { cat: "iPhone", name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), supplier: "" };
+  type Custom = { sim: string; cat: Cat; name: string; spec: string; color: string; cond: string; serial: string; serial2: string; batt: string; qty: number; price: string; cost: string; warr: string; supplier: string };
+  const blankCustom: Custom = { sim: "", cat: "iPhone", name: "", spec: "", color: "", cond: "Usado", serial: "", serial2: "", batt: "", qty: 1, price: "", cost: "", warr: String(warr.Usado ?? 1), supplier: "" };
   const [customs, setCustoms] = useState<Custom[]>([]);
   const [cf, setCf] = useState<Custom | null>(null);
   const [saleDate, setSaleDate] = useState<number | null>(null);
@@ -88,7 +88,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   // pagos: una fila vacía (la última) se completa sola con el saldo
   const fixed = pays.reduce((a, p) => a + (p.amount === "" ? 0 : +p.amount || 0), 0);
   const autoIdx = pays.findIndex((p) => p.amount === "");
-  const resolved = pays.map((p, i) => ({ method: p.method, amount: p.amount === "" ? (i === autoIdx ? Math.max(0, due - fixed) : 0) : +p.amount || 0 }));
+  const resolved = pays.map((p, i) => ({ method: p.method, amount: p.amount === "" ? (i === autoIdx ? Math.max(0, due - fixed) : 0) : +p.amount || 0, bank: p.method === "Transferencia" ? p.bank ?? "" : "" }));
   const paid = resolved.reduce((a, p) => a + p.amount, 0);
   const pct = (m: string) => cfg.surcharges[m] ?? 0;
   const fees = resolved.map((p) => feeFor(pct(p.method), p.amount));
@@ -241,7 +241,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
           {!finishing && !hold && (cf ? (
             <div className="mt-3 space-y-2 rounded-lg border border-dashed border-line p-3">
               <b className="block text-[13px]">Producto fuera de inventario</b>
-              <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", qty: 1 })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
+              <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", sim: "", qty: 1, warr: e.target.value === "Accesorios" ? "0" : String(warr[cf.cond] ?? 1) })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
               <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.filter((c) => c.cat === cf.cat).map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder={cf.cat === "Accesorios" ? "Producto…" : "Modelo…"} />
               <div className="grid grid-cols-2 gap-2">
                 <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, spec: x })} placeholder={cf.cat === "iPhone" || cf.cat === "iPad" ? "Capacidad…" : "Detalle…"} />
@@ -249,9 +249,10 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                 {cf.cat !== "Accesorios" && <input className="mono" placeholder={cf.cat === "iPhone" ? "IMEI 1 / serial" : "Serial (opcional)"} aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />}
                 {cf.cat === "iPhone" && <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />}
                 {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder="Batería % (opcional)" aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
+                {cf.cat === "iPhone" && <select aria-label="SIM o eSIM" value={cf.sim} onChange={(e) => setCf({ ...cf, sim: e.target.value })}><option value="">SIM o eSIM…</option><option>SIM</option><option>eSIM</option></select>}
                 {(cf.cat === "AirPods" || cf.cat === "Accesorios") && <input type="number" min={1} max={1000} placeholder="Cantidad" aria-label="Cantidad fuera de inventario" value={cf.qty} onChange={(e) => setCf({ ...cf, qty: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />}
-                <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
-                <input type="number" min={1} max={60} placeholder="Garantía (meses)" aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
+                <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: cf.cat === "Accesorios" ? cf.warr : String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
+                <input type="number" min={cf.cat === "Accesorios" ? 0 : 1} max={60} placeholder={cf.cat === "Accesorios" ? "Sin garantía (0)" : "Garantía (meses)"} aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />
                 <MoneyInput placeholder="Precio de venta (puede quedar vacío)" aria-label="Precio fuera de inventario" value={cf.price} onChange={(x) => setCf({ ...cf, price: x })} />
                 <input className="col-span-2" list="tiendas-aliadas" placeholder="Tienda proveedora (de dónde se consiguió)" aria-label="Tienda proveedora" maxLength={80} value={cf.supplier} onChange={(e) => setCf({ ...cf, supplier: e.target.value })} />
                 <datalist id="tiendas-aliadas">{allies.map((a) => <option key={a.id} value={a.name} />)}</datalist>
@@ -348,6 +349,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                   <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}</option>)}</select>
                   <MoneyInput value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(val) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: val } : x)))} aria-label="Valor del pago" />
                   {fees[i] > 0 && paid <= due && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
+                  {p.method === "Transferencia" && cfg.banks.length > 0 && <select className="col-span-3" aria-label="Banco de la transferencia" value={p.bank ?? ""} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, bank: e.target.value } : x)))}><option value="">¿A qué banco entró? (opcional)</option>{cfg.banks.map((b) => <option key={b}>{b}</option>)}</select>}
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}

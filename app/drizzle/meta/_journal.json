@@ -127,6 +127,13 @@
       "when": 1793337976845,
       "tag": "0017_inspeccion_acta",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793823958912,
+      "tag": "0018_banco_sim_datafonos",
+      "breakpoints": true
     }
   ]
 }

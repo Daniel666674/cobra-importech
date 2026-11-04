@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { settings } from "@/db/schema";
-import { importTacAction, saveLogoAction, saveMethodsAction, saveNumberingAction, saveSettingsAction, saveWarrantyAction, undoImportAction } from "@/app/actions/admin";
+import { importTacAction, saveBanksAction, saveLogoAction, saveMethodsAction, saveNumberingAction, saveSettingsAction, saveWarrantyAction, undoImportAction } from "@/app/actions/admin";
 import { SaleReceipt } from "@/components/receipt";
 import { fdatey, fmt } from "@/lib/format";
 import { DeleteSales } from "./delete-sales";
@@ -43,11 +43,12 @@ const SAMPLE_SALE = {
 };
 const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", address: "Calle 10 # 5-20, Medellín", email: "maria@correo.com", notes: "" };
 
-export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, sources, salesCount }: {
+export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount }: {
   initialTab: string; cfg: Cfg; logo: string;
   numbering: { prefix: string; last: number };
   warranty: { warr: Record<string, number>; terms: string[]; custom: boolean };
   methods: { all: string[]; on: string[]; surcharges: Record<string, number> };
+  banks: string[];
   sources: Source[];
   salesCount: number;
 }) {
@@ -57,6 +58,8 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   const [num, setNum] = useState({ prefix: numbering.prefix, next: String(numbering.last + 1) });
   const [warr, setWarr] = useState(warranty.warr);
   const [terms, setTerms] = useState(warranty.terms);
+  const [bankList, setBankList] = useState(banks);
+  const [newBank, setNewBank] = useState("");
   const [on, setOn] = useState(methods.on);
   const [fees, setFees] = useState<Record<string, string>>(Object.fromEntries(methods.all.map((m) => [m, String(methods.surcharges[m] ?? "")])));
   const [msg, setMsg] = useState<Msg>(null);
@@ -190,6 +193,17 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
             </div>)}
           </div>
           <button className="btn mt-3" disabled={busy} onClick={() => run(() => saveMethodsAction({ on, surcharges: Object.fromEntries(Object.entries(fees).map(([k, x]) => [k, +x || 0])) }), "Formas de pago y recargos guardados")}>Guardar formas de pago</button>
+        </div>
+        <div className="card p-4">
+          <h2 className="font-semibold mb-1">Bancos para transferencias</h2>
+          <p className="note mb-3">Al cobrar con «Transferencia» se elige a cuál de estos bancos o cuentas entró el dinero; queda en el comprobante y en la caja.</p>
+          <div className="flex flex-wrap gap-2">
+            {bankList.map((b) => <span key={b} className="chip gray">{b} <button type="button" className="ml-1" aria-label={`Quitar ${b}`} onClick={() => setBankList(bankList.filter((x) => x !== b))}>✕</button></span>)}
+            {bankList.length === 0 && <span className="note">Sin bancos: la transferencia se cobra sin elegir banco.</span>}
+          </div>
+          <div className="mt-3 flex gap-2"><input className="!w-64" aria-label="Nuevo banco" placeholder="Ej. Bancolombia, Banco Andrés…" value={newBank} onChange={(e) => setNewBank(e.target.value)} />
+            <button type="button" className="btn" onClick={() => { const n = newBank.trim(); if (n && !bankList.includes(n)) setBankList([...bankList, n]); setNewBank(""); }}>Agregar</button></div>
+          <button className="btn primary mt-3" disabled={busy} onClick={() => run(async () => { const r = await saveBanksAction(bankList); return r.ok ? { ok: true } : r; }, "Bancos guardados")}>Guardar bancos</button>
         </div>
         <div className="card p-4">
           <h2 className="font-semibold mb-3">Descuentos y márgenes</h2>
