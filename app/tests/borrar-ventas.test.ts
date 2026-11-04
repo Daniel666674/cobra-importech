@@ -212,8 +212,11 @@ describe("garantía en todos los productos", () => {
     const it = await stockPhone();
     const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1, warr: 7 }], payments: await pay(it.id) });
     expect(s.lines[0].warr).toBe(7);
+    // un teléfono sin meses toma los de su condición; un accesorio puede ir sin garantía
+    const ph = await createSale(db, owner, { custom: [{ cat: "iPhone", name: "iPhone 11", cond: "Usado", price: 10_000, warr: 0, batt: 90 }], payments: [{ method: "Efectivo", amount: 10_000 }] });
+    expect(ph.lines[0].warr).toBeGreaterThan(0);
     const m = await createSale(db, owner, { custom: [{ cat: "Accesorios", name: "Cable", cond: "Nuevo", price: 10_000, warr: 0 }], payments: [{ method: "Efectivo", amount: 10_000 }] });
-    expect(m.lines[0].warr).toBeGreaterThan(0);
+    expect(m.lines[0].warr).toBe(0);
     const m2 = await createSale(db, owner, { custom: [{ cat: "Accesorios", name: "Cable", cond: "Nuevo", price: 10_000, warr: 18 }], payments: [{ method: "Efectivo", amount: 10_000 }] });
     expect(m2.lines[0].warr).toBe(18);
   });
@@ -245,5 +248,35 @@ describe("recargo cobrado dentro de otro pago (factura de papel: Addi + transfer
   });
   it("sigue rechazando pagos que pasan incluso del valor más el recargo", async () => {
     await expect(createSale(db, owner, sale([{ method: "Addi", amount: 3_000_000 }, { method: "Transferencia", amount: 700_000 }], withCheck("35562312000411"), withCheck("35430090260822")))).rejects.toThrow(/incluso sumando el recargo/);
+  });
+});
+
+describe("accesorios sin garantía, SIM/eSIM, datáfonos y banco de la transferencia", () => {
+  it("guarda SIM/eSIM y el banco de la transferencia, y acepta los datáfonos", async () => {
+    const it = await stockPhone();
+    const s = await createSale(db, owner, {
+      lines: [{ item: it.id, qty: 1 }],
+      payments: [{ method: "Transferencia", amount: 1_000_000, bank: "Banco Andrés" }, { method: "Datáfono Bold", amount: 500_000 }, { method: "Datáfono Redeban", amount: it.price - 1_500_000 }],
+    });
+    expect(s.payments).toMatchObject([{ method: "Transferencia", bank: "Banco Andrés" }, { method: "Datáfono Bold" }, { method: "Datáfono Redeban" }]);
+    expect(s.payments[1].bank).toBeUndefined();
+    const m = await createSale(db, owner, { custom: [{ cat: "iPhone", name: "iPhone 14 Pro Max", cond: "Usado", price: 100_000, sim: "eSIM", batt: 90 }], payments: [{ method: "Efectivo", amount: 100_000 }] });
+    expect(m.lines[0].sim).toBe("eSIM");
+  });
+  it("el banco aparece en la caja del día y la edición de la venta lo conserva", async () => {
+    const { cajaDay, bogotaToday } = await import("@/server/caja");
+    const { editSale } = await import("@/server/sales");
+    const it = await stockPhone();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Transferencia", amount: it.price, bank: "Banco Importech" }] });
+    expect((await cajaDay(db, bogotaToday())).byMethod.some((m) => m.method === "Transferencia · Banco Importech")).toBe(true);
+    await editSale(db, owner, s.id, { lines: [{ price: it.price, cost: it.cost }], payments: [{ method: "Transferencia", amount: it.price, bank: "Banco Andrés" }] });
+    const [after] = await db.select().from(sales).where(eq(sales.id, s.id));
+    expect(after.payments[0]).toMatchObject({ bank: "Banco Andrés" });
+  });
+  it("un teléfono o equipo nuevo en inventario exige garantía; un accesorio no", async () => {
+    const { createItem } = await import("@/server/inventory");
+    const acc = { cat: "Accesorios", name: "Funda", cost: 5000, price: 20000, warr: 0, qty: 3 };
+    expect((await createItem(db, owner, acc)).warr).toBe(0);
+    await expect(createItem(db, owner, { ...acc, cat: "AirPods", name: "AirPods Pro", warr: 0 })).rejects.toThrow(/al menos 1 mes/);
   });
 });

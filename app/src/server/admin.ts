@@ -160,3 +160,13 @@ export async function countUsers(db: Db) {
   const [{ n }] = await db.select({ n: count() }).from(users);
   return n;
 }
+
+/** Bancos o cuentas a los que entran las transferencias (se eligen al cobrar). */
+export async function saveBanks(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = z.array(z.string().trim().min(1).max(40)).max(20, "Máximo 20 bancos").parse(raw);
+  const banks = [...new Set(v)];
+  await db.update(settings).set({ banks }).where(eq(settings.id, 1));
+  await logFeed(db, a, "owner", "🏦", `Bancos para transferencias: ${banks.map(esc).join(", ") || "ninguno"} · ${esc(a.name)}`);
+  return banks;
+}

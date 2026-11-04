@@ -33,6 +33,7 @@ export const saleInput = z.object({
     warr: z.coerce.number().int().min(0).max(60).default(0),
     /** Tienda aliada (proveedor) dueña del equipo: lo que se le paga queda en su cartera. Vacío = propio. */
     ally: z.string().trim().default(""),
+    sim: z.enum(["", "SIM", "eSIM"]).default(""),
     /** Nombre de la tienda de donde se consiguió (a veces prestado), escrito a mano. */
     supplier: z.string().trim().max(80, "El nombre de la tienda es muy largo (máximo 80)").default(""),
   })).max(20).default([]),
@@ -42,7 +43,7 @@ export const saleInput = z.object({
   newClient: clientNew.nullable().default(null),
   discount: z.object({ type: z.enum(["pct", "cop"]), value: z.coerce.number().min(0) }).default({ type: "pct", value: 0 }),
   discReason: z.string().trim().default(""),
-  payments: z.array(z.object({ method, amount: copField("el valor de cada forma de pago", 1) })).default([]),
+  payments: z.array(z.object({ method, amount: copField("el valor de cada forma de pago", 1), bank: z.string().trim().max(40).default("") })).default([]),
   notes: z.string().trim().default(""),
   cash: copField("el efectivo recibido").default(0),
   holdItem: z.string().nullable().default(null),
@@ -122,7 +123,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     if (tradeTotal > T.due) throw new AppError(`La retoma (${fmt(tradeTotal)}) supera lo que falta por pagar (${fmt(T.due)}). Registra la retoma sola en «Retomas» y paga la diferencia al cliente.`, "invalid");
     for (const p of trades) if (lines.some(({ it }) => it.serial && it.serial === p.input.serial)) throw new AppError("El equipo de retoma no puede ser el mismo que se vende", "invalid");
     const cashDue = T.due - tradeTotal;
-    const pays: Payment[] = input.payments;
+    const pays: Payment[] = input.payments.map(({ bank, ...p }) => (bank ? { ...p, bank } : p));
     const sum = pays.reduce((s, p) => s + p.amount, 0);
     // Los pagos pueden quedar incompletos (ventas viejas, datos que faltan): lo que no se cobró queda como saldo pendiente.
     // El recargo de Addi, Vanti o tarjeta se puede cobrar dentro de otro pago (p. ej. una transferencia de más): hasta ese tope se acepta.
@@ -145,7 +146,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const months = (cond: string, ...v: (number | undefined)[]) => v.find((x) => x != null && x > 0) ?? (cfg.warr[cond] > 0 ? cfg.warr[cond] : 1);
     const saleLines: SaleLine[] = lines.map(({ it, qty, warr: w }) => ({
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
-      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: months(it.cond, w, it.warr), ret: 0, ...(it.ally ? { ally: it.ally } : {}),
+      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.cat === "Accesorios" ? (w ?? it.warr) : months(it.cond, w, it.warr), ret: 0, ...(it.ally ? { ally: it.ally } : {}), ...(it.sim ? { sim: it.sim } : {}),
     }));
     // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
     const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
@@ -172,7 +173,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
       customs.push(c);
     }
     for (const c of customs)
-      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: months(c.cond, c.warr), ret: 0, ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
+      saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.cat === "Accesorios" ? c.warr : months(c.cond, c.warr), ret: 0, ...(c.sim ? { sim: c.sim } : {}), ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
       await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);
@@ -439,7 +440,7 @@ export const editSaleInput = z.object({
   notes: z.string().trim().max(500).optional(),
   disc: z.coerce.number().min(0, "El descuento va de 0 a 100").max(100, "El descuento va de 0 a 100").optional(),
   lines: z.array(editLine),
-  payments: z.array(z.object({ method: z.string().trim().min(1).max(40), amount: copField("el valor de cada pago", 0), t: z.coerce.number().int().optional() })).max(12),
+  payments: z.array(z.object({ method: z.string().trim().min(1).max(40), amount: copField("el valor de cada pago", 0), t: z.coerce.number().int().optional(), bank: z.string().trim().max(40).default("") })).max(12),
 });
 
 /**
@@ -460,7 +461,7 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
         if (l.item) throw new AppError(`«${l.name}» es del inventario: su cantidad se corrige con una devolución`, "invalid");
         if (e.qty < (l.ret || 0)) throw new AppError(`«${l.name}»: ya hay ${l.ret} devueltos`, "invalid");
       }
-      const next: SaleLine = { ...l, price: e.price, cost: e.cost, warr: e.warr > 0 ? e.warr : cfg.warr[l.cond] > 0 ? cfg.warr[l.cond] : 1, serial: e.serial, qty: e.qty ?? l.qty };
+      const next: SaleLine = { ...l, price: e.price, cost: e.cost, warr: e.warr > 0 ? e.warr : l.warr === 0 ? 0 : cfg.warr[l.cond] > 0 ? cfg.warr[l.cond] : 1, serial: e.serial, qty: e.qty ?? l.qty };
       if (e.serial2) next.serial2 = e.serial2; else delete next.serial2;
       if (e.batt != null) next.batt = e.batt; else delete next.batt;
       return next;
@@ -483,7 +484,7 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
     const over = moneySum - Math.max(0, cashDue);
     const payments: Payment[] = clean.map((p) => {
       const fee = over > 0 || !isMoney(p.method) ? 0 : feeFor(surchargeOf(cfg, p.method), p.amount);
-      return { method: p.method, amount: p.amount, ...(fee ? { fee } : {}), ...(p.t ? { t: p.t } : {}) };
+      return { method: p.method, amount: p.amount, ...(fee ? { fee } : {}), ...(p.t ? { t: p.t } : {}), ...(p.bank ? { bank: p.bank } : {}) };
     });
     const pending = Math.max(0, total - s.prepaid - paid);
     const surcharge = over > 0 ? over : payments.reduce((x, p) => x + (p.fee ?? 0), 0);

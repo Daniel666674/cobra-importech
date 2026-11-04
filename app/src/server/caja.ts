@@ -39,7 +39,7 @@ export async function cajaDay(db: Db, ymd: string) {
     for (const p of s.payments as Payment[]) {
       if (NOT_MONEY.has(p.method)) continue;
       const when = p.t ?? s.t;
-      if (inR(when)) ins.push({ when, method: p.method, amount: p.amount + (p.fee ?? 0), ref: s.no, what: p.t ? "Pago de saldo" : "Venta", href: `/ventas/${s.id}` });
+      if (inR(when)) ins.push({ when, method: p.bank ? `${p.method} · ${p.bank}` : p.method, amount: p.amount + (p.fee ?? 0), ref: s.no, what: p.t ? "Pago de saldo" : "Venta", href: `/ventas/${s.id}` });
     }
     for (const h of s.holdPays ?? []) if (inR(h.t)) ins.push({ when: h.t, method: h.method, amount: h.amount, ref: h.no, what: "Abono de apartado", href: `/ventas/${s.id}` });
   }

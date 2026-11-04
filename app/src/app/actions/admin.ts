@@ -1,7 +1,7 @@
 "use server";
 import { act } from "@/server/act";
 import { importTacCsv } from "@/server/inventory";
-import { createUser, saveLogo, saveMethods, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
+import { createUser, saveBanks, saveLogo, saveMethods, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
 import { importSales, undoImport } from "@/server/import";
 
 export async function createUserAction(data: unknown) {
@@ -36,4 +36,8 @@ export async function importSalesAction(data: unknown) {
 }
 export async function undoImportAction(source: string) {
   return act((db, a) => undoImport(db, a, source), ["/"]);
+}
+
+export async function saveBanksAction(data: unknown) {
+  return act((db, a) => saveBanks(db, a, data), ["/", "/venta"]);
 }

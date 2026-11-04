@@ -80,7 +80,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
             {s.lines.map((l, i) => (
               <tr key={i} className={`border-b border-gray-100 align-top ${lineNet(l) <= 0 ? "text-gray-400 line-through" : ""}`}>
                 <td className="py-2 pr-2">{i + 1}</td>
-                <td><b>{l.name}</b><small className="block text-gray-500">{[l.color, l.cond, l.batt != null ? `Batería ${l.batt}%` : ""].filter(Boolean).join(" · ")}</small></td>
+                <td><b>{l.name}</b><small className="block text-gray-500">{[l.color, l.cond, l.sim, l.batt != null ? `Batería ${l.batt}%` : ""].filter(Boolean).join(" · ")}</small></td>
                 <td className="font-mono text-[11.5px]">{l.serial || "—"}{l.serial2 && <span className="block">{l.serial2}</span>}</td>
                 <td className="text-right">{l.qty}{l.ret ? <small className="block">dev. {l.ret}</small> : null}</td>
                 <td className="text-right tabular-nums">{fmt(l.price)}</td>
@@ -114,7 +114,7 @@ export function SaleReceipt({ s, cfg, client, seller }: { s: Sale; cfg: Cfg; cli
           <div className="flex justify-between border-y-2 border-gray-900 py-1.5 text-[17px] font-extrabold"><span>TOTAL</span><span className="tabular-nums">{fmt(s.total)}</span></div>
           {holdPaid > 0 && <div className="flex justify-between"><span>Abonos del apartado ({s.holdPays!.length})</span><span className="tabular-nums">{fmt(holdPaid)}</span></div>}
           {(s.surcharge ?? 0) > 0 && <div className="flex justify-between"><span>Recargo por forma de pago</span><span className="tabular-nums">{fmt(s.surcharge)}</span></div>}
-          {pays.map((p, i) => <div key={i} className="flex justify-between"><span>{p.method}{p.fee ? ` (incluye recargo ${fmt(p.fee)})` : ""}</span><span className="tabular-nums">{fmt(p.amount + (p.fee ?? 0))}</span></div>)}
+          {pays.map((p, i) => <div key={i} className="flex justify-between"><span>{p.method}{p.bank ? ` · ${p.bank}` : ""}{p.fee ? ` (incluye recargo ${fmt(p.fee)})` : ""}</span><span className="tabular-nums">{fmt(p.amount + (p.fee ?? 0))}</span></div>)}
           {s.cash && <div className="flex justify-between"><span>Efectivo recibido · cambio</span><span className="tabular-nums">{fmt(s.cash.given)} · {fmt(s.cash.change)}</span></div>}
           <div className="flex justify-between border-t border-gray-200 pt-2 font-bold"><span>Total pagado</span><span className="tabular-nums">{fmt(paidNow)}</span></div>
           {s.pending > 0 && <div className="flex justify-between font-bold text-red-700"><span>Saldo pendiente</span><span className="tabular-nums">{fmt(s.pending)}</span></div>}

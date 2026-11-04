@@ -27,13 +27,14 @@ export const itemInput = z.object({
   cost: copField("el costo").default(0),
   /** Puede quedar en $0 (sin precio): no se vende hasta ponérselo (en la ficha o al cobrar en caja). */
   price: copField("el precio de venta", 0, 0).default(0),
-  warr: z.coerce.number({ error: "Escribe la garantía en meses" }).int("La garantía va en meses enteros").min(1, "La garantía debe ser de al menos 1 mes").max(60, "La garantía es de máximo 60 meses").default(12),
+  warr: z.coerce.number({ error: "Escribe la garantía en meses" }).int("La garantía va en meses enteros").min(0, "La garantía no puede ser negativa").max(60, "La garantía es de máximo 60 meses").default(12),
   src: z.string().trim().default("Importación"),
   batt: batt.default(null),
   notes: z.string().trim().default(""),
   min: z.coerce.number({ error: "Escribe el stock mínimo" }).int("El stock mínimo va sin decimales").min(0, "El stock mínimo no puede ser negativo").default(0),
   /** Tienda aliada dueña del producto; vacío = propio. */
   ally: z.string().trim().default(""),
+  sim: z.enum(["", "SIM", "eSIM"]).default(""),
   inspection: inspectionSchema.nullable().default(null),
   seller: sellerSchema.nullable().default(null),
 });
@@ -87,6 +88,7 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
     input.src = "Aliada: " + ally.name;
   }
 
+  if (input.cat !== "Accesorios" && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
   if (input.src === "Trade-in" && !input.seller?.declared) throw new AppError("Marca que quien entrega el equipo declara ser su dueño legítimo", "invalid");
   if (isPhone && input.batt == null) throw new AppError("Escribe la salud de la batería (%) del equipo", "invalid");
   if (isPhone && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
@@ -126,7 +128,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
     id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
     color: input.color, cond: input.cond, serial: input.serial, serial2: input.serial2, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
     warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
-    min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "", approval: pendingAlta(a),
+    sim: input.sim, min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "", approval: pendingAlta(a),
     inspection: input.inspection ? { ...input.inspection, by: a.name, t: Date.now() } : null,
     seller: input.seller ? { ...input.seller, by: a.name, t: Date.now() } : null,
   };
@@ -156,7 +158,7 @@ export async function createItem(db: Db, a: Actor, raw: unknown, opts: { officia
   return db.transaction((tx) => insertItem(tx, a, p));
 }
 
-export const itemPatch = itemInput.pick({ serial2: true, name: true, spec: true, color: true, cond: true, qty: true, cost: true, price: true, warr: true, batt: true, notes: true, min: true }).partial();
+export const itemPatch = itemInput.pick({ sim: true, serial2: true, name: true, spec: true, color: true, cond: true, qty: true, cost: true, price: true, warr: true, batt: true, notes: true, min: true }).partial();
 
 export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
   need(a, "inv_edit");
@@ -172,6 +174,7 @@ export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
     if (patch.qty != null && isQty(it) && patch.qty !== it.qty) ch.push(`Cantidad ${it.qty} → ${patch.qty}`);
     if (patch.cond != null && patch.cond !== it.cond) ch.push(`Condición ${it.cond} → ${patch.cond}`);
     if (patch.serial2 != null) patch.serial2 = await checkImei2(tx, patch.serial2, it.serial, it.id);
+    if (patch.warr != null && patch.warr < 1 && it.cat !== "Accesorios") throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
     const next = { ...patch };
     if (!isQty(it)) delete next.qty;
     await tx.update(items).set(next).where(eq(items.id, id));

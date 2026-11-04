@@ -39,7 +39,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const [res, setRes] = useState<(ImeiResult & { imei: string }) | null>(null);
   const [off, setOff] = useState<OfficialValue>({});
   const [ok, setOk] = useState(false);
-  const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "", warr: "" });
+  const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "", warr: "", sim: "" });
   const [ded, setDed] = useState<DeductionKey[]>([]);
   const [ins, setIns] = useState<InspectionInput>(blankInspection());
   const [insOpen, setInsOpen] = useState(false);
@@ -74,7 +74,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
     const serial = phone ? res!.imei : v.serial;
     onAccept({
-      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in",
+      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", sim: v.sim,
         seller: { name: buying ? v.vendor : "", docType: sl.docType, doc: buying ? v.doc : "", phone: buying ? v.phone : "", address: sl.address, declared: sl.declared, idCopy: sl.idCopy },
         inspection: Object.keys(ins.checks).length || ins.icloud || ins.carrier || ins.region || ins.appleWarrEnd || ins.originalParts || ins.notes ? ins : null, batt: v.batt === "" ? null : v.batt, notes },
       official: phone ? off : undefined, ownerApproved: ok, offer,
@@ -111,6 +111,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
                 <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
                 {f("batt", phone ? "Salud de batería (%) *" : "Batería (%)", { type: "number", min: 0, max: 100 })}
                 {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 })}
+                {phone && <div><label className="lb" htmlFor="r-sim">SIM o eSIM</label><select id="r-sim" value={v.sim} onChange={(e) => setV({ ...v, sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></div>}
               </div>
               <fieldset className="mt-3"><legend className="lb">Defectos</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{DEDUCTIONS.map((d) => <label key={d.key} className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" className="!w-auto" checked={Q.applied.includes(d.key)} disabled={d.key === "battery" && v.batt !== "" && +v.batt < 80} onChange={(e) => setDed(e.target.checked ? [...ded, d.key] : ded.filter((x) => x !== d.key))} />{d.label} (−{d.pct}%)</label>)}</div></fieldset>
             </div>

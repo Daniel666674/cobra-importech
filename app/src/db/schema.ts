@@ -17,7 +17,7 @@ const ms = (name: string) => bigint(name, { mode: "number" });
 
 /** amount = parte del total de la venta; fee = recargo de esa forma de pago (Addi, Vanti, crédito…). */
 /** `t`: cuándo entró ese dinero (pagos de saldos pendientes que llegan después de la venta). */
-export type Payment = { method: string; amount: number; fee?: number; t?: number };
+export type Payment = { method: string; amount: number; fee?: number; t?: number; /** Banco al que entró una transferencia. */ bank?: string };
 export type SaleLine = {
   item: string;
   name: string;
@@ -33,6 +33,8 @@ export type SaleLine = {
   ret: number;
   /** Tienda aliada dueña del producto (si no es propio). */
   ally?: string;
+  /** Línea del equipo: SIM física o eSIM. */
+  sim?: string;
   /** Nombre de la tienda de donde se consiguió el producto (productos fuera de inventario). Solo uso interno. */
   supplier?: string;
 };
@@ -112,6 +114,8 @@ export const settings = pgTable("settings", {
   warrTerms: jsonb("warr_terms").$type<string[]>().notNull().default([]),
   /** Formas de pago habilitadas en caja; vacío = todas. */
   methods: jsonb("methods").$type<string[]>().notNull().default([]),
+  /** Bancos o cuentas a los que entran las transferencias (se elige al cobrar). */
+  banks: jsonb("banks").$type<string[]>().notNull().default(["Banco Importech", "Banco Andrés"]),
   showSignatures: boolean("show_signatures").notNull().default(true),
   /** Recargo % por forma de pago. */
   surcharges: jsonb("surcharges").$type<Record<string, number>>().notNull().default({ Addi: 12, Vanti: 6, "Tarjeta crédito": 7 }),
@@ -184,6 +188,8 @@ export const items = pgTable("items", {
   hold: jsonb("hold").$type<Hold | null>(),
   /** Pendiente de aprobación de la propietaria: «alta» (producto nuevo, no se vende) o «baja» (pidieron eliminarlo). */
   approval: jsonb("approval").$type<Approval | null>(),
+  /** SIM física o eSIM (vacío = no se anotó). */
+  sim: text("sim").notNull().default(""),
   inspection: jsonb("inspection").$type<Inspection | null>(),
   seller: jsonb("seller").$type<Seller | null>(),
 });

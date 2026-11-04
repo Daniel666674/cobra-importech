@@ -46,10 +46,10 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
       )}
       {hasPerm(me, "settings") && (
         <div className="no-print mx-auto mt-4 max-w-[820px]">
-          <EditSale methods={[...enabledMethods(cfg), "Retoma", "Abono previo"]} sale={{
+          <EditSale banks={cfg.banks} methods={[...enabledMethods(cfg), "Retoma", "Abono previo"]} sale={{
             id: s.id, no: s.no, t: s.t, disc: s.disc, notes: s.notes, prepaid: s.prepaid,
             lines: s.lines.map((l) => ({ name: l.name, item: l.item, qty: l.qty, ret: l.ret || 0, price: l.price, cost: l.cost, warr: l.warr, serial: l.serial, serial2: l.serial2 ?? "", batt: l.batt ?? null })),
-            payments: s.payments.map((p) => ({ method: p.method, amount: p.amount, t: p.t })),
+            payments: s.payments.map((p) => ({ method: p.method, amount: p.amount, t: p.t, bank: p.bank })),
           }} />
         </div>
       )}
