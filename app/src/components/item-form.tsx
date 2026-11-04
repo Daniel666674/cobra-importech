@@ -1,6 +1,6 @@
 "use client";
 import { useMemo } from "react";
-import { CATALOG, COLOR_OPTIONS, CONDS, SPEC_OPTIONS, type Cat } from "@/lib/catalog";
+import { CATALOG, COLOR_OPTIONS, CONDS, SPEC_OPTIONS, isMobile, type Cat } from "@/lib/catalog";
 import { ComboSelect } from "./combo-select";
 import { MoneyInput } from "./money-input";
 
@@ -49,7 +49,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       <Field id="i-name" label="Producto">
         <ComboSelect id="i-name" value={v.name} options={models.map((m) => m.name)} onChange={(x) => set({ name: x })} placeholder="Elige el modelo…" />
       </Field>
-      <Field id="i-spec" label={cat === "iPhone" || cat === "iPad" ? "Capacidad" : "Detalle"}>
+      <Field id="i-spec" label={isMobile(cat) || cat === "iPad" ? "Capacidad" : "Detalle"}>
         <ComboSelect id="i-spec" value={v.spec} options={SPEC_OPTIONS[cat]} onChange={(x) => set({ spec: x })} />
       </Field>
       <Field id="i-color" label="Color"><ComboSelect id="i-color" value={v.color} options={COLOR_OPTIONS[cat]} onChange={(x) => set({ color: x })} /></Field>
@@ -57,14 +57,14 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
         <select id="i-cond" value={v.cond} onChange={(e) => set({ cond: e.target.value })}>{CONDS.map((c) => <option key={c}>{c}</option>)}</select>
       </Field>
       {!hideSerial && !qtyTrack && (
-        <Field id="i-serial" label={cat === "iPhone" ? "IMEI" : "Número de serie"}>
+        <Field id="i-serial" label={isMobile(cat) ? "IMEI" : "Número de serie"}>
           <input id="i-serial" className="mono" value={v.serial} readOnly={serialLocked} onChange={(e) => set({ serial: e.target.value })} />
         </Field>
       )}
-      {cat === "iPhone" && (
+      {isMobile(cat) && (
         <Field id="i-sim" label="SIM o eSIM"><select id="i-sim" value={v.sim} onChange={(e) => set({ sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></Field>
       )}
-      {!hideSerial && cat === "iPhone" && (
+      {!hideSerial && isMobile(cat) && (
         <Field id="i-serial2" label="IMEI 2 (opcional)" hint="Equipos con doble SIM / eSIM">
           <input id="i-serial2" className="mono" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
         </Field>
@@ -90,7 +90,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
         <MoneyInput id="i-price" value={v.price} onChange={(x) => set({ price: x })} />
       </Field>
       <Field id="i-warr" label="Garantía (meses)"><input id="i-warr" type="number" min={cat === "Accesorios" ? 0 : 1} max={60} value={v.warr} onChange={(e) => set({ warr: e.target.value })} /></Field>
-      {(cat === "iPhone" || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
+      {(isMobile(cat) || cat === "iPad" || cat === "Apple Watch" || cat === "Mac") && (
         <Field id="i-batt" label={cat === "iPhone" ? "Salud de batería (%) *" : "Batería (%)"}><input id="i-batt" type="number" required={cat === "iPhone"} placeholder="Ej. 87" min={0} max={100} value={v.batt} onChange={(e) => set({ batt: e.target.value })} /></Field>
       )}
       {!v.ally && <Field id="i-src" label="Origen"><input id="i-src" value={v.src} onChange={(e) => set({ src: e.target.value })} placeholder="Propio, compra local…" /></Field>}

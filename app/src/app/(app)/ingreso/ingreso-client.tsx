@@ -9,7 +9,7 @@ import { CATS, type Cat } from "@/lib/catalog";
 import type { ScanRead } from "@/lib/scan-parse";
 import { officialGate, type ImeiResult } from "@/lib/imei";
 
-const ICON: Record<Cat, string> = { iPhone: "📱", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
+const ICON: Record<Cat, string> = { iPhone: "📱", Samsung: "📱", Android: "🤖", iPad: "📲", Mac: "💻", "Apple Watch": "⌚", AirPods: "🎧", Accesorios: "🔌" };
 const STEP: Record<string, string> = { ok: "✓", warn: "!", fail: "✕", skip: "–" };
 const STEP_TONE: Record<string, string> = { ok: "text-green-t", warn: "text-amber-t", fail: "text-red-t", skip: "text-t3" };
 

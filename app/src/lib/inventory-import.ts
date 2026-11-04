@@ -48,6 +48,8 @@ export function inferCat(cat: string, name: string): Cat {
   if (exact) return exact;
   const t = `${c} ${norm(name)}`;
   if (/iphone/.test(t)) return "iPhone";
+  if (/samsung|galaxy/.test(t)) return "Samsung";
+  if (/xiaomi|redmi|poco|motorola|moto g|huawei|honor|oppo|realme|pixel|oneplus|tecno|infinix|android|celular/.test(t)) return "Android";
   if (/ipad/.test(t)) return "iPad";
   if (/macbook|imac|mac mini|mac studio|\bmac\b/.test(t)) return "Mac";
   if (/watch|reloj/.test(t)) return "Apple Watch";

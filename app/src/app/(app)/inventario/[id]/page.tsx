@@ -7,6 +7,7 @@ import { OFFICIAL_LABEL, OFFICIAL_TEXT } from "@/lib/imei";
 import { fdatey, fdt, fmt } from "@/lib/format";
 import { holdBal, holdLeft } from "@/lib/hold";
 import { daysIn, isAvail, isQty, itemState, uname } from "@/lib/items";
+import { isMobile } from "@/lib/catalog";
 import { hasPerm } from "@/server/auth";
 import { getItem } from "@/server/inventory";
 import { requireMe } from "@/server/session";
@@ -51,7 +52,7 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
                 ...(canCost ? [["Costo real", it.repairs ? `${fmt(it.cost + it.repairs)} (costo ${fmt(it.cost)} + reparaciones ${fmt(it.repairs)})` : fmt(it.cost)], ["Ganancia", fmt(it.price - it.cost - it.repairs)]] : []),
                 ["Garantía", it.warr ? it.warr + (it.warr === 1 ? " mes" : " meses") : "Sin garantía"],
                 ["Recibido", `${fdatey(it.acq)} (${daysIn(it)} días)`],
-                [isQty(it) ? "Cantidad" : it.cat === "iPhone" ? "IMEI" : "Serie", isQty(it) ? String(it.qty) : it.serial || "—"],
+                [isQty(it) ? "Cantidad" : isMobile(it.cat) ? "IMEI" : "Serie", isQty(it) ? String(it.qty) : it.serial || "—"],
                 ...(it.serial2 ? [["IMEI 2", it.serial2]] : []),
                 ...(it.sim ? [["Línea", it.sim]] : []),
                 ...(it.batt != null ? [["Batería", it.batt + "%"]] : []),
@@ -70,12 +71,12 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
               <Link href="/apartados" className="btn sm mt-3">Ver apartados</Link>
             </div>
           )}
-          {it.cat === "iPhone" && (
+          {(it.cat === "iPhone" || (isMobile(it.cat) && it.imeiCheck)) && (
             <div className="card p-4">
               <h2 className="font-semibold mb-2">🛡️ Verificación oficial</h2>
               {it.imeiCheck ? (
                 <ul className="space-y-1.5">
-                  {(["crc", "apple"] as const).map((k) => (
+                  {((it.cat === "iPhone" ? ["crc", "apple"] : ["crc"]) as ("crc" | "apple")[]).map((k) => (
                     <li key={k} className="flex flex-wrap items-center gap-2">
                       <Chip tone={it.imeiCheck![k].r === "clean" ? "ok" : "bad"}>{OFFICIAL_TEXT[it.imeiCheck![k].r]}</Chip>
                       <span>{OFFICIAL_LABEL[k]}</span>

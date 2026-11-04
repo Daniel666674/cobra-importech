@@ -16,6 +16,8 @@ export type StepState = "ok" | "warn" | "fail" | "skip";
 export type Step = { label: string; state: StepState; detail: string };
 export type Verdict = "clean" | "review" | "blocked";
 export type ImeiFacts = {
+  /** Celulares que no son iPhone: el TAC de Apple no aplica. */
+  skipTac?: boolean;
   /** Equipo ya existente con el mismo IMEI (otro que no sea el que se re-verifica). */
   existing?: { id: string; name: string; status: string } | null;
   /** El equipo ya pasó por la tienda y se vendió: puede volver a entrar. */
@@ -52,7 +54,8 @@ export function checkImei(imei: string, facts: ImeiFacts = {}): ImeiResult {
   let reason: ImeiResult["reason"] = null;
   P(L[0], "ok", "15 dígitos · dígito verificador correcto");
   const known = facts.tacName ?? null;
-  if (known) P(L[1], "ok", "Identificado: " + known);
+  if (facts.skipTac) P(L[1], "skip", "No aplica: el modelo lo escribes tú");
+  else if (known) P(L[1], "ok", "Identificado: " + known);
   else {
     P(L[1], "warn", `TAC ${imei.slice(0, 8)} aún no reconocido · elige el modelo; el sistema lo recordará para la próxima vez`);
     verdict = "review";

@@ -2,19 +2,19 @@ import { z } from "zod";
 
 /** Revisión del equipo al recibirlo (ingreso, retoma o diagnóstico): lo que funciona y lo que no. */
 export const CHECKS: { key: string; label: string; cats: string[] }[] = [
-  { key: "pantalla", label: "Pantalla (sin rayas, manchas ni píxeles muertos)", cats: ["iPhone", "iPad", "Mac", "Apple Watch"] },
-  { key: "tactil", label: "Táctil", cats: ["iPhone", "iPad", "Apple Watch"] },
-  { key: "faceid", label: "Face ID / Touch ID", cats: ["iPhone", "iPad", "Mac"] },
-  { key: "camara_trasera", label: "Cámara trasera y flash", cats: ["iPhone", "iPad"] },
-  { key: "camara_frontal", label: "Cámara frontal", cats: ["iPhone", "iPad", "Mac"] },
-  { key: "altavoz", label: "Altavoz y auricular", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
-  { key: "microfono", label: "Micrófono", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
-  { key: "botones", label: "Botones y vibración", cats: ["iPhone", "iPad", "Apple Watch"] },
-  { key: "carga", label: "Carga (puerto o inalámbrica)", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
-  { key: "conectividad", label: "Wi-Fi, Bluetooth y señal", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
-  { key: "sim", label: "Lector de SIM", cats: ["iPhone", "iPad"] },
-  { key: "humedad", label: "Sin indicios de humedad", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
-  { key: "marco", label: "Carcasa y marco sin golpes", cats: ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "pantalla", label: "Pantalla (sin rayas, manchas ni píxeles muertos)", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch"] },
+  { key: "tactil", label: "Táctil", cats: ["iPhone", "Samsung", "Android", "iPad", "Apple Watch"] },
+  { key: "faceid", label: "Face ID / Touch ID / huella", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac"] },
+  { key: "camara_trasera", label: "Cámara trasera y flash", cats: ["iPhone", "Samsung", "Android", "iPad"] },
+  { key: "camara_frontal", label: "Cámara frontal", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac"] },
+  { key: "altavoz", label: "Altavoz y auricular", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "microfono", label: "Micrófono", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "botones", label: "Botones y vibración", cats: ["iPhone", "Samsung", "Android", "iPad", "Apple Watch"] },
+  { key: "carga", label: "Carga (puerto o inalámbrica)", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "conectividad", label: "Wi-Fi, Bluetooth y señal", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "sim", label: "Lector de SIM", cats: ["iPhone", "Samsung", "Android", "iPad"] },
+  { key: "humedad", label: "Sin indicios de humedad", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
+  { key: "marco", label: "Carcasa y marco sin golpes", cats: ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods"] },
 ];
 export const checksFor = (cat: string) => CHECKS.filter((c) => c.cats.includes(cat));
 

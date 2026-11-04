@@ -76,3 +76,33 @@ describe("acta de compra e inspección de una retoma", () => {
     expect(after.inspection!.checks.faceid).toBe("ok");
   });
 });
+
+describe("Samsung y Android", () => {
+  it("la retoma pide IMEI válido y CRC, no el bloqueo de Apple ni el TAC de Apple", async () => {
+    const { verifyImei } = await import("@/server/imei");
+    const imei = withCheck("35299011222333");
+    const v = await verifyImei(db, imei, undefined, "Samsung");
+    expect(v.verdict).toBe("clean");
+    expect(v.steps[1].state).toBe("skip");
+    const sam = { cat: "Samsung", name: "Galaxy S24 Ultra", spec: "256 GB", color: "Negro", cond: "Usado", serial: imei, cost: 1_800_000, price: 2_300_000, warr: 1, src: "Trade-in", sim: "eSIM", seller: { name: "Laura", doc: "55", declared: true } };
+    await expect(createItem(db, emp, sam)).rejects.toThrow(/verificación oficial/i);
+    const r = await createItem(db, emp, sam, { official: ok });
+    expect(r).toMatchObject({ cat: "Samsung", sim: "eSIM", batt: null });
+    expect(r.sku).toMatch(/^SAM-/);
+    expect(r.imeiCheck?.crc.r).toBe("clean");
+    const { getItem } = await import("@/server/inventory");
+    const titles = (await getItem(db, r.id))!.events.map((e) => e.title);
+    expect(titles.some((t) => /Apple/.test(t))).toBe(false);
+    expect(titles.some((t) => /CRC/.test(t))).toBe(true);
+    const imei2 = withCheck("35299011222444");
+    const and = await createItem(db, emp, { ...sam, cat: "Android", name: "Xiaomi Redmi Note 13", serial: imei2 }, { official: ok });
+    expect(and.sku).toMatch(/^AND-/);
+  });
+  it("también se pueden vender a mano y entrar al inventario sin retoma", async () => {
+    const { createSale } = await import("@/server/sales");
+    const s = await createSale(db, { ...owner, perms: [...owner.perms, "sell"] }, { custom: [{ cat: "Android", name: "Moto G54", spec: "128 GB", cond: "Nuevo", serial: "354000000000001", price: 800_000, warr: 6, sim: "SIM" }], payments: [{ method: "Efectivo", amount: 800_000 }] });
+    expect(s.lines[0]).toMatchObject({ sim: "SIM", warr: 6 });
+    const it = await createItem(db, owner, { cat: "Samsung", name: "Galaxy A15", cost: 400_000, price: 600_000, warr: 6, serial: "354000000000002" });
+    expect(it.cat).toBe("Samsung");
+  });
+});
