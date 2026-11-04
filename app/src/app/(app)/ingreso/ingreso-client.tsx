@@ -26,7 +26,7 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
   const [scanOpen, setScanOpen] = useState(false);
   const [pending, setPending] = useState<ScanRead | null>(null);
 
-  const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm({ ...emptyItem(c, warr.Nuevo), ally: form.ally }); };
+  const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm({ ...emptyItem(c, c === "Accesorios" ? 0 : warr.Nuevo), ally: form.ally }); };
 
   function verify() {
     const clean = imei.replace(/\D/g, "");
