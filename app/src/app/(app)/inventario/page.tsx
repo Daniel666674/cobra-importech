@@ -11,6 +11,7 @@ import { fdatey, fmt } from "@/lib/format";
 import { hasPerm } from "@/server/auth";
 import { listItems } from "@/server/inventory";
 import { requireMe } from "@/server/session";
+import { ScanSearch } from "@/components/scan-search";
 
 export default async function Inventario({ searchParams }: PageProps<"/inventario">) {
   const me = await requireMe("inv_view");
@@ -36,7 +37,7 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
       <PageHeader title="Inventario" subtitle={`${rows.length} referencias · ${units} unidades`}
         actions={hasPerm(me, "inv_edit") ? <div className="flex flex-wrap gap-2">{unpriced > 0 && canCost && <PriceUnpriced count={unpriced} />}{review > 0 && hasPerm(me, "users") && <ReleaseReview count={review} />}<Link href="/inventario/importar" className="btn">📥 Importar desde Excel</Link><Link href="/ingreso" className="btn primary">➕ Ingresar producto</Link></div> : undefined} />
       <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto]" action="/inventario">
-        <input name="q" defaultValue={f.q} placeholder="Buscar por nombre, IMEI, serial o SKU" aria-label="Buscar" />
+        <ScanSearch defaultValue={f.q} placeholder="Buscar por nombre, IMEI, serial o SKU" ariaLabel="Buscar" />
         <select name="cat" defaultValue={f.cat} aria-label="Categoría"><option value="">Todas las categorías</option>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
         <select name="model" defaultValue={model} aria-label="Modelo"><option value="">Todos los modelos</option>{models.map((m) => <option key={m}>{m}</option>)}</select>
         <select name="cond" defaultValue={f.cond} aria-label="Condición"><option value="">Toda condición</option>{CONDS.map((c) => <option key={c}>{c}</option>)}</select>
