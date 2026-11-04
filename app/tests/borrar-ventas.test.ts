@@ -280,3 +280,14 @@ describe("accesorios sin garantía, SIM/eSIM, datáfonos y banco de la transfere
     await expect(createItem(db, owner, { ...acc, cat: "AirPods", name: "AirPods Pro", warr: 0 })).rejects.toThrow(/al menos 1 mes/);
   });
 });
+
+describe("accesorios del inventario: la garantía se puede dejar en 0 al vender", () => {
+  it("usa los meses que se escriban, incluso 0", async () => {
+    const acc = (await db.select().from(items)).find((i) => i.track === "qty" && i.cat === "Accesorios" && i.qty >= 3 && i.warr > 0);
+    if (!acc) return;
+    const s = await createSale(db, owner, { lines: [{ item: acc.id, qty: 1, warr: 0 }], payments: [{ method: "Efectivo", amount: acc.price }] });
+    expect(s.lines[0].warr).toBe(0);
+    const s2 = await createSale(db, owner, { lines: [{ item: acc.id, qty: 1 }], payments: [{ method: "Efectivo", amount: acc.price }] });
+    expect(s2.lines[0].warr).toBe(acc.warr);
+  });
+});

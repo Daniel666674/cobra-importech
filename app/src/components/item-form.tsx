@@ -41,7 +41,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
   const qtyTrack = cat === "AirPods" || cat === "Accesorios";
   const set = (patch: Partial<ItemFormValues>) => {
     const next = { ...v, ...patch };
-    if ("cond" in patch && patch.cond && warrByCond[patch.cond] != null) next.warr = String(warrByCond[patch.cond]);
+    if ("cond" in patch && patch.cond && cat !== "Accesorios" && warrByCond[patch.cond] != null) next.warr = String(warrByCond[patch.cond]);
     onChange(next);
   };
   return (
