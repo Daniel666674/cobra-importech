@@ -5,7 +5,7 @@ import { checkImei, type ImeiResult } from "@/lib/imei";
 import { uname } from "@/lib/items";
 
 /** Corre las verificaciones automáticas de un IMEI contra la base de datos. */
-export async function verifyImei(db: Db, imei: string, ignoreId?: string): Promise<ImeiResult> {
+export async function verifyImei(db: Db, imei: string, ignoreId?: string, cat?: string): Promise<ImeiResult> {
   const clean = imei.replace(/\D/g, "");
   const same = await db
     .select()
@@ -17,6 +17,7 @@ export async function verifyImei(db: Db, imei: string, ignoreId?: string): Promi
   const [bl] = await db.select().from(imeiBlocklist).where(eq(imeiBlocklist.imei, clean)).limit(1);
   const [tac] = clean.length === 15 ? await db.select().from(tacModels).where(eq(tacModels.tac, clean.slice(0, 8))).limit(1) : [];
   return checkImei(clean, {
+    skipTac: !!cat && cat !== "iPhone",
     tacName: tac?.name ?? null,
     existing: dup ? { id: dup.id, name: uname(dup), status: dup.status } : null,
     soldBefore: !dup && sold ? { id: sold.id, name: uname(sold) } : null,

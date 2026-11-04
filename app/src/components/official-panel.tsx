@@ -14,7 +14,7 @@ const TONE: Record<string, string> = { ok: "bg-green-bg text-green-t border-gree
  * Verificación oficial: el botón copia el IMEI y abre las páginas de la CRC y de Apple.
  * El captcha lo escribe una persona; aquí se registra el resultado que vio.
  */
-export function OfficialPanel({ imei, value, onChange }: { imei: string; value: OfficialValue; onChange: (v: OfficialValue) => void }) {
+export function OfficialPanel({ imei, value, onChange, apple = true }: { imei: string; value: OfficialValue; onChange: (v: OfficialValue) => void; /** false en Samsung y Android: solo aplica la CRC. */ apple?: boolean }) {
   const [msg, setMsg] = useState("");
   async function open(which: "all" | OfficialSource) {
     try {
@@ -25,7 +25,7 @@ export function OfficialPanel({ imei, value, onChange }: { imei: string; value: 
     }
     for (const k of which === "all" ? (["crc", "apple"] as const) : [which]) window.open(OFFICIAL_URL[k], "_blank", "noopener");
   }
-  const done = value.crc && value.apple;
+  const done = value.crc && (value.apple || !apple);
   const bad = value.crc && value.crc !== "clean";
   return (
     <section className={`rounded-xl border p-4 ${done ? (bad ? "border-red-t/50" : "border-green-t/50") : "border-line"} bg-gray-bg/40`} aria-label="Verificación oficial">
@@ -34,7 +34,7 @@ export function OfficialPanel({ imei, value, onChange }: { imei: string; value: 
           <b className="block">🛡️ Verificación oficial</b>
           <span className="note">Obligatoria para guardar. El captcha lo escribe una persona en la página oficial.</span>
         </div>
-        <button type="button" className="btn primary" onClick={() => open("all")}>🔎 Verificar en la fuente oficial</button>
+        <button type="button" className="btn primary" onClick={() => open(apple ? "all" : "crc")}>🔎 Verificar en la fuente oficial</button>
       </div>
       <ol className="note mt-3 list-decimal pl-5 space-y-0.5">
         <li>Pulsa el botón: se copia el IMEI <span className="mono">{imei}</span> y se abren la CRC y Apple.</li>
@@ -42,7 +42,7 @@ export function OfficialPanel({ imei, value, onChange }: { imei: string; value: 
         <li>Elige aquí el resultado de cada consulta.</li>
       </ol>
       {msg && <p className="note mt-2" role="status">{msg}</p>}
-      {(["crc", "apple"] as const).map((k) => (
+      {((apple ? ["crc", "apple"] : ["crc"]) as ("crc" | "apple")[]).map((k) => (
         <div key={k} className="mt-3 border-t border-line pt-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <b className="text-[13px]">{OFFICIAL_LABEL[k]}</b>

@@ -8,8 +8,8 @@ import { createOrder } from "@/server/ops";
 import { existingSerials, importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
 
-export async function verifyImeiAction(imei: string) {
-  return act<ImeiResult>((db) => verifyImei(db, imei), []);
+export async function verifyImeiAction(imei: string, cat?: string) {
+  return act<ImeiResult>((db) => verifyImei(db, imei, undefined, cat), []);
 }
 
 export async function createItemAction(data: unknown, official?: unknown, ownerApproved?: boolean) {

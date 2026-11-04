@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createHoldAction, createSaleAction } from "@/app/actions/sales";
-import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor, type Cat } from "@/lib/catalog";
+import { CATALOG, CATS, COLOR_OPTIONS, SPEC_OPTIONS, feeFor, isMobile, type Cat } from "@/lib/catalog";
 import { ComboSelect } from "@/components/combo-select";
 import { DateField } from "@/components/date-field";
 import { fmt } from "@/lib/format";
@@ -244,12 +244,12 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
               <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", sim: "", qty: 1, warr: e.target.value === "Accesorios" ? "0" : String(warr[cf.cond] ?? 1) })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
               <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.filter((c) => c.cat === cf.cat).map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder={cf.cat === "Accesorios" ? "Producto…" : "Modelo…"} />
               <div className="grid grid-cols-2 gap-2">
-                <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, spec: x })} placeholder={cf.cat === "iPhone" || cf.cat === "iPad" ? "Capacidad…" : "Detalle…"} />
+                <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, spec: x })} placeholder={isMobile(cf.cat) || cf.cat === "iPad" ? "Capacidad…" : "Detalle…"} />
                 <ComboSelect ariaLabel="Color" value={cf.color} options={COLOR_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, color: x })} placeholder="Color…" />
-                {cf.cat !== "Accesorios" && <input className="mono" placeholder={cf.cat === "iPhone" ? "IMEI 1 / serial" : "Serial (opcional)"} aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />}
-                {cf.cat === "iPhone" && <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />}
-                {(cf.cat === "iPhone" || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder="Batería % (opcional)" aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
-                {cf.cat === "iPhone" && <select aria-label="SIM o eSIM" value={cf.sim} onChange={(e) => setCf({ ...cf, sim: e.target.value })}><option value="">SIM o eSIM…</option><option>SIM</option><option>eSIM</option></select>}
+                {cf.cat !== "Accesorios" && <input className="mono" placeholder={isMobile(cf.cat) ? "IMEI 1 / serial" : "Serial (opcional)"} aria-label="IMEI fuera de inventario" value={cf.serial} onChange={(e) => setCf({ ...cf, serial: e.target.value })} />}
+                {isMobile(cf.cat) && <input className="mono" placeholder="IMEI 2 (opcional)" aria-label="IMEI 2 fuera de inventario" inputMode="numeric" value={cf.serial2} onChange={(e) => setCf({ ...cf, serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />}
+                {(isMobile(cf.cat) || cf.cat === "iPad" || cf.cat === "Mac" || cf.cat === "Apple Watch") && <input type="number" min={0} max={100} placeholder="Batería % (opcional)" aria-label="Batería fuera de inventario" value={cf.batt} onChange={(e) => setCf({ ...cf, batt: e.target.value })} />}
+                {isMobile(cf.cat) && <select aria-label="SIM o eSIM" value={cf.sim} onChange={(e) => setCf({ ...cf, sim: e.target.value })}><option value="">SIM o eSIM…</option><option>SIM</option><option>eSIM</option></select>}
                 {(cf.cat === "AirPods" || cf.cat === "Accesorios") && <input type="number" min={1} max={1000} placeholder="Cantidad" aria-label="Cantidad fuera de inventario" value={cf.qty} onChange={(e) => setCf({ ...cf, qty: Math.max(1, Math.min(1000, +e.target.value || 1)) })} />}
                 <select aria-label="Condición" value={cf.cond} onChange={(e) => setCf({ ...cf, cond: e.target.value, warr: cf.cat === "Accesorios" ? cf.warr : String(warr[e.target.value] ?? cf.warr) })}>{["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"].map((x) => <option key={x}>{x}</option>)}</select>
                 <input type="number" min={cf.cat === "Accesorios" ? 0 : 1} max={60} placeholder={cf.cat === "Accesorios" ? "Sin garantía (0)" : "Garantía (meses)"} aria-label="Garantía meses" value={cf.warr} onChange={(e) => setCf({ ...cf, warr: e.target.value })} />

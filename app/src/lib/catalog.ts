@@ -1,9 +1,12 @@
 import catalog from "@/data/catalog.json";
 
-export const CATS = ["iPhone", "iPad", "Mac", "Apple Watch", "AirPods", "Accesorios"] as const;
+export const CATS = ["iPhone", "Samsung", "Android", "iPad", "Mac", "Apple Watch", "AirPods", "Accesorios"] as const;
 export type Cat = (typeof CATS)[number];
+/** Celulares: llevan IMEI y, al recibirlos como retoma, consulta de la CRC. Solo el iPhone tiene además bloqueo de Apple. */
+export const MOBILE_CATS: readonly string[] = ["iPhone", "Samsung", "Android"];
+export const isMobile = (cat: string) => MOBILE_CATS.includes(cat);
 export const CAT_SKU: Record<Cat, string> = {
-  iPhone: "IPH", iPad: "IPD", Mac: "MAC", "Apple Watch": "AWT", AirPods: "APD", Accesorios: "ACC",
+  iPhone: "IPH", Samsung: "SAM", Android: "AND", iPad: "IPD", Mac: "MAC", "Apple Watch": "AWT", AirPods: "APD", Accesorios: "ACC",
 };
 export const CONDS = ["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"] as const;
 export const STATUSES = ["En vitrina", "Apartado", "En taller", "En revisión", "Vendido"] as const;
@@ -47,6 +50,8 @@ export function listPrice(name: string, spec: string, cond: string): number {
 /** Opciones de los menús desplegables (capacidad y color) por categoría. Siempre se puede escribir otro valor. */
 export const SPEC_OPTIONS: Record<Cat, string[]> = {
   iPhone: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"],
+  Samsung: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB"],
+  Android: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB"],
   iPad: ["64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB"],
   Mac: ["8 GB / 256 GB", "8 GB / 512 GB", "16 GB / 256 GB", "16 GB / 512 GB", "16 GB / 1 TB", "24 GB / 512 GB", "24 GB / 1 TB", "32 GB / 1 TB", "36 GB / 1 TB", "48 GB / 1 TB"],
   "Apple Watch": ["40 mm", "41 mm", "42 mm", "44 mm", "45 mm", "46 mm", "49 mm"],
@@ -55,6 +60,8 @@ export const SPEC_OPTIONS: Record<Cat, string[]> = {
 };
 export const COLOR_OPTIONS: Record<Cat, string[]> = {
   iPhone: ["Negro", "Blanco", "Azul", "Rojo", "Verde", "Rosado", "Morado", "Amarillo", "Medianoche", "Blanco estelar", "Grafito", "Plata", "Dorado", "Azul Sierra", "Azul Pacífico", "Morado oscuro", "Titanio natural", "Titanio negro", "Titanio blanco", "Titanio azul", "Titanio desierto", "Naranja cósmico", "Azul profundo", "Ultramar", "Verde azulado", "Lavanda", "Salvia", "Azul cielo", "Dorado claro"],
+  Samsung: ["Negro", "Blanco", "Gris", "Azul", "Verde", "Morado", "Crema", "Lavanda", "Titanio gris", "Titanio negro", "Titanio azul", "Titanio violeta", "Dorado"],
+  Android: ["Negro", "Blanco", "Gris", "Azul", "Verde", "Rojo", "Dorado", "Plata", "Rosado", "Morado"],
   iPad: ["Gris espacial", "Plata", "Azul", "Rosado", "Amarillo", "Morado", "Blanco estelar", "Negro espacial"],
   Mac: ["Gris espacial", "Plata", "Medianoche", "Blanco estelar", "Negro espacial", "Azul cielo", "Azul", "Verde", "Rosado", "Amarillo", "Naranja", "Morado"],
   "Apple Watch": ["Medianoche", "Blanco estelar", "Plata", "Negro azabache", "Oro rosa", "Titanio natural", "Titanio negro", "Rojo"],

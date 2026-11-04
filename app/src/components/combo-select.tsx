@@ -7,6 +7,7 @@ const OTHER = "__otro__";
 export function ComboSelect({ id, value, options, onChange, placeholder = "Elige…", ariaLabel, className }: {
   id?: string; value: string; options: string[]; onChange: (v: string) => void; placeholder?: string; ariaLabel?: string; className?: string;
 }) {
+  if (options.length === 0) return <input id={id} aria-label={ariaLabel} className={className} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder === "Elige…" ? "Escribe…" : placeholder} />;
   const inList = !value || options.includes(value);
   const [typing, setTyping] = useState(!inList);
   if (typing || !inList)

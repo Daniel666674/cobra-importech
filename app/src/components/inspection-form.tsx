@@ -11,6 +11,7 @@ export function InspectionForm({ cat, value: v, onChange }: { cat: string; value
     set({ checks });
   };
   const phone = cat === "iPhone" || cat === "iPad";
+  const mobile = cat === "iPhone" || cat === "Samsung" || cat === "Android";
   return (
     <div className="space-y-3">
       <div className="space-y-1">
@@ -26,8 +27,8 @@ export function InspectionForm({ cat, value: v, onChange }: { cat: string; value
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {phone && <div><label className="lb" htmlFor="ins-icloud">iCloud / Buscar mi iPhone</label><select id="ins-icloud" value={v.icloud} onChange={(e) => set({ icloud: e.target.value as InspectionInput["icloud"] })}><option value="">Sin revisar</option><option value="libre">Libre (cerrado la sesión)</option><option value="bloqueado">Bloqueado</option></select></div>}
-        {phone && <div><label className="lb" htmlFor="ins-carrier">Operador (liberado)</label><select id="ins-carrier" value={v.carrier} onChange={(e) => set({ carrier: e.target.value as InspectionInput["carrier"] })}><option value="">Sin revisar</option><option value="libre">Libre para todos los operadores</option><option value="bloqueado">Bloqueado a un operador</option></select></div>}
-        {phone && <div><label className="lb" htmlFor="ins-region">Región del modelo (ej. LL/A, BE/A)</label><input id="ins-region" value={v.region} onChange={(e) => set({ region: e.target.value })} /></div>}
+        {mobile && <div><label className="lb" htmlFor="ins-carrier">Operador (liberado)</label><select id="ins-carrier" value={v.carrier} onChange={(e) => set({ carrier: e.target.value as InspectionInput["carrier"] })}><option value="">Sin revisar</option><option value="libre">Libre para todos los operadores</option><option value="bloqueado">Bloqueado a un operador</option></select></div>}
+        {mobile && <div><label className="lb" htmlFor="ins-region">Región del modelo (ej. LL/A, BE/A)</label><input id="ins-region" value={v.region} onChange={(e) => set({ region: e.target.value })} /></div>}
         <div><label className="lb" htmlFor="ins-aw">Garantía de Apple hasta</label><input id="ins-aw" type="date" value={toYmd(v.appleWarrEnd)} onChange={(e) => set({ appleWarrEnd: fromYmd(e.target.value) })} /></div>
         <div><label className="lb" htmlFor="ins-parts">¿Todas las piezas originales?</label><select id="ins-parts" value={v.originalParts} onChange={(e) => set({ originalParts: e.target.value as InspectionInput["originalParts"] })}><option value="">Sin revisar</option><option value="si">Sí, originales</option><option value="no">No, tiene piezas cambiadas</option></select></div>
         <div className="sm:col-span-2"><label className="lb" htmlFor="ins-notes">Observaciones</label><input id="ins-notes" value={v.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Rayón en la esquina, batería cambiada…" /></div>

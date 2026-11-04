@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, imeiBlocklist, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
-import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
+import { CATS, CAT_SKU, CONDS, isMobile, type Cat } from "@/lib/catalog";
 import { inspectionSchema, inspectionSummary, sellerSchema } from "@/lib/inspection";
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
@@ -77,6 +77,9 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
   // Las retomas las puede recibir quien tenga el permiso de trade-in, aunque no edite el inventario.
   if (!(input.src === "Trade-in" && can(a, "tradein"))) need(a, "inv_edit");
   const isPhone = input.cat === "iPhone";
+  // Samsung y Android: IMEI válido y consulta de la CRC cuando entran como retoma; el bloqueo de Apple solo aplica al iPhone.
+  const mobile = isMobile(input.cat);
+  const needsCheck = isPhone || (mobile && input.src === "Trade-in");
   const track = input.cat === "AirPods" || input.cat === "Accesorios" ? "qty" : "unit";
   let check: ImeiCheck | null = null;
   let verifyNote: { text: string; tone: string } | null = null;
@@ -91,10 +94,10 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
   if (input.cat !== "Accesorios" && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
   if (input.src === "Trade-in" && !input.seller?.declared) throw new AppError("Marca que quien entrega el equipo declara ser su dueño legítimo", "invalid");
   if (isPhone && input.batt == null) throw new AppError("Escribe la salud de la batería (%) del equipo", "invalid");
-  if (isPhone && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
-  if (isPhone) {
+  if (mobile && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
+  if (needsCheck) {
     const imei = input.serial.replace(/\D/g, "");
-    const res = await verifyImei(db, imei);
+    const res = await verifyImei(db, imei, undefined, input.cat);
     if (res.verdict === "blocked")
       throw new AppError(res.steps.find((s) => s.state === "fail")?.detail ?? "IMEI no válido", "invalid");
     const off = officialSchema.safeParse(opts.official);
@@ -137,7 +140,7 @@ export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title
   if (!row.price) await addEvent(tx, id, a, "Sin precio de venta", "Quedó en $0: ponle precio en «Editar» o escríbelo al cobrar en caja", "warn");
   if (verifyNote) await addEvent(tx, id, a, "Verificación de IMEI", verifyNote.text, verifyNote.tone);
   if (check)
-    for (const k of ["crc", "apple"] as const)
+    for (const k of (isPhone ? ["crc", "apple"] : ["crc"]) as ("crc" | "apple")[])
       await addEvent(tx, id, a, "Consulta oficial · " + OFFICIAL_LABEL[k], `${OFFICIAL_TEXT[check[k].r]} · verificó ${check[k].name}`, check[k].r === "clean" ? "ok" : "warn");
   if (row.inspection) await addEvent(tx, id, a, "Inspección registrada", inspectionSummary(row.inspection), Object.values(row.inspection.checks).includes("falla") || row.inspection.icloud === "bloqueado" ? "warn" : "ok");
   if (row.seller?.declared) await addEvent(tx, id, a, "Acta de compra", `Entregó ${row.seller.name || "el cliente"}${row.seller.doc ? ` (${row.seller.docType} ${row.seller.doc})` : ""} · declaró ser el dueño${row.seller.idCopy ? " · copia de documento recibida" : ""}`);
