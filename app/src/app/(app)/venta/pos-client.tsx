@@ -350,7 +350,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
                   <select value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))} aria-label="Método de pago">{cfg.methods.map((m) => <option key={m} value={m}>{m}</option>)}</select>
                   <MoneyInput value={p.amount} placeholder={i === autoIdx ? String(resolved[i].amount) : ""} onChange={(val) => setPays(pays.map((x, j) => (j === i ? { ...x, amount: val } : x)))} aria-label="Valor del pago" />
                   {fees[i] > 0 && paid <= due && <span className="col-span-3 -mt-1 text-[12px] text-amber-t">+ recargo {p.method} (÷ {((100 - pct(p.method)) / 100).toLocaleString("es-CO")}): {fmt(fees[i])} · el cliente paga {fmt(resolved[i].amount + fees[i])}</span>}
-                  {p.method === "Transferencia" && cfg.banks.length > 0 && <select className="col-span-3" aria-label="Banco de la transferencia" value={p.bank ?? ""} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, bank: e.target.value } : x)))}><option value="">¿A qué banco entró? (opcional)</option>{cfg.banks.map((b) => <option key={b}>{b}</option>)}</select>}
+                  {p.method === "Transferencia" && <ComboSelect className="col-span-3" ariaLabel="Banco de la transferencia" value={p.bank ?? ""} options={cfg.banks} placeholder="¿A qué banco entró? (opcional)" onChange={(x) => setPays(pays.map((y, j) => (j === i ? { ...y, bank: x } : y)))} />}
                   {pays.length > 1 ? <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button> : <span />}
                 </div>
               ))}

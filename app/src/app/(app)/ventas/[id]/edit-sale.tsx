@@ -1,5 +1,6 @@
 "use client";
 import { ScanButton, codeFor } from "@/components/scan-button";
+import { ComboSelect } from "@/components/combo-select";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { editSaleAction } from "@/app/actions/sales";
@@ -68,7 +69,7 @@ export function EditSale({ sale, methods, banks }: { sale: EditableSale; methods
         {pays.map((p, i) => (
           <div key={i} className="mb-2 flex gap-2">
             <select aria-label="Forma de pago" value={p.method} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, method: e.target.value } : x)))}>{[...new Set([...methods, p.method])].map((m) => <option key={m}>{m}</option>)}</select>
-            {p.method === "Transferencia" && banks.length > 0 && <select aria-label="Banco" value={p.bank} onChange={(e) => setPays(pays.map((x, j) => (j === i ? { ...x, bank: e.target.value } : x)))}><option value="">Banco…</option>{[...new Set([...banks, p.bank].filter(Boolean))].map((b) => <option key={b}>{b}</option>)}</select>}
+            {p.method === "Transferencia" && <ComboSelect ariaLabel="Banco" value={p.bank} options={banks} placeholder="Banco…" onChange={(x) => setPays(pays.map((y, j) => (j === i ? { ...y, bank: x } : y)))} />}
             <MoneyInput aria-label="Valor del pago" value={p.amount} onChange={(x) => setPays(pays.map((y, j) => (j === i ? { ...y, amount: x } : y)))} />
             <button type="button" className="btn sm" aria-label="Quitar pago" onClick={() => setPays(pays.filter((_, j) => j !== i))}>✕</button>
           </div>
