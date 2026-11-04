@@ -111,9 +111,6 @@ export async function saveNumbering(db: Db, a: Actor, raw: unknown) {
     prefix: z.string().trim().max(10).regex(/^[A-Za-z0-9-]*$/, "El prefijo solo admite letras, números y guion"),
     next: z.coerce.number().int().min(1).max(99_999_999),
   }).parse(raw);
-  const [c] = await db.select().from(counters).where(eq(counters.key, "invoice"));
-  const cur = c?.value ?? 0;
-  if (v.next <= cur) throw new AppError(`El siguiente número debe ser mayor a ${cur} (el último usado)`, "invalid");
   const no = v.prefix + v.next;
   const [dup] = await db.select({ id: sales.id }).from(sales).where(eq(sales.no, no)).limit(1);
   if (dup) throw new AppError(`Ya existe una venta con el número ${no}`, "conflict");

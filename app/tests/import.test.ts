@@ -151,13 +151,21 @@ describe("importación al sistema", () => {
 describe("configuración", () => {
   let db: Db;
   beforeAll(async () => { db = await freshDb(); });
-  it("cambia prefijo y siguiente número, sin dejar retroceder", async () => {
-    await expect(saveNumbering(db, dev, { prefix: "FV-", next: 1 })).rejects.toThrow(/mayor/);
+  it("cambia prefijo y siguiente número, sin repetir números existentes", async () => {
     await saveNumbering(db, dev, { prefix: "IMP-", next: 5000 });
     const [it] = (await db.select().from(items)).filter((i) => i.status === "En vitrina" && i.track === "unit" && i.price > 0);
     const s = await createSale(db, dev, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price }] });
     expect(s.no).toBe("IMP-5000");
-    await expect(saveNumbering(db, dev, { prefix: "IMP-", next: 5000 })).rejects.toThrow(/mayor/);
+    await expect(saveNumbering(db, dev, { prefix: "IMP-", next: 5000 })).rejects.toThrow(/Ya existe/);
+    // Puede volver atrás: la venta salta los números que ya existen.
+    const free = async () => (await db.select().from(items)).find((i) => i.status === "En vitrina" && i.track === "unit" && i.price > 0)!;
+    await saveNumbering(db, dev, { prefix: "IMP-", next: 4999 });
+    const a = await free();
+    const s2 = await createSale(db, dev, { lines: [{ item: a.id, qty: 1 }], payments: [{ method: "Efectivo", amount: a.price }] });
+    expect(s2.no).toBe("IMP-4999");
+    const b = await free();
+    const s3 = await createSale(db, dev, { lines: [{ item: b.id, qty: 1 }], payments: [{ method: "Efectivo", amount: b.price }] });
+    expect(s3.no).toBe("IMP-5001");
     await expect(saveNumbering(db, dev, { prefix: "F V", next: 6000 })).rejects.toThrow(/prefijo/);
   });
   it("un descuento en pesos que no da un % entero se guarda y cuadra al peso", async () => {
