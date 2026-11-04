@@ -131,10 +131,10 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
         <div className="space-y-5">
           <div className="card p-4">
             <h2 className="font-semibold mb-1">Numeración</h2>
-            <p className="note mb-3">Último número usado: <b>{numbering.prefix}{numbering.last || "—"}</b>. El siguiente no puede ser menor (evita números repetidos).</p>
+            <p className="note mb-3">Último número usado: <b>{numbering.prefix}{numbering.last || "—"}</b>. Puedes poner el siguiente que quieras: el sistema salta los números que ya existen para no repetirlos.</p>
             <div className="grid grid-cols-[110px_1fr] gap-3">
               <div><label className="lb" htmlFor="n-prefix">Prefijo</label><input id="n-prefix" value={num.prefix} maxLength={10} onChange={(e) => setNum({ ...num, prefix: e.target.value.toUpperCase() })} /></div>
-              <div><label className="lb" htmlFor="n-next">Siguiente número</label><input id="n-next" type="number" min={numbering.last + 1} value={num.next} onChange={(e) => setNum({ ...num, next: e.target.value })} /></div>
+              <div><label className="lb" htmlFor="n-next">Siguiente número</label><input id="n-next" type="number" min={1} value={num.next} onChange={(e) => setNum({ ...num, next: e.target.value })} /></div>
             </div>
             <p className="note mt-2">La próxima venta saldrá como <b>{num.prefix}{num.next || "?"}</b>. Si venías de otro sistema, continúa su numeración.</p>
             <button className="btn mt-3" disabled={busy} onClick={() => run(() => saveNumberingAction(num), `Listo: la próxima venta será ${num.prefix}${num.next}`)}>Guardar numeración</button>

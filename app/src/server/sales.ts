@@ -139,7 +139,13 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     if (input.date && input.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
     const when = input.date ? Math.min(input.date, now) : now;
     const n = await nextCounter(tx, "sale");
-    const inv = await nextCounter(tx, "invoice");
+    // Salta los números de factura que ya existen (p. ej. escritos a mano) para no duplicar.
+    let inv = await nextCounter(tx, "invoice");
+    for (let k = 0; k < 500; k++) {
+      const [dup] = await tx.select({ id: sales.id }).from(sales).where(eq(sales.no, (cfg.invPrefix ?? "FV-") + inv)).limit(1);
+      if (!dup) break;
+      inv = await nextCounter(tx, "invoice");
+    }
     const id = "S-" + String(n).padStart(4, "0");
     const no = (cfg.invPrefix ?? "FV-") + inv;
     // Todo producto lleva garantía: la que se escribió en la venta, la del producto o, si no hay, la de su condición (mínimo 1 mes).
