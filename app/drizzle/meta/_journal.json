@@ -134,6 +134,13 @@
       "when": 1793823958912,
       "tag": "0018_banco_sim_datafonos",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793830000000,
+      "tag": "0019_accesorios_sin_garantia",
+      "breakpoints": true
     }
   ]
 }
