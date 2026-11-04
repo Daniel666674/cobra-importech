@@ -16,6 +16,8 @@ async function connect(): Promise<Db> {
     const { drizzle } = await import("drizzle-orm/neon-serverless");
     if (typeof WebSocket !== "undefined") neonConfig.webSocketConstructor = WebSocket;
     const pool = new Pool({ connectionString: url });
+    // Neon cierra las conexiones inactivas: sin este manejador el error tumba la función y la página "no carga".
+    pool.on("error", (e: Error) => console.error("[db] conexión inactiva cerrada:", e.message));
     return drizzle(pool, { schema }) as unknown as Db;
   }
   if (process.env.VERCEL) throw new Error("Falta la variable DATABASE_URL (base de datos Postgres).");
@@ -33,7 +35,7 @@ async function connect(): Promise<Db> {
 
 /** Devuelve la conexión única de este proceso. */
 export function getDb(): Promise<Db> {
-  if (!g.__db) g.__db = connect();
+  if (!g.__db) g.__db = connect().catch((e) => { g.__db = undefined; throw e; }); // un fallo transitorio no se queda en caché
   return g.__db;
 }
 
