@@ -1,4 +1,5 @@
 "use client";
+import { ScanButton, codeFor } from "@/components/scan-button";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createPurchaseAction, receivePurchaseAction } from "@/app/actions/ops";
@@ -50,7 +51,7 @@ export function ReceiveForm({ po }: { po: string }) {
         <input value={v.color} onChange={(e) => setV({ ...v, color: e.target.value })} placeholder="Color" aria-label="Color" />
         <input type="number" value={v.price} onChange={(e) => setV({ ...v, price: e.target.value })} placeholder="Precio de venta (vacío = costo + 20%)" aria-label="Precio" className="col-span-2" />
         {qtyTrack ? <input type="number" min={1} value={v.qty} onChange={(e) => setV({ ...v, qty: e.target.value })} placeholder="Cantidad" aria-label="Cantidad" /> :
-          <textarea className="col-span-2" rows={4} value={v.serials} onChange={(e) => setV({ ...v, serials: e.target.value })} placeholder="Pega los IMEI o seriales (uno por línea)" aria-label="IMEI o seriales" />}
+          <div className="col-span-2 flex gap-1"><textarea className="min-w-0 flex-1" rows={4} value={v.serials} onChange={(e) => setV({ ...v, serials: e.target.value })} placeholder="Pega los IMEI o seriales (uno por línea)" aria-label="IMEI o seriales" /><ScanButton onRead={(r) => setV((x) => ({ ...x, serials: (x.serials.trim() ? x.serials.replace(/\s*$/, "\n") : "") + codeFor(r, "imei") + "\n" }))} /></div>}
       </div>
       {v.cat === "iPhone" && <p className="note">Los iPhone entran «En revisión» y no se pueden vender hasta registrar su verificación oficial (CRC y Apple) en la ficha de cada equipo.</p>}
       {msg && <p role="status" className={`chip ${msg.ok ? "ok" : "bad"} !rounded-md !whitespace-normal`}>{msg.t}</p>}

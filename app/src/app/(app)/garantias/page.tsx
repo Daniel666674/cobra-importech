@@ -1,3 +1,4 @@
+import { ScanSearch } from "@/components/scan-search";
 import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -32,7 +33,7 @@ export default async function Garantias({ searchParams }: PageProps<"/garantias"
                 <td>{c.status !== "Resuelto" && <ClaimActions id={c.id} />}</td></tr>); })}</tbody></table>
         </div>
       )}
-      <form className="card mb-3 p-3" action="/garantias"><input name="q" defaultValue={q} placeholder="Buscar por IMEI, serie, producto o comprobante (incluye ventas importadas)" aria-label="Buscar garantía" /></form>
+      <form className="card mb-3 p-3" action="/garantias"><ScanSearch defaultValue={q} placeholder="Buscar por IMEI, serie, producto o comprobante (incluye ventas importadas)" ariaLabel="Buscar garantía" /></form>
       <div className="mb-3 flex gap-2">{([["vigente", "Vigentes"], ["por-vencer", "Por vencer (30 d)"], ["vencida", "Vencidas"]] as const).map(([k, l]) => <Link key={k} href={`/garantias?f=${k}`} className={`btn sm ${f === k ? "primary" : ""}`}>{l}</Link>)}</div>
       <div className="card overflow-x-auto">
         {rows.length === 0 ? <Empty>No hay garantías en esta vista.</Empty> : (

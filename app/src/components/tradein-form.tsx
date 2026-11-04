@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { ScanButton, codeFor } from "@/components/scan-button";
 import { verifyImeiAction } from "@/app/actions/inventory";
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import { CATALOG, COLOR_OPTIONS, SPEC_OPTIONS, isMobile, type Cat } from "@/lib/catalog";
@@ -57,8 +58,8 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const offEff: OfficialValue = iphone ? off : { ...off, apple: "clean" };
   const gate = phone && res ? officialGate(res.verdict, offEff) : null;
 
-  const verify = () => {
-    const clean = imei.replace(/\D/g, "");
+  const verify = (override?: string) => {
+    const clean = (override ?? imei).replace(/\D/g, "");
     if (!clean) return setErr("Escribe el IMEI del equipo");
     setErr(""); setOff({}); setOk(false);
     start(async () => {
@@ -85,8 +86,8 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
     });
   };
 
-  const f = (k: keyof typeof v, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
-    <div><label className="lb" htmlFor={"r-" + k}>{label}</label><input id={"r-" + k} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} /></div>
+  const f = (k: keyof typeof v, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}, scan?: "serial" | "imei2") => (
+    <div><label className="lb" htmlFor={"r-" + k}>{label}</label>{scan ? <div className="flex gap-1"><input id={"r-" + k} className="min-w-0 flex-1" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} /><ScanButton onRead={(r) => setV((x) => ({ ...x, [k]: codeFor(r, scan) }))} /></div> : <input id={"r-" + k} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} />}</div>
   );
   return (
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
@@ -96,11 +97,11 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
           {phone ? (
             <div>
               <label className="lb" htmlFor="r-imei">IMEI del equipo</label>
-              <div className="flex gap-2"><input id="r-imei" className="mono" inputMode="numeric" maxLength={15} value={imei} onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))} onKeyDown={(e) => e.key === "Enter" && verify()} /><button type="button" className="btn primary" onClick={verify} disabled={busy}>Verificar</button></div>
+              <div className="flex gap-2"><input id="r-imei" className="mono" inputMode="numeric" maxLength={15} value={imei} onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))} onKeyDown={(e) => e.key === "Enter" && verify()} /><ScanButton onRead={(r) => { const c = codeFor(r, "imei").replace(/\D/g, "").slice(0, 15); setImei(c); if (c) verify(c); if (r.imei2) setV((x) => ({ ...x, serial2: r.imei2!.replace(/\D/g, "").slice(0, 15) })); }} /><button type="button" className="btn primary" onClick={() => verify()} disabled={busy}>Verificar</button></div>
               {res && <ul className="mt-3 space-y-1.5 text-[13px]">{res.steps.map((s) => <li key={s.label}><b className={s.state === "ok" ? "text-green-t" : s.state === "warn" ? "text-amber-t" : s.state === "fail" ? "text-red-t" : "text-t3"}>{{ ok: "✓", warn: "!", fail: "✕", skip: "–" }[s.state]}</b> {s.label}: <span className="text-t2">{s.detail}</span></li>)}</ul>}
               {res?.verdict === "blocked" && <p className="chip bad !rounded-md !whitespace-normal mt-3">⛔ No recibas este equipo.</p>}
             </div>
-          ) : f("serial", "Número de serie")}
+          ) : f("serial", "Número de serie", {}, "serial")}
         </div>
         {(!phone || (res && res.verdict !== "blocked")) && (
           <>
@@ -113,7 +114,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
                 <div><label className="lb" htmlFor="r-color">Color</label><ComboSelect id="r-color" value={v.color} options={COLOR_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, color: x })} /></div>
                 <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
                 {f("batt", iphone ? "Salud de batería (%) *" : "Batería (%)", { type: "number", min: 0, max: 100 })}
-                {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 })}
+                {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 }, "imei2")}
                 {phone && <div><label className="lb" htmlFor="r-sim">SIM o eSIM</label><select id="r-sim" value={v.sim} onChange={(e) => setV({ ...v, sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></div>}
               </div>
               <fieldset className="mt-3"><legend className="lb">Defectos</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{DEDUCTIONS.map((d) => <label key={d.key} className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" className="!w-auto" checked={Q.applied.includes(d.key)} disabled={d.key === "battery" && v.batt !== "" && +v.batt < 80} onChange={(e) => setDed(e.target.checked ? [...ded, d.key] : ded.filter((x) => x !== d.key))} />{d.label} (−{d.pct}%)</label>)}</div></fieldset>

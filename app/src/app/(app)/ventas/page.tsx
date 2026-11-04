@@ -1,3 +1,4 @@
+import { ScanSearch } from "@/components/scan-search";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { clients, users } from "@/db/schema";
@@ -25,7 +26,7 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
   return (
     <>
       <PageHeader title="Ventas" subtitle={`${rows.length} comprobantes`} actions={<Link className="btn primary" href="/venta">🧾 Nueva venta</Link>} />
-      <form className="card mb-4 p-3" action="/ventas"><input name="q" defaultValue={q} placeholder="Buscar por número, cliente, cédula, teléfono, producto o IMEI" aria-label="Buscar" /></form>
+      <form className="card mb-4 p-3" action="/ventas"><ScanSearch defaultValue={q} placeholder="Buscar por número, cliente, cédula, teléfono, producto o IMEI" ariaLabel="Buscar" /></form>
       <div className="card overflow-x-auto">
         {rows.length === 0 ? <Empty>Sin ventas.</Empty> : (
           <table className="t">

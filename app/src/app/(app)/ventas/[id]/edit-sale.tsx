@@ -1,4 +1,5 @@
 "use client";
+import { ScanButton, codeFor } from "@/components/scan-button";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { editSaleAction } from "@/app/actions/sales";
@@ -52,8 +53,8 @@ export function EditSale({ sale, methods, banks }: { sale: EditableSale; methods
             <div><label className="lb" htmlFor={`es-c${i}`}>Costo unitario</label><MoneyInput id={`es-c${i}`} value={l.cost} onChange={(x) => setL(i, "cost", x)} /></div>
             <div><label className="lb" htmlFor={`es-q${i}`}>Cantidad</label><input id={`es-q${i}`} type="number" min={1} disabled={!!l.item} value={l.qty} onChange={(e) => setL(i, "qty", e.target.value)} /></div>
             <div><label className="lb" htmlFor={`es-w${i}`}>Garantía (meses)</label><input id={`es-w${i}`} type="number" min={0} max={60} value={l.warr} onChange={(e) => setL(i, "warr", e.target.value)} /></div>
-            <div><label className="lb" htmlFor={`es-s${i}`}>IMEI / serial</label><input id={`es-s${i}`} className="mono" value={l.serial} onChange={(e) => setL(i, "serial", e.target.value)} /></div>
-            <div><label className="lb" htmlFor={`es-s2${i}`}>IMEI 2</label><input id={`es-s2${i}`} className="mono" value={l.serial2} onChange={(e) => setL(i, "serial2", e.target.value)} /></div>
+            <div><label className="lb" htmlFor={`es-s${i}`}>IMEI / serial</label><div className="flex gap-1"><input id={`es-s${i}`} className="mono min-w-0 flex-1" value={l.serial} onChange={(e) => setL(i, "serial", e.target.value)} /><ScanButton onRead={(r) => setL(i, "serial", codeFor(r, "serial"))} /></div></div>
+            <div><label className="lb" htmlFor={`es-s2${i}`}>IMEI 2</label><div className="flex gap-1"><input id={`es-s2${i}`} className="mono min-w-0 flex-1" value={l.serial2} onChange={(e) => setL(i, "serial2", e.target.value)} /><ScanButton onRead={(r) => setL(i, "serial2", codeFor(r, "imei2"))} /></div></div>
             <div><label className="lb" htmlFor={`es-b${i}`}>Batería %</label><input id={`es-b${i}`} type="number" min={0} max={100} value={l.batt} onChange={(e) => setL(i, "batt", e.target.value)} /></div>
           </div>
         </div>

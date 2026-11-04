@@ -1,4 +1,5 @@
 "use client";
+import { ScanButton, codeFor } from "@/components/scan-button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -163,7 +164,7 @@ function NewTicket({ techs, clients, canCost, onDone }: { techs: string[]; clien
         {!v.client && <input aria-label="Nombre del cliente" placeholder="Nombre del cliente" value={v.name} onChange={(e) => set("name", e.target.value)} />}
         {!v.client && <input aria-label="Celular del cliente" placeholder="Celular" value={v.phone} onChange={(e) => set("phone", e.target.value)} />}
         <input aria-label="Equipo" placeholder="Equipo (ej. iPhone 13 azul)" value={v.device} onChange={(e) => set("device", e.target.value)} />
-        <input aria-label="IMEI o serial" className="mono" placeholder="IMEI / serial (opcional)" value={v.serial} onChange={(e) => set("serial", e.target.value)} />
+        <div className="flex gap-1"><input aria-label="IMEI o serial" className="mono min-w-0 flex-1" placeholder="IMEI / serial (opcional)" value={v.serial} onChange={(e) => set("serial", e.target.value)} /><ScanButton onRead={(r) => set("serial", codeFor(r, "imei"))} /></div>
         <input aria-label="Trabajo" className="sm:col-span-2" placeholder="Trabajo a hacer (ej. cambio de pantalla)" value={v.job} onChange={(e) => set("job", e.target.value)} />
         {canCost && <MoneyInput aria-label="Costo de la reparación" placeholder="Costo (repuestos)" value={v.cost} onChange={(x) => set("cost", x)} />}
         <MoneyInput aria-label="Cobro al cliente" placeholder="Cobro al cliente" value={v.price} onChange={(x) => set("price", x)} />

@@ -1,4 +1,5 @@
 "use client";
+import { ScanButton, codeFor } from "@/components/scan-button";
 import { useMemo } from "react";
 import { CATALOG, COLOR_OPTIONS, CONDS, SPEC_OPTIONS, isMobile, type Cat } from "@/lib/catalog";
 import { ComboSelect } from "./combo-select";
@@ -58,7 +59,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       </Field>
       {!hideSerial && !qtyTrack && (
         <Field id="i-serial" label={isMobile(cat) ? "IMEI" : "Número de serie"}>
-          <input id="i-serial" className="mono" value={v.serial} readOnly={serialLocked} onChange={(e) => set({ serial: e.target.value })} />
+          <div className="flex gap-1"><input id="i-serial" className="mono min-w-0 flex-1" value={v.serial} readOnly={serialLocked} onChange={(e) => set({ serial: e.target.value })} />{!serialLocked && <ScanButton onRead={(r) => set({ serial: codeFor(r, isMobile(cat) ? "imei" : "serial") })} />}</div>
         </Field>
       )}
       {isMobile(cat) && (
@@ -66,7 +67,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       )}
       {!hideSerial && isMobile(cat) && (
         <Field id="i-serial2" label="IMEI 2 (opcional)" hint="Equipos con doble SIM / eSIM">
-          <input id="i-serial2" className="mono" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} />
+          <div className="flex gap-1"><input id="i-serial2" className="mono min-w-0 flex-1" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} /><ScanButton onRead={(r) => set({ serial2: codeFor(r, "imei2").replace(/\D/g, "").slice(0, 15) })} /></div>
         </Field>
       )}
       {qtyTrack && (
