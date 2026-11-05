@@ -12,7 +12,7 @@ export const CONDS = ["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "U
 export const STATUSES = ["En vitrina", "Apartado", "En taller", "En revisión", "Vendido"] as const;
 export const METHODS = ["Efectivo", "Transferencia", "Tarjeta débito", "Tarjeta crédito", "Nequi", "Daviplata", "Addi", "Vanti", "Enlace Bold", "Datáfono Bold", "Datáfono Redeban"] as const;
 /** Recargo por forma de pago: el valor se divide por (1 − %), p. ej. Addi 12 % → valor ÷ 0,88. Se cambia en Configuración → Ventas y caja. */
-export const DEFAULT_SURCHARGES: Record<string, number> = { Addi: 12, Vanti: 6, "Tarjeta crédito": 7 };
+export const DEFAULT_SURCHARGES: Record<string, number> = { Addi: 12, Vanti: 6, "Tarjeta crédito": 7, "Datáfono Bold": 7, "Datáfono Redeban": 7 };
 export const surchargeOf = (cfg: { surcharges?: Record<string, number> | null }, method: string) => (cfg.surcharges ?? DEFAULT_SURCHARGES)[method] ?? 0;
 /** Recargo en pesos de un pago: valor ÷ (1 − %/100) − valor, redondeado al peso. */
 export const feeFor = (pct: number, amount: number) => (pct > 0 && pct < 100 ? Math.round(amount / (1 - pct / 100)) - amount : 0);
