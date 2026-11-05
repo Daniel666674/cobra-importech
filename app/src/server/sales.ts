@@ -120,7 +120,6 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const T = posTotals([...lines.map(({ it, qty }) => ({ price: it.price, cost: it.cost, qty })), ...input.custom.map((c) => ({ price: c.price, cost: c.cost, qty: c.qty }))], input.discount, hold ? hold.abono : 0);
     if (T.pct > 0 && !input.discReason) throw new AppError("Indica el motivo del descuento", "invalid");
     if (T.pct > cfg.maxDisc && !can(a, "discount")) throw new AppError(`El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`, "forbidden");
-    if (T.total < T.cost && !can(a, "discount")) throw new AppError("El total queda por debajo del costo: pide autorización", "forbidden");
     if (tradeTotal > T.due) throw new AppError(`La retoma (${fmt(tradeTotal)}) supera lo que falta por pagar (${fmt(T.due)}). Registra la retoma sola en «Retomas» y paga la diferencia al cliente.`, "invalid");
     for (const p of trades) if (lines.some(({ it }) => it.serial && it.serial === p.input.serial)) throw new AppError("El equipo de retoma no puede ser el mismo que se vende", "invalid");
     const cashDue = T.due - tradeTotal;

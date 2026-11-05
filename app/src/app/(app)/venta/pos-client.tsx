@@ -103,7 +103,6 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
   else if (newC && !nc.name.trim()) why = "Escribe el nombre del cliente nuevo";
   else if (T.pct > 0 && !reason.trim()) why = "Indica el motivo del descuento";
   else if (T.pct > cfg.maxDisc && !can.discount) why = `El descuento supera el límite del ${cfg.maxDisc}%: pide autorización`;
-  else if (T.total < T.cost && !can.discount) why = "El total queda por debajo del costo: pide autorización";
   else if (hold) {
     if (cart.length !== 1 || cartHasQty || customs.length) why = "El apartado es para un solo equipo del inventario";
     else if (cart[0].noPrice) why = "Para apartar, primero ponle precio al equipo en su ficha";
@@ -222,7 +221,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
               {cart.map(({ l, it, noPrice, orig, edited }) => (
                 <li key={l.id} className="flex flex-wrap items-center gap-2">
                   <div className="flex-1 min-w-0"><b className="block truncate text-[13px]">{it.name}{it.spec ? ` · ${it.spec}` : ""}</b><span className="note">{noPrice ? "Sin precio: escríbelo aquí (o déjalo en $0)" : edited ? `${fmt(it.price)} (antes ${fmt(orig)})` : fmt(it.price)}{it.color ? " · " + it.color : ""}</span></div>
-                  <MoneyInput className="!w-32" placeholder={noPrice ? "Precio venta" : String(orig)} aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} />
+                  <MoneyInput className="!w-36" placeholder={noPrice ? "Precio venta" : `✎ ${fmt(orig)}`} title="Escribe aquí el precio al que se vende" aria-label={`Precio de ${it.name}`} value={typed[it.id] ?? ""} onChange={(x) => setTyped({ ...typed, [it.id]: x })} />
                   <input type="number" min={it.cat === "Accesorios" ? 0 : 1} max={60} className="!w-16" aria-label={`Garantía en meses de ${it.name}`} title="Garantía (meses); en accesorios 0 = sin garantía" placeholder={it.cat === "Accesorios" ? (it.warr > 0 ? `${it.warr} m` : "sin") : `${it.warr > 0 ? it.warr : (warr[it.cond] > 0 ? warr[it.cond] : 1)} m`} value={warrTyped[it.id] ?? ""} onChange={(e) => setWarrTyped({ ...warrTyped, [it.id]: e.target.value })} />
                   {isQty(it) && <input type="number" aria-label="Cantidad" className="!w-16" min={1} max={it.qty} value={l.qty} onChange={(e) => setQty(l.id, +e.target.value)} />}
                   <b className="tabular-nums w-24 text-right">{fmt(it.price * l.qty)}</b>
