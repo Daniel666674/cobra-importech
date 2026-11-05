@@ -141,6 +141,13 @@
       "when": 1793830000000,
       "tag": "0019_accesorios_sin_garantia",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793832000000,
+      "tag": "0020_datafono_recargo_7",
+      "breakpoints": true
     }
   ]
 }
