@@ -96,6 +96,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const byId = new Map(rows.map((r) => [r.id, r]));
     const lines = input.lines.map((l) => ({ it: byId.get(l.item)!, qty: l.qty, price: l.price, warr: l.warr }));
     const priced: { id: string; price: number }[] = [];
+    const repriced: { id: string; from: number; to: number }[] = [];
     for (const { it, qty, price } of lines) {
       if (!isAvail(it) && it.id !== input.holdItem) throw new AppError(`«${uname(it)}» ya no está disponible`, "conflict");
       if (!(it.price > 0) && price !== undefined) {
@@ -103,8 +104,8 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
         it.price = price;
         if (price > 0) priced.push({ id: it.id, price });
       } else if (price !== undefined && price !== it.price) {
-        // Cambiar el precio de un producto que ya tiene precio solo vale para esta venta y pide permiso de descuentos.
-        if (!can(a, "discount")) throw new AppError(`No tienes permiso para cambiar el precio de «${uname(it)}»: pide autorización`, "forbidden");
+        // Cualquier empleado puede ajustar el precio de un producto en la venta; solo vale para esta venta y queda anotado.
+        repriced.push({ id: it.id, from: it.price, to: price });
         it.price = price;
       }
       if (!(it.price > 0) && price === undefined) throw new AppError(`«${uname(it)}» no tiene precio de venta: escríbelo en la venta`, "invalid");
@@ -180,6 +181,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     }
     for (const c of customs)
       saleLines.push({ item: "", name: [c.name, c.spec].filter(Boolean).join(" · "), color: c.color, cond: c.cond, serial: c.serial.replace(/\s+/g, ""), ...(c.serial2 ? { serial2: c.serial2.replace(/\s+/g, "") } : {}), ...(c.batt != null ? { batt: c.batt } : {}), qty: c.qty, price: c.price, cost: c.cost, warr: c.cat === "Accesorios" ? c.warr : months(c.cond, c.warr), ret: 0, ...(c.sim ? { sim: c.sim } : {}), ...(c.ally ? { ally: c.ally } : {}), ...(c.supplier ? { supplier: c.supplier } : {}) });
+    for (const r of repriced) await addEvent(tx, r.id, a, "Precio ajustado en la venta", `${fmt(r.from)} → ${fmt(r.to)} · venta ${no}`);
     for (const p of priced) {
       await tx.update(items).set({ price: p.price }).where(eq(items.id, p.id));
       await addEvent(tx, p.id, a, "Precio asignado en caja", `${fmt(p.price)} · venta ${no}`);
