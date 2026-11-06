@@ -371,8 +371,13 @@ async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLin
   }
 }
 
+/** Número de comprobante como valor ordenable (FV-2868 → 2868; sin número → 0). */
+const invNum = (no: string) => { const m = /(\d+)\D*$/.exec(no); return m ? +m[1] : 0; };
+
+/** Ventas ordenadas por número de comprobante, de la más alta a la más baja (si empatan, la más reciente primero). */
 export async function listSales(db: Db) {
-  return db.select().from(sales).orderBy(desc(sales.t));
+  const all = await db.select().from(sales).orderBy(desc(sales.t));
+  return all.sort((a, b) => invNum(b.no) - invNum(a.no) || b.t - a.t);
 }
 
 /**
