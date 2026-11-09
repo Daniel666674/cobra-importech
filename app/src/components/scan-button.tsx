@@ -4,9 +4,10 @@ import { ScanDialog } from "@/components/scan-dialog";
 import type { ScanRead } from "@/lib/scan-parse";
 
 /** Código que le sirve a cada tipo de campo: el IMEI, el segundo IMEI o el serial. */
-export function codeFor(r: ScanRead, kind: "imei" | "imei2" | "serial"): string {
+/** `not`: el IMEI 1 ya escrito; el IMEI 2 nunca puede ser igual a él (una caja trae un código por IMEI). */
+export function codeFor(r: ScanRead, kind: "imei" | "imei2" | "serial", not = ""): string {
   if (kind === "imei") return r.imei ?? r.serial ?? "";
-  if (kind === "imei2") return r.imei2 ?? r.imei ?? "";
+  if (kind === "imei2") { const c = r.imei2 ?? r.imei ?? ""; return c && c !== not ? c : ""; }
   return r.serial ?? r.imei ?? "";
 }
 

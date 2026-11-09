@@ -230,6 +230,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     if (T.total < T.cost) await logFeed(tx, a, "owner", "🚨", `Alerta al dueño: <b>venta bajo costo</b> en ${no} (${esc(a.name)})`);
     for (const r of received) await logFeed(tx, a, "owner", "🔄", `Retoma en ${no}: <b>${esc(r.name)}</b> recibido por ${fmt(r.amount)} · ya está en inventario`);
     await allyDebts(tx, a, saleLines, (l) => l.qty, no, "Vendido");
+    await allyBankPayments(tx, a, allPays, no);
     return row;
   });
 }
@@ -359,6 +360,30 @@ export async function refundSale(db: Db, a: Actor, saleId: string, rawReturns: u
   });
 }
 
+
+const norm = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+const ALLY_BANK_TAG = "Cliente pagó directo a la cuenta de la tienda";
+
+/**
+ * Si una transferencia entró a la cuenta de una tienda aliada (el banco escrito coincide con su cuenta o con su nombre),
+ * ese dinero ya es de la tienda: se descuenta solo de lo que se le debe (pago registrado en su cartera).
+ */
+async function allyBankPayments(tx: Db, a: Actor, pays: Payment[], no: string) {
+  await tx.delete(allyMoves).where(and(eq(allyMoves.ref, no), eq(allyMoves.kind, "pago"), eq(allyMoves.by, "Sistema"), eq(allyMoves.method, "Transferencia")));
+  const tr = pays.filter((p) => p.method === "Transferencia" && p.bank && norm(p.bank).length >= 3 && p.amount > 0);
+  if (!tr.length) return;
+  const list = (await tx.select().from(allies)).filter((x) => x.active);
+  for (const p of tr) {
+    const b = norm(p.bank!);
+    const hits = list.filter((x) => { const ab = norm(x.bank), an = norm(x.name); return (ab && (ab === b || ab.includes(b))) || (an && (an === b || (b.length >= 4 && (an.includes(b) || b.includes(an))))); });
+    const exact = hits.filter((x) => norm(x.bank) === b || norm(x.name) === b);
+    const ally = exact.length === 1 ? exact[0] : hits.length === 1 ? hits[0] : null;
+    if (!ally) continue;
+    await tx.insert(allyMoves).values({ ally: ally.id, t: Date.now(), kind: "pago", amount: p.amount, ref: no, detail: `${ALLY_BANK_TAG} (${p.bank}) · venta ${no}`, by: "Sistema", method: "Transferencia", no: "" });
+    await logFeed(tx, a, "owner", "🏦", `Transferencia de ${fmt(p.amount)} en ${no} entró a la cuenta de <b>${esc(ally.name)}</b>: se descontó de su cartera · ${esc(a.name)}`);
+  }
+}
+
 /** Registra en la cuenta de cada tienda aliada (en consignación) lo que se le debe por lo vendido o devuelto. */
 async function allyDebts(tx: Db, a: Actor, lines: SaleLine[], qtyOf: (l: SaleLine, i: number) => number, ref: string, what: string) {
   const ids = [...new Set(lines.filter((l) => l.ally).map((l) => l.ally!))];
@@ -404,6 +429,7 @@ async function removeSale(tx: Db, a: Actor, s: typeof sales.$inferSelect) {
   }
   if (trades.length) await tx.delete(items).where(inArray(items.id, trades.map((t) => t.id)));
   await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
+  await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "pago"), eq(allyMoves.by, "Sistema"), eq(allyMoves.method, "Transferencia")));
   await tx.delete(sales).where(eq(sales.id, s.id));
   return s;
 }
@@ -431,6 +457,7 @@ export async function renameSale(db: Db, a: Actor, saleId: string, rawNo: unknow
     const [dup] = await tx.select({ id: sales.id }).from(sales).where(eq(sales.no, no)).limit(1);
     if (dup) throw new AppError(`Ya existe una venta con el número ${no}`, "conflict");
     await tx.update(sales).set({ no }).where(eq(sales.id, saleId));
+    await tx.update(allyMoves).set({ ref: no }).where(and(eq(allyMoves.ref, s.no), inArray(allyMoves.kind, ["deuda", "pago"]), eq(allyMoves.by, "Sistema")));
     await tx.update(allyMoves).set({ ref: no }).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
     await logFeed(tx, a, "owner", "🔢", `Comprobante <b>${esc(s.no)}</b> cambiado a <b>${esc(no)}</b> por ${esc(a.name)}`);
     return no;
@@ -502,6 +529,7 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
     const surcharge = over > 0 ? over : payments.reduce((x, p) => x + (p.fee ?? 0), 0);
     const method = payments.length > 1 ? "Mixto" : payments[0]?.method ?? (s.prepaid ? "Abono previo" : "");
     await tx.update(sales).set({ lines, payments, disc, total, pending, surcharge, method, t, ...(v.notes !== undefined ? { notes: v.notes } : {}) }).where(eq(sales.id, saleId));
+    await allyBankPayments(tx, a, payments, s.no);
     // Si cambió algo que afecta lo que se le debe a una tienda proveedora, se rehace su deuda de esta venta.
     if (lines.some((l) => l.ally)) {
       await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));

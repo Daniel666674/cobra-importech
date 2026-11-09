@@ -67,7 +67,7 @@ export function ItemForm({ cat, values: v, onChange, warrByCond, serialLocked, s
       )}
       {!hideSerial && isMobile(cat) && (
         <Field id="i-serial2" label="IMEI 2 (opcional)" hint="Equipos con doble SIM / eSIM">
-          <div className="flex gap-1"><input id="i-serial2" className="mono min-w-0 flex-1" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} /><ScanButton onRead={(r) => set({ serial2: codeFor(r, "imei2").replace(/\D/g, "").slice(0, 15) })} /></div>
+          <div className="flex gap-1"><input id="i-serial2" className="mono min-w-0 flex-1" inputMode="numeric" maxLength={15} value={v.serial2} onChange={(e) => set({ serial2: e.target.value.replace(/\D/g, "").slice(0, 15) })} /><ScanButton onRead={(r) => set({ serial2: codeFor(r, "imei2", v.serial).replace(/\D/g, "").slice(0, 15) })} /></div>
         </Field>
       )}
       {qtyTrack && (

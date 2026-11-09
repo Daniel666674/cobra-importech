@@ -6,7 +6,7 @@ import { withCheck } from "@/lib/imei-test";
 import { allyDetail, allySummary, payAlly, saveAlly } from "@/server/allies";
 import type { Actor } from "@/server/core";
 import { createItem } from "@/server/inventory";
-import { createSale, refundSale } from "@/server/sales";
+import { createSale, deleteSale, editSale, refundSale } from "@/server/sales";
 import { verifyImei } from "@/server/imei";
 import { freshDb } from "./helpers";
 
@@ -207,5 +207,19 @@ describe("fechas con calendario y control de pagos", () => {
     const recent = await paymentsLog(db, { ally: id, from: Date.now() - 864e5 });
     expect(recent.rows.map((m) => m.amount)).toEqual([200_000]);
     expect((await paymentsLog(db, { ally: id, method: "Nequi" })).total).toBe(100_000);
+  });
+});
+
+describe("transferencia al banco de una tienda aliada", () => {
+  it("se descuenta sola de la cartera de esa tienda; al borrar la venta vuelve la deuda", async () => {
+    const ally = await saveAlly(db, owner, null, { name: "Carmacel", bank: "Llave Carmacel", mode: "consignacion" });
+    const it = await stockPhone();
+    const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price - 1_000_000 }, { method: "Transferencia", amount: 1_000_000, bank: "LLAVE CARMACEL" } ] });
+    const id = ally;
+    const moves = await db.select().from(allyMoves).where(eq(allyMoves.ally, id));
+    const pago = moves.find((m) => m.kind === "pago" && m.ref === s.no);
+    expect(pago?.amount).toBe(1_000_000);
+    await deleteSale(db, { ...owner, perms: [...owner.perms, "settings"] }, s.id);
+    expect((await db.select().from(allyMoves).where(eq(allyMoves.ally, id))).filter((m) => m.kind === "pago" && m.ref === s.no)).toHaveLength(0);
   });
 });

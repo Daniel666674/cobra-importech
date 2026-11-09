@@ -87,7 +87,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const f = (k: keyof typeof v, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}, scan?: "serial" | "imei2") => (
-    <div><label className="lb" htmlFor={"r-" + k}>{label}</label>{scan ? <div className="flex gap-1"><input id={"r-" + k} className="min-w-0 flex-1" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} /><ScanButton onRead={(r) => setV((x) => ({ ...x, [k]: codeFor(r, scan) }))} /></div> : <input id={"r-" + k} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} />}</div>
+    <div><label className="lb" htmlFor={"r-" + k}>{label}</label>{scan ? <div className="flex gap-1"><input id={"r-" + k} className="min-w-0 flex-1" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} /><ScanButton onRead={(r) => setV((x) => ({ ...x, [k]: codeFor(r, scan, scan === "imei2" ? imei || x.serial : "") }))} /></div> : <input id={"r-" + k} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} {...props} />}</div>
   );
   return (
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
