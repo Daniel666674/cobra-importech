@@ -93,7 +93,6 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
 
   if (input.cat !== "Accesorios" && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
   if (input.src === "Trade-in" && !input.seller?.declared) throw new AppError("Marca que quien entrega el equipo declara ser su dueño legítimo", "invalid");
-  if (isPhone && input.batt == null) throw new AppError("Escribe la salud de la batería (%) del equipo", "invalid");
   if (mobile && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
   if (needsCheck) {
     const imei = input.serial.replace(/\D/g, "");
