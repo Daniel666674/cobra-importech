@@ -71,7 +71,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const buying = mode === "compra";
-  const missing = !v.name.trim() ? "Escribe el modelo" : !(+v.ref > 0) ? "Escribe el valor de referencia" : buying && (!v.vendor.trim() || !v.doc.trim()) ? "Registra el nombre y la cédula de quien entrega el equipo" : !sl.declared ? "Marca que quien entrega el equipo declara ser su dueño legítimo" : phone && !res ? "Verifica el IMEI" : iphone && v.batt === "" ? "Escribe la salud de la batería" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : !(offer > 0) ? "La oferta debe ser mayor a 0" : "";
+  const missing = !v.name.trim() ? "Escribe el modelo" : buying && (!v.vendor.trim() || !v.doc.trim()) ? "Registra el nombre y la cédula de quien entrega el equipo" : !sl.declared ? "Marca que quien entrega el equipo declara ser su dueño legítimo" : phone && !res ? "Verifica el IMEI" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : !(offer > 0) ? "La oferta debe ser mayor a 0" : "";
 
   const accept = () => {
     const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
@@ -113,7 +113,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
                 <div><label className="lb" htmlFor="r-spec">Capacidad</label><ComboSelect id="r-spec" value={v.spec} options={SPEC_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, spec: x })} /></div>
                 <div><label className="lb" htmlFor="r-color">Color</label><ComboSelect id="r-color" value={v.color} options={COLOR_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, color: x })} /></div>
                 <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
-                {f("batt", iphone ? "Salud de batería (%) *" : "Batería (%)", { type: "number", min: 0, max: 100 })}
+                {f("batt", "Salud de batería (%) (opcional)", { type: "number", min: 0, max: 100 })}
                 {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 }, "imei2")}
                 {phone && <div><label className="lb" htmlFor="r-sim">SIM o eSIM</label><select id="r-sim" value={v.sim} onChange={(e) => setV({ ...v, sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></div>}
               </div>
@@ -139,7 +139,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
       </div>
       <aside className="card p-4 space-y-3 self-start lg:sticky lg:top-4">
         <h2 className="font-semibold">Cotización</h2>
-        <div><label className="lb" htmlFor="r-ref">Valor de referencia (COP): lo que vale hoy un equipo igual en buen estado</label><MoneyInput id="r-ref" value={v.ref} onChange={(x) => setV({ ...v, ref: x })} /></div>
+        <div><label className="lb" htmlFor="r-ref">Valor de referencia (COP, opcional): lo que vale hoy un equipo igual en buen estado</label><MoneyInput id="r-ref" value={v.ref} onChange={(x) => setV({ ...v, ref: x })} /></div>
         <div className="space-y-1 text-[13px]">
           <div className="flex justify-between"><span className="text-t2">Porcentaje por condición ({v.cond})</span><span>{Math.round(Q.rate * 100)}% = {fmt(Q.base)}</span></div>
           {Q.dedPct > 0 && <div className="flex justify-between"><span className="text-t2">Defectos</span><span className="text-red-t">−{Q.dedPct}%</span></div>}

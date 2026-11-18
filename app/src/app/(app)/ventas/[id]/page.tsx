@@ -1,9 +1,10 @@
 import { waLink } from "@/lib/whatsapp";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db";
-import { clients, settings, sales, users } from "@/db/schema";
+import { allies, clients, itemEvents, items, settings, sales, users } from "@/db/schema";
+import { fdatey, fdt, fmt } from "@/lib/format";
 import { PrintButton } from "@/components/print-button";
 import { SaleReceipt } from "@/components/receipt";
 import { hasPerm } from "@/server/auth";
@@ -23,6 +24,13 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
   const [cfg] = await db.select().from(settings).limit(1);
   const [client] = s.client ? await db.select().from(clients).where(eq(clients.id, s.client)) : [];
   const [u] = await db.select().from(users).where(eq(users.id, s.by));
+  // Trazabilidad: de dónde salió cada equipo vendido y qué le pasó desde que entró al inventario.
+  const ids = [...new Set(s.lines.map((l) => l.item).filter(Boolean))];
+  const canTrace = hasPerm(me, "inv_view") && ids.length > 0;
+  const traced = canTrace ? await db.select().from(items).where(inArray(items.id, ids)) : [];
+  const evs = canTrace ? await db.select().from(itemEvents).where(inArray(itemEvents.itemId, ids)).orderBy(asc(itemEvents.t), asc(itemEvents.id)) : [];
+  const allyName = new Map((await db.select({ id: allies.id, name: allies.name }).from(allies)).map((x) => [x.id, x.name]));
+  const canCost = hasPerm(me, "cost_view");
   return (
     <>
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -42,6 +50,36 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
       {s.lines.some((l) => l.supplier) && (
         <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">
           <b>Proveedor (uso interno):</b> {s.lines.filter((l) => l.supplier).map((l) => `${l.name} — ${l.supplier}`).join(" · ")}
+        </div>
+      )}
+      {canTrace && (
+        <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">
+          <b className="text-[14px]">🔎 Trazabilidad de los equipos de esta venta</b>
+          <div className="mt-2 space-y-4">
+            {traced.map((it) => {
+              const hist = evs.filter((e) => e.itemId === it.id);
+              return (
+                <div key={it.id} className="rounded-md bg-bg p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <b>{it.name}{it.spec ? ` · ${it.spec}` : ""}{it.color ? ` · ${it.color}` : ""}</b>
+                    <Link className="underline" href={`/inventario/${it.id}`} target="_blank">Ver ficha completa →</Link>
+                  </div>
+                  <dl className="mt-1.5 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                    <div><dt className="note inline">IMEI / serie: </dt><dd className="inline mono-ish">{it.serial || "—"}{it.serial2 ? ` · ${it.serial2}` : ""}</dd></div>
+                    <div><dt className="note inline">Entró al inventario: </dt><dd className="inline"><b>{fdatey(it.acq)}</b></dd></div>
+                    <div><dt className="note inline">Origen: </dt><dd className="inline"><b>{it.src || "—"}</b>{it.ally ? ` · tienda ${allyName.get(it.ally) ?? it.ally}` : ""}{it.seller?.name ? ` · lo entregó ${it.seller.name}${it.seller.doc ? " (" + it.seller.doc + ")" : ""}` : ""}</dd></div>
+                    {canCost && <div><dt className="note inline">Costo: </dt><dd className="inline">{fmt(it.cost)}{it.repairs ? ` + reparaciones ${fmt(it.repairs)}` : ""}</dd></div>}
+                  </dl>
+                  {it.notes && <p className="mt-1 text-t2">{it.notes}</p>}
+                  <ol className="mt-2 space-y-1 border-l border-line pl-3">
+                    {hist.map((e) => (
+                      <li key={e.id}><b>{e.title}</b>{e.detail ? <span className="text-t2"> · {e.detail}</span> : null}<span className="note"> · {fdt(e.t)} · {e.by}</span></li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       {hasPerm(me, "settings") && (
