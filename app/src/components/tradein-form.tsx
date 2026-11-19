@@ -4,7 +4,6 @@ import { ScanButton, codeFor } from "@/components/scan-button";
 import { verifyImeiAction } from "@/app/actions/inventory";
 import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import { CATALOG, COLOR_OPTIONS, SPEC_OPTIONS, isMobile, type Cat } from "@/lib/catalog";
-import { ComboSelect } from "@/components/combo-select";
 import { fmt } from "@/lib/format";
 import { officialGate, type ImeiResult } from "@/lib/imei";
 import { DEDUCTIONS, TRADEIN_RATE, tradeQuote, type DeductionKey } from "@/lib/tradein";
@@ -71,18 +70,18 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const buying = mode === "compra";
-  const missing = !v.name.trim() ? "Escribe el modelo" : "";
+  const missing = "";
 
   const accept = () => {
     const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
     const serial = phone ? (res?.imei ?? imei.replace(/\D/g, "")) : v.serial;
     onAccept({
-      item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", sim: v.sim,
+      item: { cat, name: v.name.trim() || `${cat} (sin modelo)`, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", sim: v.sim,
         seller: { name: buying ? v.vendor : "", docType: sl.docType, doc: buying ? v.doc : "", phone: buying ? v.phone : "", address: sl.address, declared: sl.declared, idCopy: sl.idCopy },
         inspection: Object.keys(ins.checks).length || ins.icloud || ins.carrier || ins.region || ins.appleWarrEnd || ins.originalParts || ins.notes ? ins : null, batt: v.batt === "" ? null : v.batt, notes },
       official: phone && res ? offEff : undefined, ownerApproved: ok, offer,
-      label: [v.name, v.spec, v.cond].filter(Boolean).join(" · ") + (serial ? ` · ••${serial.slice(-6)}` : ""),
+      label: [v.name || cat, v.spec, v.cond].filter(Boolean).join(" · ") + (serial ? ` · ••${serial.slice(-6)}` : ""),
     });
   };
 
@@ -109,9 +108,9 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
             <div className="card p-4">
               <h2 className="font-semibold mb-3">Datos del equipo</h2>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><label className="lb" htmlFor="r-name">Modelo</label><ComboSelect id="r-name" value={v.name} options={CATALOG.filter((c) => c.cat === cat).map((c) => c.name)} onChange={(x) => setV({ ...v, name: x })} placeholder="Elige el modelo…" /></div>
-                <div><label className="lb" htmlFor="r-spec">Capacidad</label><ComboSelect id="r-spec" value={v.spec} options={SPEC_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, spec: x })} /></div>
-                <div><label className="lb" htmlFor="r-color">Color</label><ComboSelect id="r-color" value={v.color} options={COLOR_OPTIONS[cat as Cat] ?? []} onChange={(x) => setV({ ...v, color: x })} /></div>
+                <div><label className="lb" htmlFor="r-name">Modelo (escríbelo o elige)</label><input id="r-name" list="r-name-list" value={v.name} placeholder="Ej. iPhone 14 Pro Max" onChange={(e) => setV({ ...v, name: e.target.value })} /><datalist id="r-name-list">{CATALOG.filter((c) => c.cat === cat).map((c) => c.name).map((o) => <option key={o} value={o} />)}</datalist></div>
+                <div><label className="lb" htmlFor="r-spec">Capacidad</label><input id="r-spec" list="r-spec-list" value={v.spec} placeholder="" onChange={(e) => setV({ ...v, spec: e.target.value })} /><datalist id="r-spec-list">{(SPEC_OPTIONS[cat as Cat] ?? []).map((o) => <option key={o} value={o} />)}</datalist></div>
+                <div><label className="lb" htmlFor="r-color">Color</label><input id="r-color" list="r-color-list" value={v.color} placeholder="" onChange={(e) => setV({ ...v, color: e.target.value })} /><datalist id="r-color-list">{(COLOR_OPTIONS[cat as Cat] ?? []).map((o) => <option key={o} value={o} />)}</datalist></div>
                 <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
                 {f("batt", "Salud de batería (%) (opcional)", { type: "number", min: 0, max: 100 })}
                 {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 }, "imei2")}
