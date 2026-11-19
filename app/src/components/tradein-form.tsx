@@ -71,17 +71,17 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const buying = mode === "compra";
-  const missing = !v.name.trim() ? "Escribe el modelo" : phone && !res ? "Verifica el IMEI" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : "";
+  const missing = !v.name.trim() ? "Escribe el modelo" : "";
 
   const accept = () => {
     const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
-    const serial = phone ? res!.imei : v.serial;
+    const serial = phone ? (res?.imei ?? imei.replace(/\D/g, "")) : v.serial;
     onAccept({
       item: { cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial, serial2: phone ? v.serial2 : "", qty: 1, cost: offer, price: resale, warr: +v.warr > 0 ? Math.min(60, Math.round(+v.warr)) : warr[v.cond] > 0 ? warr[v.cond] : 1, src: "Trade-in", sim: v.sim,
         seller: { name: buying ? v.vendor : "", docType: sl.docType, doc: buying ? v.doc : "", phone: buying ? v.phone : "", address: sl.address, declared: sl.declared, idCopy: sl.idCopy },
         inspection: Object.keys(ins.checks).length || ins.icloud || ins.carrier || ins.region || ins.appleWarrEnd || ins.originalParts || ins.notes ? ins : null, batt: v.batt === "" ? null : v.batt, notes },
-      official: phone ? offEff : undefined, ownerApproved: ok, offer,
+      official: phone && res ? offEff : undefined, ownerApproved: ok, offer,
       label: [v.name, v.spec, v.cond].filter(Boolean).join(" · ") + (serial ? ` · ••${serial.slice(-6)}` : ""),
     });
   };
@@ -96,14 +96,14 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
           <div className="flex flex-wrap gap-2">{CATS.map((c) => <button key={c} type="button" aria-pressed={cat === c} onClick={() => { setCat(c); setRes(null); setOff({}); }} className={`btn sm ${cat === c ? "primary" : ""}`}>{c}</button>)}</div>
           {phone ? (
             <div>
-              <label className="lb" htmlFor="r-imei">IMEI del equipo</label>
+              <label className="lb" htmlFor="r-imei">IMEI del equipo (se puede escribir y guardar a mano)</label>
               <div className="flex gap-2"><input id="r-imei" className="mono" inputMode="numeric" maxLength={15} value={imei} onChange={(e) => setImei(e.target.value.replace(/\D/g, "").slice(0, 15))} onKeyDown={(e) => e.key === "Enter" && verify()} /><ScanButton onRead={(r) => { const c = codeFor(r, "imei").replace(/\D/g, "").slice(0, 15); setImei(c); if (c) verify(c); if (r.imei2) setV((x) => ({ ...x, serial2: r.imei2!.replace(/\D/g, "").slice(0, 15) })); }} /><button type="button" className="btn primary" onClick={() => verify()} disabled={busy}>Verificar</button></div>
               {res && <ul className="mt-3 space-y-1.5 text-[13px]">{res.steps.map((s) => <li key={s.label}><b className={s.state === "ok" ? "text-green-t" : s.state === "warn" ? "text-amber-t" : s.state === "fail" ? "text-red-t" : "text-t3"}>{{ ok: "✓", warn: "!", fail: "✕", skip: "–" }[s.state]}</b> {s.label}: <span className="text-t2">{s.detail}</span></li>)}</ul>}
-              {res?.verdict === "blocked" && <p className="chip bad !rounded-md !whitespace-normal mt-3">⛔ No recibas este equipo.</p>}
+              {res?.verdict === "blocked" && <p className="chip bad !rounded-md !whitespace-normal mt-3">⚠️ El IMEI no pasó la verificación. Puedes seguir y registrarlo a mano, pero revisa bien el equipo.</p>}
             </div>
           ) : f("serial", "Número de serie", {}, "serial")}
         </div>
-        {(!phone || (res && res.verdict !== "blocked")) && (
+        {(
           <>
             {phone && res && <OfficialPanel imei={res.imei} value={off} onChange={setOff} apple={iphone} />}
             <div className="card p-4">

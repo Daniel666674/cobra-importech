@@ -79,7 +79,8 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
   const isPhone = input.cat === "iPhone";
   // Samsung y Android: IMEI válido y consulta de la CRC cuando entran como retoma; el bloqueo de Apple solo aplica al iPhone.
   const mobile = isMobile(input.cat);
-  const needsCheck = isPhone || (mobile && input.src === "Trade-in");
+  const soft = input.src === "Trade-in"; // En retomas la verificación se registra pero no bloquea: el IMEI se puede escribir a mano.
+  const needsCheck = isPhone && !soft;
   const track = input.cat === "AirPods" || input.cat === "Accesorios" ? "qty" : "unit";
   let check: ImeiCheck | null = null;
   let verifyNote: { text: string; tone: string } | null = null;
@@ -92,7 +93,11 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
   }
 
   if (input.cat !== "Accesorios" && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
-  if (mobile && input.serial2) input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
+  if (mobile && input.serial2) {
+    // En retomas el IMEI 2 se acepta tal como se escribe.
+    if (input.src === "Trade-in") input.serial2 = input.serial2.replace(/\D/g, "");
+    else input.serial2 = await checkImei2(db, input.serial2, input.serial.replace(/\D/g, ""));
+  }
   if (needsCheck) {
     const imei = input.serial.replace(/\D/g, "");
     const res = await verifyImei(db, imei, undefined, input.cat);
@@ -115,6 +120,14 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
       res.verdict === "clean"
         ? { text: "Formato, modelo y duplicado correctos", tone: "ok" }
         : { text: "Advertencia aprobada por el propietario/a: " + res.steps.filter((s) => s.state === "warn").map((s) => s.detail).join(" | "), tone: "warn" };
+  } else if (soft && mobile) {
+    // Retoma: se guarda el IMEI tal como se escribió; si se hizo la consulta oficial, queda registrada.
+    const off = officialSchema.safeParse(opts.official);
+    if (off.success) check = checks(a, off.data);
+    const digits = input.serial.replace(/\D/g, "");
+    if (digits) input.serial = digits;
+    const res = digits.length === 15 ? await verifyImei(db, digits, undefined, input.cat).catch(() => null) : null;
+    verifyNote = res?.verdict === "clean" ? { text: "Formato, modelo y duplicado correctos", tone: "ok" } : { text: digits ? "IMEI registrado a mano (sin verificación completa)" : "Retoma sin IMEI registrado", tone: "warn" };
   }
   return { input, track, check, verifyNote, isPhone, ally };
 }

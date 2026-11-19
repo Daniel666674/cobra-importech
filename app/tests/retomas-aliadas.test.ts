@@ -47,15 +47,14 @@ describe("retoma como parte de pago", () => {
     const s = await createSale(db, owner, { lines: [{ item: it.id, qty: 1 }], client: clientId, tradeins: [{ item: tradePhone(withCheck("35822002100002"), it.price), official: OK }] });
     expect(s.payments).toEqual([{ method: "Retoma", amount: it.price }]);
   });
-  it("exige cédula del cliente, verificación oficial y permiso de retomas", async () => {
+  it("la retoma exige permiso; la verificación oficial y el IMEI se pueden escribir a mano", async () => {
     const it = await stockPhone();
     const base = { lines: [{ item: it.id, qty: 1 }], payments: [{ method: "Efectivo", amount: it.price - 1_500_000 }] };
-        await expect(createSale(db, owner, { ...base, client: clientId, tradeins: [{ item: tradePhone(withCheck("35822002100003")) }] })).rejects.toThrow(/verificación oficial|oficial/i);
     await expect(createSale(db, seller, { ...base, client: clientId, tradeins: [{ item: tradePhone(withCheck("35822002100003")), official: OK }] })).rejects.toThrow(/permiso/);
-    await expect(createSale(db, owner, { ...base, client: clientId, tradeins: [{ item: tradePhone(withCheck("35822002100003")), official: { crc: "reported", apple: "clean" } }] })).rejects.toThrow(/reportado/i);
-    // Nada quedó a medias: ni el equipo de retoma ni la venta.
-    expect(await db.select().from(items).where(eq(items.serial, withCheck("35822002100003")))).toHaveLength(0);
-    expect((await stockPhone()).id).toBe(it.id);
+    // Sin consulta oficial y con IMEI escrito a mano: se recibe igual (queda anotado).
+    const free = await createSale(db, owner, { ...base, client: clientId, tradeins: [{ item: tradePhone("123456789012345") }] });
+    expect(free.tradeins).toHaveLength(1);
+    expect((await db.select().from(items).where(eq(items.serial, "123456789012345")))[0].imeiCheck).toBeNull();
   });
   it("si la retoma supera el total, no se mezcla con la venta", async () => {
     const it = await stockPhone();
