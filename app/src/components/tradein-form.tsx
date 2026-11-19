@@ -71,7 +71,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   };
 
   const buying = mode === "compra";
-  const missing = !v.name.trim() ? "Escribe el modelo" : buying && (!v.vendor.trim() || !v.doc.trim()) ? "Registra el nombre y la cédula de quien entrega el equipo" : !sl.declared ? "Marca que quien entrega el equipo declara ser su dueño legítimo" : phone && !res ? "Verifica el IMEI" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : !(offer > 0) ? "La oferta debe ser mayor a 0" : "";
+  const missing = !v.name.trim() ? "Escribe el modelo" : phone && !res ? "Verifica el IMEI" : phone && gate && !gate.canSave ? gate.message : phone && gate?.needsOwner && !ok ? "Falta la aprobación del propietario/a" : "";
 
   const accept = () => {
     const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);

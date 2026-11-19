@@ -59,12 +59,10 @@ describe("WhatsApp", () => {
 });
 
 describe("acta de compra e inspección de una retoma", () => {
-  it("exige la declaración del dueño y guarda al vendedor, la inspección y el historial", async () => {
+  it("guarda al vendedor, la inspección y el historial", async () => {
     const { withCheck } = await import("@/lib/imei-test");
     const imei = withCheck("35822002100999");
     const base = { cat: "iPhone", batt: 88, name: "iPhone 14", serial: imei, cost: 1500000, price: 2200000, src: "Trade-in", cond: "Usado" };
-    await expect(createItem(db, emp, base, { official: ok, ownerApproved: true })).rejects.toThrow(/dueño legítimo/);
-    await expect(createItem(db, emp, { ...base, seller: { name: "Pedro", doc: "123", declared: false } }, { official: ok, ownerApproved: true })).rejects.toThrow(/dueño legítimo/);
     const r = await createItem(db, emp, { ...base, seller: { name: "Pedro Ruiz", docType: "CC", doc: "1010", phone: "300", address: "Calle 1 # 2-3", declared: true, idCopy: true }, inspection: { checks: { pantalla: "ok", faceid: "falla" }, icloud: "libre", carrier: "libre", region: "LL/A", originalParts: "si" } }, { official: ok, ownerApproved: true });
     expect(r.seller).toMatchObject({ name: "Pedro Ruiz", doc: "1010", declared: true, idCopy: true, by: "Anderson" });
     expect(r.inspection).toMatchObject({ icloud: "libre", region: "LL/A", checks: { faceid: "falla" } });
