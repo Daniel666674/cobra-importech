@@ -134,7 +134,6 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     if (cashDue === 0 && pays.length) throw new AppError(tradeTotal ? "La retoma cubre todo: no hay nada más por cobrar" : "Con el apartado pagado completo no hay nada por cobrar", "invalid");
 
     const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient);
-    if (trades.length && !client?.doc) throw new AppError("Para recibir un equipo en parte de pago, el cliente debe tener nombre y cédula (soporta el origen del equipo)", "invalid");
     const now = Date.now();
     if (input.date && input.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
     const when = input.date ? Math.min(input.date, now) : now;
@@ -187,9 +186,9 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     }
     const received = [];
     for (const p of trades) {
-      p.input.seller = { name: client!.name, docType: p.input.seller?.docType ?? "CC", doc: client!.doc, phone: client!.phone, address: client!.address, declared: true, idCopy: p.input.seller?.idCopy ?? false };
-      p.input.notes = [`Recibido como parte de pago en ${no} de ${client!.name} (C.C. ${client!.doc}${client!.phone ? ", cel. " + client!.phone : ""})`, p.input.notes].filter(Boolean).join(" · ");
-      const row = await insertItem(tx, a, p, { title: "Retoma recibida en venta", detail: `${no} · ${client!.name} · ${fmt(p.input.cost)}` });
+      p.input.seller = { name: client?.name ?? p.input.seller?.name ?? "", docType: p.input.seller?.docType ?? "CC", doc: client?.doc ?? p.input.seller?.doc ?? "", phone: client?.phone ?? p.input.seller?.phone ?? "", address: client?.address ?? p.input.seller?.address ?? "", declared: p.input.seller?.declared ?? true, idCopy: p.input.seller?.idCopy ?? false };
+      p.input.notes = [`Recibido como parte de pago en ${no}${client ? ` de ${client.name} (C.C. ${client.doc}${client.phone ? ", cel. " + client.phone : ""})` : " (sin cliente registrado)"}`, p.input.notes].filter(Boolean).join(" · ");
+      const row = await insertItem(tx, a, p, { title: "Retoma recibida en venta", detail: `${no} · ${client?.name ?? "sin cliente"} · ${fmt(p.input.cost)}` });
       received.push({ item: row.id, name: uname(row), serial: row.serial, cond: row.cond, amount: row.cost });
     }
     // Recargo por forma de pago (Addi, Vanti, tarjeta de crédito…): se cobra aparte del valor de los productos.

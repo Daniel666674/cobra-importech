@@ -112,7 +112,6 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
     else if (+abono >= T.total) why = "El abono cubre el total: registra una venta normal";
     else if (!holdUntil) why = "Escoge la fecha de vencimiento del apartado";
   } else if (due < 0) why = `La retoma supera el total por ${fmt(-due)}: regístrala sola en «Retomas»`;
-  else if (trades.length && (!(client || newC) || !clientDoc)) why = "Para recibir un equipo en parte de pago, elige o crea el cliente con su cédula";
   else if (due > 0) {
     if (paid > due + feeTotal) why = `Los pagos superan el total por ${fmt(paid - due - feeTotal)}${feeTotal ? " (incluso sumando el recargo)" : ""}`;
   }
