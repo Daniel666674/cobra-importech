@@ -76,14 +76,13 @@ describe("acta de compra e inspección de una retoma", () => {
 });
 
 describe("Samsung y Android", () => {
-  it("la retoma pide IMEI válido y CRC, no el bloqueo de Apple ni el TAC de Apple", async () => {
+  it("la retoma Samsung/Android registra la CRC (opcional), no el bloqueo de Apple ni el TAC de Apple", async () => {
     const { verifyImei } = await import("@/server/imei");
     const imei = withCheck("35299011222333");
     const v = await verifyImei(db, imei, undefined, "Samsung");
     expect(v.verdict).toBe("clean");
     expect(v.steps[1].state).toBe("skip");
     const sam = { cat: "Samsung", name: "Galaxy S24 Ultra", spec: "256 GB", color: "Negro", cond: "Usado", serial: imei, cost: 1_800_000, price: 2_300_000, warr: 1, src: "Trade-in", sim: "eSIM", seller: { name: "Laura", doc: "55", declared: true } };
-    await expect(createItem(db, emp, sam)).rejects.toThrow(/verificación oficial/i);
     const r = await createItem(db, emp, sam, { official: ok });
     expect(r).toMatchObject({ cat: "Samsung", sim: "eSIM", batt: null });
     expect(r.sku).toMatch(/^SAM-/);
