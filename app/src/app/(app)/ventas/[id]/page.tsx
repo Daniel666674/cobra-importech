@@ -9,6 +9,7 @@ import { PrintButton } from "@/components/print-button";
 import { SaleReceipt } from "@/components/receipt";
 import { hasPerm } from "@/server/auth";
 import { requireMe } from "@/server/session";
+import { mailConfigured } from "@/server/mail";
 import { ReceiptPdf } from "./receipt-pdf";
 import { enabledMethods } from "@/lib/catalog";
 import { EditSale } from "./edit-sale";
@@ -40,7 +41,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
           <PrintButton />
         </div>
       </div>
-      <ReceiptPdf no={s.no} auto={sp.nueva === "1"} whatsapp={!!client?.phone} />
+      <ReceiptPdf id={s.id} no={s.no} auto={sp.nueva === "1"} whatsapp={!!client?.phone} email={client?.email ?? ""} mailReady={mailConfigured()} autoMail={mailConfigured() && cfg.autoSend} />
       <div id="receipt-print"><SaleReceipt s={s} cfg={cfg} client={client ?? null} seller={u?.name ?? "—"} /></div>
       {s.tradeins?.length > 0 && (
         <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">

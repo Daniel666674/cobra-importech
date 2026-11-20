@@ -148,6 +148,13 @@
       "when": 1793832000000,
       "tag": "0020_datafono_recargo_7",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795209232195,
+      "tag": "0021_comprobante_auto",
+      "breakpoints": true
     }
   ]
 }

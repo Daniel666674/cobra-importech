@@ -43,8 +43,8 @@ const SAMPLE_SALE = {
 };
 const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", address: "Calle 10 # 5-20, Medellín", email: "maria@correo.com", notes: "" };
 
-export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount }: {
-  initialTab: string; cfg: Cfg; logo: string;
+export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount, mailReady }: {
+  mailReady: boolean; initialTab: string; cfg: Cfg; logo: string;
   numbering: { prefix: string; last: number };
   warranty: { warr: Record<string, number>; terms: string[]; custom: boolean };
   methods: { all: string[]; on: string[]; surcharges: Record<string, number> };
@@ -146,6 +146,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
             <div><label className="lb" htmlFor="c-footer">Mensaje al pie</label><textarea id="c-footer" rows={2} value={v.footer} onChange={(e) => setV({ ...v, footer: e.target.value })} /></div>
             <div><label className="lb" htmlFor="c-legal">Texto legal (opcional)</label><textarea id="c-legal" rows={3} maxLength={600} placeholder="Ej.: Resolución de facturación DIAN No. … del … · Rango … al …" value={v.legalNote} onChange={(e) => setV({ ...v, legalNote: e.target.value })} /><p className="note mt-1">Para resoluciones, políticas de cambio, datos bancarios, etc.</p></div>
             <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="!w-auto" checked={v.showSignatures} onChange={(e) => setV({ ...v, showSignatures: e.target.checked })} /> Mostrar líneas de firma</label>
+            <label className="mt-2 flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={v.autoSend} onChange={(e) => setV({ ...v, autoSend: e.target.checked })} /><span><b>Enviar el comprobante en PDF al correo del cliente</b> apenas se registre la venta.<span className="note block">{mailReady ? "✅ El servicio de correo está configurado." : "⚠️ El servicio de correo todavía no está configurado (ver instrucciones al final de esta pestaña): mientras tanto no se envía nada."}</span></span></label>
             <p className="note">Logo, color, NIT y contacto se editan en «Negocio». Las condiciones de garantía, en «Garantías».</p>
             {saveBtn}
           </div>
