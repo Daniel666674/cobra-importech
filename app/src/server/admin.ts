@@ -94,6 +94,7 @@ export const settingsInput = z.object({
   legalNote: z.string().trim().max(600).default(""),
   invTitle: z.string().trim().min(3, "Escribe el título del comprobante").max(60).default("Comprobante de venta"),
   showSignatures: z.boolean().default(true),
+  autoSend: z.boolean().default(true),
 }).superRefine((v, ctx) => {
   if (v.nit && !/^[\d.]{5,15}(-\d)?$/.test(v.nit)) ctx.addIssue({ code: "custom", message: "El NIT debe tener solo números, puntos y el dígito de verificación (ej. 901.234.567-8)" });
   if (v.email && !z.email().safeParse(v.email).success) ctx.addIssue({ code: "custom", message: "El correo no es válido" });

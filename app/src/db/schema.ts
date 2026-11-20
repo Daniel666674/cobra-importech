@@ -117,6 +117,8 @@ export const settings = pgTable("settings", {
   /** Bancos o cuentas a los que entran las transferencias (se elige al cobrar). */
   banks: jsonb("banks").$type<string[]>().notNull().default(["Banco Importech", "Banco Andrés"]),
   showSignatures: boolean("show_signatures").notNull().default(true),
+  /** Enviar el comprobante por correo al cliente apenas se registra la venta (si hay correo y el servicio de correo está configurado). */
+  autoSend: boolean("auto_send").notNull().default(true),
   /** Recargo % por forma de pago. */
   surcharges: jsonb("surcharges").$type<Record<string, number>>().notNull().default({ Addi: 12, Vanti: 6, "Tarjeta crédito": 7 }),
 });

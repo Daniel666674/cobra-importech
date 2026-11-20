@@ -1,32 +1,29 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { sendReceiptEmailAction } from "@/app/actions/sales";
 
-/** Convierte el comprobante de la pantalla en un PDF (A4) y lo descarga en este dispositivo. */
-async function downloadPdf(el: HTMLElement, name: string) {
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas-pro"), import("jspdf")]);
-  const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
-  const pdf = new jsPDF({ unit: "mm", format: "a4" });
-  const w = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const h = (canvas.height * w) / canvas.width;
-  const img = canvas.toDataURL("image/jpeg", 0.92);
-  for (let y = 0, first = true; y < h - 0.5; y += pageH, first = false) {
-    if (!first) pdf.addPage();
-    pdf.addImage(img, "JPEG", 0, -y, w, h);
-  }
-  pdf.save(`${name}.pdf`);
+/** El PDF lo crea el servidor (liviano): aquí solo se descarga y se guarda en este dispositivo. */
+async function downloadPdf(id: string, name: string) {
+  const r = await fetch(`/api/comprobante/${encodeURIComponent(id)}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(String(r.status));
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url; a.download = `${name}.pdf`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-export function ReceiptPdf({ no, auto, whatsapp }: { no: string; auto: boolean; whatsapp: boolean }) {
+export function ReceiptPdf({ id, no, auto, whatsapp, email, mailReady, autoMail }: { id: string; no: string; auto: boolean; whatsapp: boolean; email: string; mailReady: boolean; autoMail: boolean }) {
   const path = usePathname();
   const ran = useRef(false);
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [to, setTo] = useState(email);
+  const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [sending, start] = useTransition();
   const run = async () => {
-    const el = document.getElementById("receipt-print");
-    if (!el) return;
     setState("busy");
-    try { await downloadPdf(el, `Comprobante ${no}`); setState("done"); } catch { setState("error"); }
+    try { await downloadPdf(id, `Comprobante ${no}`); setState("done"); } catch { setState("error"); }
   };
   useEffect(() => {
     if (!auto || ran.current) return;
@@ -39,13 +36,22 @@ export function ReceiptPdf({ no, auto, whatsapp }: { no: string; auto: boolean; 
       {(auto || state !== "idle") && (
         <p role="status" className={`chip ${state === "error" ? "bad" : "ok"} !rounded-md !whitespace-normal`}>
           {state === "error"
-            ? "No se pudo crear el PDF. Pulsa «Descargar PDF» para intentarlo de nuevo."
+            ? "No se pudo descargar el PDF. Pulsa «Descargar PDF» para intentarlo de nuevo."
             : state === "busy" || (auto && state === "idle")
               ? `Creando el comprobante ${no} en PDF…`
-              : `✅ El comprobante ${no} se descargó en este dispositivo.${whatsapp ? " Ahora pulsa «WhatsApp», adjunta el PDF descargado y envíaselo al cliente." : " Adjúntalo y envíaselo al cliente."}`}
+              : `✅ El comprobante ${no} se descargó en este dispositivo.${auto && autoMail && email ? ` Además se está enviando por correo a ${email}.` : ""}${whatsapp ? " Para WhatsApp pulsa «WhatsApp», adjunta el PDF descargado y envíaselo al cliente." : ""}`}
         </p>
       )}
-      <button type="button" className="btn" disabled={state === "busy"} onClick={run}>📄 Descargar PDF</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn" disabled={state === "busy"} onClick={run}>📄 Descargar PDF</button>
+        {mailReady && (
+          <>
+            <input type="email" className="!w-64" placeholder="correo del cliente" aria-label="Correo del cliente" value={to} onChange={(e) => setTo(e.target.value)} />
+            <button type="button" className="btn" disabled={sending || !to.trim()} onClick={() => start(async () => { const r = await sendReceiptEmailAction(id, to); setMsg(r.ok ? { ok: true, t: `✅ Enviado a ${r.data}` } : { ok: false, t: r.error }); })}>📧 Enviar por correo</button>
+          </>
+        )}
+      </div>
+      {msg && <p role="status" className={`chip ${msg.ok ? "ok" : "bad"} !rounded-md !whitespace-normal`}>{msg.t}</p>}
     </div>
   );
 }
