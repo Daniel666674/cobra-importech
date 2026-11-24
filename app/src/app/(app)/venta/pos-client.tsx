@@ -118,9 +118,11 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
 
   const filtered = items.filter((i) => {
     if (finishing && i.id === finishing.id) return false;
-    if (cat && i.cat !== cat) return false;
-    const s = q.toLowerCase().trim();
-    return !s || `${i.name} ${i.spec} ${i.color} ${i.serial} ${i.serial2}`.toLowerCase().includes(s);
+    const words = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    // Al buscar, se busca en todas las categorías (si no, un filtro olvidado esconde el producto); cada palabra debe aparecer.
+    if (!words.length) return !cat || i.cat === cat;
+    const hay = `${i.name} ${i.spec} ${i.color} ${i.serial} ${i.serial2} ${i.cat}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
   }).slice(0, 120);
 
   const add = (id: string) => {
@@ -191,7 +193,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
               <span className="mt-2 text-[13px] font-semibold">+ Agregar</span>
             </button>
           ))}
-          {!filtered.length && <p className="note p-4">No hay productos disponibles con esa búsqueda.</p>}
+          {!filtered.length && <p className="note p-4">No hay productos disponibles con esa búsqueda. Si es un producto que no está en el inventario, usa «+ Producto fuera de inventario».</p>}
         </div>
       </section>
 
