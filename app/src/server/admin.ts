@@ -96,6 +96,7 @@ export const settingsInput = z.object({
   invTitle: z.string().trim().min(3, "Escribe el título del comprobante").max(60).default("Comprobante de venta"),
   showSignatures: z.boolean().default(true),
   autoSend: z.boolean().default(true),
+  waReceipt: z.string().trim().max(500).default(""),
 }).superRefine((v, ctx) => {
   if (v.nit && !/^[\d.]{5,15}(-\d)?$/.test(v.nit)) ctx.addIssue({ code: "custom", message: "El NIT debe tener solo números, puntos y el dígito de verificación (ej. 901.234.567-8)" });
   if (v.email && !z.email().safeParse(v.email).success) ctx.addIssue({ code: "custom", message: "El correo no es válido" });
@@ -105,7 +106,7 @@ export async function saveSettings(db: Db, a: Actor, raw: unknown) {
   const v = settingsInput.parse(raw);
   const [before] = await db.select().from(settings).where(eq(settings.id, 1));
   await db.update(settings).set(v).where(eq(settings.id, 1));
-  const labels: Record<string, string> = { name: "Nombre", legal: "Razón social", nit: "NIT", address: "Dirección", city: "Ciudad", phone: "Teléfono", whatsapp: "WhatsApp", email: "Correo", web: "Web", instagram: "Instagram", footer: "Pie", brand: "Color", maxDisc: "Descuento máx. (%)", minMargin: "Margen mín. (%)", trm: "TRM", agedDays: "Días para «antiguo»", holdDays: "Días de apartado", apartadoMinPct: "Abono mínimo (%)", ownerPhone: "Celular del dueño", taxNote: "Nota tributaria", legalNote: "Nota legal", invTitle: "Título del comprobante", showSignatures: "Firmas", autoSend: "Envío automático por correo" };
+  const labels: Record<string, string> = { name: "Nombre", legal: "Razón social", nit: "NIT", address: "Dirección", city: "Ciudad", phone: "Teléfono", whatsapp: "WhatsApp", email: "Correo", web: "Web", instagram: "Instagram", footer: "Pie", brand: "Color", maxDisc: "Descuento máx. (%)", minMargin: "Margen mín. (%)", trm: "TRM", agedDays: "Días para «antiguo»", holdDays: "Días de apartado", apartadoMinPct: "Abono mínimo (%)", ownerPhone: "Celular del dueño", taxNote: "Nota tributaria", legalNote: "Nota legal", invTitle: "Título del comprobante", showSignatures: "Firmas", autoSend: "Envío automático por correo", waReceipt: "Mensaje de WhatsApp" };
   const d = before ? diffText(before as never, v as never, labels, (_k, x) => (typeof x === "boolean" ? (x ? "sí" : "no") : x === "" || x == null ? "—" : String(x))) : [];
   await logFeed(db, a, "owner", "⚙️", `Configuración actualizada por ${esc(a.name)}${d.length ? ": " + d.join(" · ") : " (sin cambios)"}`);
 }
@@ -173,4 +174,21 @@ export async function saveBanks(db: Db, a: Actor, raw: unknown) {
   await db.update(settings).set({ banks }).where(eq(settings.id, 1));
   await logFeed(db, a, "owner", "🏦", `Bancos para transferencias: ${banks.map(esc).join(", ") || "ninguno"} · ${esc(a.name)}`);
   return banks;
+}
+
+/** Porcentajes por condición y descuentos por defecto de las retomas. */
+export async function saveTradeinConfig(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = z.object({
+    rates: z.record(z.string(), z.coerce.number().min(1, "El porcentaje debe ser entre 1 y 100").max(100, "El porcentaje debe ser entre 1 y 100")),
+    deds: z.array(z.object({ key: z.string().trim().min(1).max(30).regex(/^[a-z0-9_]+$/, "Clave no válida"), label: z.string().trim().min(2, "Escribe el nombre de cada defecto").max(60), pct: z.coerce.number().min(0).max(60, "Un defecto no puede restar más del 60 %") })).max(15),
+    reset: z.boolean().default(false),
+  }).parse(raw);
+  const [before] = await db.select().from(settings).where(eq(settings.id, 1));
+  const keys = new Set<string>();
+  for (const d of v.deds) { if (keys.has(d.key)) throw new AppError("Hay dos defectos con la misma clave", "invalid"); keys.add(d.key); }
+  const next = v.reset ? { tradeRates: {}, tradeDeds: [] } : { tradeRates: v.rates, tradeDeds: v.deds };
+  await db.update(settings).set(next).where(eq(settings.id, 1));
+  const rd = Object.entries(next.tradeRates).filter(([k, x]) => (before?.tradeRates ?? {})[k] !== x).map(([k, x]) => `${esc(k)} ${x}%`);
+  await logFeed(db, a, "owner", "🔄", `${v.reset ? "Cotizador de retomas restablecido a los valores de fábrica" : `Cotizador de retomas actualizado${rd.length ? ": " + rd.join(", ") : ""}${JSON.stringify(before?.tradeDeds ?? []) !== JSON.stringify(next.tradeDeds) ? " · defectos modificados" : ""}`} · ${esc(a.name)}`);
 }

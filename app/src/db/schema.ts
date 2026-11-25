@@ -119,6 +119,12 @@ export const settings = pgTable("settings", {
   showSignatures: boolean("show_signatures").notNull().default(true),
   /** Enviar el comprobante por correo al cliente apenas se registra la venta (si hay correo y el servicio de correo está configurado). */
   autoSend: boolean("auto_send").notNull().default(true),
+  /** Porcentaje por condición para cotizar retomas (vacío = valores por defecto). */
+  tradeRates: jsonb("trade_rates").$type<Record<string, number>>().notNull().default({}),
+  /** Descuentos por defecto (vacío = los de fábrica). */
+  tradeDeds: jsonb("trade_deds").$type<{ key: string; label: string; pct: number }[]>().notNull().default([]),
+  /** Mensaje de WhatsApp para enviar el comprobante: {nombre}, {negocio}, {comprobante}, {total}. */
+  waReceipt: text("wa_receipt").notNull().default(""),
   /** Recargo % por forma de pago. */
   surcharges: jsonb("surcharges").$type<Record<string, number>>().notNull().default({ Addi: 12, Vanti: 6, "Tarjeta crédito": 7 }),
 });

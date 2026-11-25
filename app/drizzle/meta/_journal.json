@@ -155,6 +155,13 @@
       "when": 1795209232195,
       "tag": "0021_comprobante_auto",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795589379541,
+      "tag": "0022_config_retomas_mensajes",
+      "breakpoints": true
     }
   ]
 }

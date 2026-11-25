@@ -10,7 +10,7 @@ export default async function Retomas() {
   return (
     <>
       <PageHeader title="Retomas (trade-in)" subtitle="Cotiza el equipo del cliente, verifícalo y recíbelo al inventario" />
-      <RetomaClient warr={cfg.warr} />
+      <RetomaClient warr={cfg.warr} quoteCfg={{ rates: cfg.tradeRates, deds: cfg.tradeDeds }} />
     </>
   );
 }
