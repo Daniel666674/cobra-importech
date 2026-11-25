@@ -7,7 +7,7 @@ import { inspectionSchema, inspectionSummary, sellerSchema } from "@/lib/inspect
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
-import { AppError, addEvent, can, copField, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, addEvent, can, copField, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { blockImei, verifyImei } from "./imei";
 import { pendingAlta, requestDelete } from "./approvals";
 
@@ -187,6 +187,7 @@ export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
     if (patch.cost != null && patch.cost !== it.cost) ch.push(`Costo ${fmt(it.cost)} → ${fmt(patch.cost)}`);
     if (patch.qty != null && isQty(it) && patch.qty !== it.qty) ch.push(`Cantidad ${it.qty} → ${patch.qty}`);
     if (patch.cond != null && patch.cond !== it.cond) ch.push(`Condición ${it.cond} → ${patch.cond}`);
+    ch.push(...diffText(it as never, patch as never, { name: "Nombre", spec: "Detalle", color: "Color", serial2: "IMEI 2", batt: "Batería", warr: "Garantía (meses)", notes: "Notas", min: "Stock mínimo", sim: "Línea" }));
     if (patch.serial2 != null) patch.serial2 = await checkImei2(tx, patch.serial2, it.serial, it.id);
     if (patch.warr != null && patch.warr < 1 && it.cat !== "Accesorios") throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
     const next = { ...patch };

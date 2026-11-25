@@ -7,7 +7,7 @@ import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
 import { lineNet, posTotals, saleNet } from "@/lib/sales";
-import { AppError, copField, addEvent, can, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, copField, addEvent, can, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { insertItem, prepareItem, type PreparedItem } from "./inventory";
 
 const method = z.enum(METHODS);
@@ -535,7 +535,18 @@ export async function editSale(db: Db, a: Actor, saleId: string, raw: unknown) {
       await tx.delete(allyMoves).where(and(eq(allyMoves.ref, s.no), eq(allyMoves.kind, "deuda")));
       await allyDebts(tx, a, lines, (l) => lineNet(l), s.no, "Vendido");
     }
-    await logFeed(tx, a, "owner", "✏️", `Venta <b>${esc(s.no)}</b> corregida por ${esc(a.name)}: total ${fmt(s.total)} → ${fmt(total)}${pending ? ` · saldo pendiente ${fmt(pending)}` : ""}`);
+    const ch: string[] = [];
+    lines.forEach((l, i) => {
+      const o = s.lines[i];
+      const d = diffText(o as never, l as never, { price: "precio", cost: "costo", warr: "garantía", serial: "IMEI/serie", serial2: "IMEI 2", qty: "cantidad", batt: "batería" }, (k, x) => (k === "price" || k === "cost" ? fmt(Number(x)) : x === "" || x == null ? "—" : String(x)));
+      if (d.length) ch.push(`${esc(l.name)} (${d.join(", ")})`);
+    });
+    const pk = (ps: Payment[]) => ps.map((p) => `${p.method}${p.bank ? " " + p.bank : ""} ${fmt(p.amount)}`).join(" + ") || "sin pagos";
+    if (pk(s.payments) !== pk(payments)) ch.push(`pagos: ${esc(pk(s.payments))} → ${esc(pk(payments))}`);
+    if (s.disc !== disc) ch.push(`descuento ${+s.disc.toFixed(1)}% → ${+disc.toFixed(1)}%`);
+    if (s.t !== t) ch.push(`fecha ${new Date(s.t).toLocaleDateString("es-CO")} → ${new Date(t).toLocaleDateString("es-CO")}`);
+    if (v.notes !== undefined && v.notes !== s.notes) ch.push("observaciones");
+    await logFeed(tx, a, "owner", "✏️", `Venta <b>${esc(s.no)}</b> corregida por ${esc(a.name)}: total ${fmt(s.total)} → ${fmt(total)}${pending ? ` · saldo pendiente ${fmt(pending)}` : ""}${ch.length ? " · cambios: " + ch.join("; ") : ""}`);
     return { total, pending };
   });
 }

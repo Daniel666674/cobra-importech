@@ -7,7 +7,7 @@ import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
 import { isQty, uname } from "@/lib/items";
 import { pendingAlta } from "./approvals";
-import { AppError, copField, addEvent, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, copField, addEvent, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { verifyImei } from "./imei";
 import { branchName } from "./inventory";
 import { ensureClient } from "./sales";
@@ -25,8 +25,10 @@ export async function saveClient(db: Db, a: Actor, id: string | null, raw: unkno
   need(a, "clients");
   const v = clientInput.parse(raw);
   if (id) {
+    const [before] = await db.select().from(clients).where(eq(clients.id, id));
     await db.update(clients).set(v).where(eq(clients.id, id));
-    await logFeed(db, a, "owner", "👥", `Cliente <b>${esc(v.name)}</b> actualizado · ${esc(a.name)}`);
+    const d = before ? diffText(before as never, v as never, { name: "Nombre", doc: "Documento", phone: "Teléfono", email: "Correo", address: "Dirección", notes: "Notas" }) : [];
+    await logFeed(db, a, "owner", "👥", `Cliente <b>${esc(v.name)}</b> actualizado${d.length ? ": " + d.join(" · ") : ""} · ${esc(a.name)}`);
     return id;
   }
   const nid = "c" + (await nextCounter(db, "client"));
