@@ -2,14 +2,14 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { imeiBlocklist, items } from "@/db/schema";
-import { CATS, CAT_SKU, CONDS, type Cat } from "@/lib/catalog";
+import { CONDS } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { addEvent, AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
-import { branchName } from "./inventory";
+import { branchName, getCatDefs } from "./inventory";
 import { canApprove, pendingAlta } from "./approvals";
 
 const item = z.object({
-  key: z.string().max(80), cat: z.enum(CATS), name: z.string().trim().min(1).max(200), spec: z.string().max(80).default(""),
+  key: z.string().max(80), cat: z.string().trim().min(1).max(40), name: z.string().trim().min(1).max(200), spec: z.string().max(80).default(""),
   color: z.string().max(60).default(""), cond: z.enum(CONDS).default("Nuevo"), serial: z.string().max(40).default(""), serial2: z.string().max(40).default(""),
   qty: z.number().int().min(1).max(100000), cost: z.number().int().min(0).max(1e10), price: z.number().int().min(0).max(1e10),
   warr: z.number().int().min(0).max(60), batt: z.number().int().min(0).max(100).nullable(), min: z.number().int().min(0).max(100000),
@@ -31,6 +31,7 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
   if (list.length > MAX_INV_BATCH) throw new AppError(`Envía como máximo ${MAX_INV_BATCH} productos por tanda`, "invalid");
   const src = srcOf(source);
   const branch = await branchName(db);
+  const defs = await getCatDefs(db);
   return db.transaction(async (tx) => {
     const serials = list.map((i) => i.serial).filter(Boolean);
     // Cualquier equipo con ese IMEI/serial (incluso ya vendido) se salta: subir el mismo archivo con productos nuevos no duplica nada.
@@ -44,12 +45,14 @@ export async function importInventory(db: Db, a: Actor, raw: unknown) {
       if (it.serial && blocked.has(it.serial)) { skipped.push({ name: it.name, why: "IMEI en la lista de bloqueados" }); continue; }
       // Sin serial: el mismo producto del mismo archivo ya importado se salta (reimportar no duplica).
       if (!it.serial && it.key.startsWith("r:") && fromFile.some((x) => !x.serial && x.notes.includes(`[${it.key}]`))) { skipped.push({ name: it.name, why: "ya se importó de este archivo" }); continue; }
-      const track = it.cat === "AirPods" || it.cat === "Accesorios" ? "qty" : "unit";
+      const def = defs.find((c) => c.name === it.cat && c.active);
+      if (!def) { skipped.push({ name: it.name, why: `categoría «${it.cat}» no existe o está desactivada` }); continue; }
+      const track = def.kind;
       const n = await nextCounter(tx, "item");
       const id = "I-" + String(n).padStart(4, "0");
       const status = it.cat === "iPhone" ? "En revisión" : "En vitrina";
       await tx.insert(items).values({
-        id, sku: CAT_SKU[it.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond,
+        id, sku: def.sku + "-" + String(n).padStart(4, "0"), cat: it.cat, name: it.name, spec: it.spec, color: it.color, cond: it.cond,
         serial: it.serial, serial2: it.serial2, qty: track === "qty" ? it.qty : 1, cost: it.cost, price: it.price, warr: it.warr > 0 ? it.warr : 1, branch, status, acq: it.acq ?? Date.now(), src,
         batt: it.batt, notes: [it.notes, it.serial ? "" : `[${it.key}]`].filter(Boolean).join(" "), repairs: 0, min: track === "qty" ? it.min : 0, track, imeiCheck: null, hold: null, approval: pendingAlta(a),
       });

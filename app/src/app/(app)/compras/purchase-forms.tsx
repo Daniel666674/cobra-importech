@@ -3,7 +3,7 @@ import { ScanButton, codeFor } from "@/components/scan-button";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createPurchaseAction, receivePurchaseAction } from "@/app/actions/ops";
-import { CATS, CONDS } from "@/lib/catalog";
+import { CONDS } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
 
@@ -32,7 +32,7 @@ export function PurchaseForm({ trm }: { trm: number }) {
   );
 }
 
-export function ReceiveForm({ po }: { po: string }) {
+export function ReceiveForm({ po, cats }: { po: string; cats: string[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [v, setV] = useState({ cat: "iPhone", name: "", spec: "", color: "", cond: "Nuevo", price: "", qty: "1", serials: "" });
@@ -44,7 +44,7 @@ export function ReceiveForm({ po }: { po: string }) {
     <div className="card fixed inset-x-3 top-16 z-30 mx-auto max-w-lg space-y-2 p-4 shadow-xl">
       <h3 className="font-semibold">Recibir {po}</h3>
       <div className="grid grid-cols-2 gap-2">
-        <select value={v.cat} onChange={(e) => setV({ ...v, cat: e.target.value })} aria-label="Categoría">{CATS.map((c) => <option key={c}>{c}</option>)}</select>
+        <select value={v.cat} onChange={(e) => setV({ ...v, cat: e.target.value })} aria-label="Categoría">{cats.map((c) => <option key={c}>{c}</option>)}</select>
         <select value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })} aria-label="Condición">{CONDS.map((c) => <option key={c}>{c}</option>)}</select>
         <input className="col-span-2" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} placeholder="Producto (ej. iPhone 17 Pro Max)" aria-label="Producto" />
         <input value={v.spec} onChange={(e) => setV({ ...v, spec: e.target.value })} placeholder="Capacidad / detalle" aria-label="Detalle" />

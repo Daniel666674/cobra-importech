@@ -7,19 +7,21 @@ import { CONDS, METHODS, enabledMethods } from "@/lib/catalog";
 import { WARR_TERMS } from "@/components/receipt";
 import { importSources } from "@/server/import";
 import { requireMe } from "@/server/session";
-import { roles, users } from "@/db/schema";
+import { items, roles, users } from "@/db/schema";
+import { catDefs } from "@/lib/catalog";
 import { ConfigClient } from "./config-client";
 
 export default async function Config({ searchParams }: PageProps<"/config">) {
   await requireMe("settings");
   const db = await getDb();
-  const [[cfg], [inv], sources, [{ n: salesCount }], us, rs] = await Promise.all([
+  const [[cfg], [inv], sources, [{ n: salesCount }], us, rs, its] = await Promise.all([
     db.select().from(settings).limit(1),
     db.select().from(counters).where(eq(counters.key, "invoice")),
     importSources(db),
     db.select({ n: count() }).from(sales).where(eq(sales.source, "")),
     db.select({ active: users.active }).from(users),
     db.select({ key: roles.key }).from(roles),
+    db.select({ cat: items.cat, branch: items.branch }).from(items),
   ]);
   const tab = (await searchParams).tab;
   const checklist = [
@@ -47,6 +49,7 @@ export default async function Config({ searchParams }: PageProps<"/config">) {
         banks={cfg.banks}
         mailReady={mailConfigured()}
         checklist={checklist}
+        catalog={{ defs: catDefs(cfg.categories), used: its.reduce<Record<string, number>>((m, i) => ((m[i.cat] = (m[i.cat] ?? 0) + 1), m), {}), main: cfg.branch, branches: [...new Set([cfg.branch, ...cfg.branches])], branchUsed: its.reduce<Record<string, number>>((m, i) => ((m[i.branch] = (m[i.branch] ?? 0) + 1), m), {}) }}
         team={{ users: us.length, active: us.filter((u) => u.active).length, roles: rs.length }}
         salesCount={salesCount}
         sources={sources.map((s) => ({ ...s, total: Number(s.total), from: Number(s.from), to: Number(s.to) }))}

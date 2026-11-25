@@ -162,6 +162,13 @@
       "when": 1795589379541,
       "tag": "0022_config_retomas_mensajes",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795590379838,
+      "tag": "0023_categorias_sedes",
+      "breakpoints": true
     }
   ]
 }

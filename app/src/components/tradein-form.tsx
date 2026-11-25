@@ -27,15 +27,17 @@ export type TradePayload = {
  * mode «compra»: la tienda compra el equipo (pide los datos de quien lo entrega).
  * mode «venta»: el equipo es parte de pago de una venta (el que entrega es el cliente de la venta).
  */
-export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error = "", quoteCfg }: {
+export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error = "", quoteCfg, cats }: {
   quoteCfg?: QuoteCfg;
+  cats?: string[];
   warr: Record<string, number>;
   mode: "compra" | "venta";
   onAccept: (p: TradePayload) => void;
   busy?: boolean;
   error?: string;
 }) {
-  const [cat, setCat] = useState<(typeof CATS)[number]>("iPhone");
+  const catList: readonly string[] = cats?.length ? cats : CATS;
+  const [cat, setCat] = useState<string>(catList.includes("iPhone") ? "iPhone" : catList[0]);
   const [imei, setImei] = useState("");
   const [res, setRes] = useState<(ImeiResult & { imei: string }) | null>(null);
   const [off, setOff] = useState<OfficialValue>({});
@@ -94,7 +96,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
     <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
       <div className="space-y-4">
         <div className="card p-4 space-y-3">
-          <div className="flex flex-wrap gap-2">{CATS.map((c) => <button key={c} type="button" aria-pressed={cat === c} onClick={() => { setCat(c); setRes(null); setOff({}); }} className={`btn sm ${cat === c ? "primary" : ""}`}>{c}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{catList.map((c) => <button key={c} type="button" aria-pressed={cat === c} onClick={() => { setCat(c); setRes(null); setOff({}); }} className={`btn sm ${cat === c ? "primary" : ""}`}>{c}</button>)}</div>
           {phone ? (
             <div>
               <label className="lb" htmlFor="r-imei">IMEI del equipo (se puede escribir y guardar a mano)</label>

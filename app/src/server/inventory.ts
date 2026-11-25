@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, imeiBlocklist, items, itemEvents, settings, tacModels, type ImeiCheck, type OfficialCheck } from "@/db/schema";
-import { CATS, CAT_SKU, CONDS, isMobile, type Cat } from "@/lib/catalog";
+import { CONDS, catDefs, isMobile, noWarrantyOk } from "@/lib/catalog";
 import { inspectionSchema, inspectionSummary, sellerSchema } from "@/lib/inspection";
 import { luhnOk, officialGate, OFFICIAL_LABEL, OFFICIAL_TEXT, type OfficialResult } from "@/lib/imei";
 import { uname, isQty } from "@/lib/items";
@@ -16,7 +16,9 @@ const batt = z.preprocess((v) => (v === "" || v == null ? null : typeof v === "s
   z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int("La batería va sin decimales").min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable());
 
 export const itemInput = z.object({
-  cat: z.enum(CATS),
+  cat: z.string().trim().min(1, "Elige la categoría").max(40),
+  /** Sede donde queda el producto (vacío = la sede por defecto). */
+  branch: z.string().trim().max(60).default(""),
   name: z.string().trim().min(1, "Escribe el nombre del producto"),
   spec: z.string().trim().default(""),
   color: z.string().trim().default(""),
@@ -46,6 +48,17 @@ export type OfficialPayload = z.infer<typeof officialSchema>;
 export async function branchName(db: Db) {
   const [s] = await db.select({ b: settings.branch }).from(settings).limit(1);
   return s?.b ?? "Tienda principal";
+}
+/** Sedes del negocio: las configuradas o, si no hay, solo la principal. */
+export async function getBranches(db: Db): Promise<string[]> {
+  const [s] = await db.select({ b: settings.branch, l: settings.branches }).from(settings).limit(1);
+  const main = s?.b ?? "Tienda principal";
+  return [...new Set([main, ...(s?.l ?? [])])];
+}
+/** Categorías del negocio (de fábrica + propias) con su orden y visibilidad. */
+export async function getCatDefs(db: Db) {
+  const [s] = await db.select({ c: settings.categories }).from(settings).limit(1);
+  return catDefs(s?.c);
 }
 
 function checks(a: Actor, o: OfficialPayload): ImeiCheck {
@@ -81,7 +94,13 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
   const mobile = isMobile(input.cat);
   const soft = input.src === "Trade-in"; // En retomas la verificación se registra pero no bloquea: el IMEI se puede escribir a mano.
   const needsCheck = isPhone && !soft;
-  const track = input.cat === "AirPods" || input.cat === "Accesorios" ? "qty" : "unit";
+  const def = (await getCatDefs(db)).find((c) => c.name === input.cat);
+  if (!def) throw new AppError(`La categoría «${input.cat}» no existe: créala en Configuración → Categorías y sedes`, "invalid");
+  if (!def.active) throw new AppError(`La categoría «${input.cat}» está desactivada en Configuración`, "invalid");
+  const track = def.kind;
+  const branches = await getBranches(db);
+  if (input.branch && !branches.includes(input.branch)) throw new AppError(`La sede «${input.branch}» no existe: créala en Configuración → Categorías y sedes`, "invalid");
+  const branch = input.branch || (await branchName(db));
   let check: ImeiCheck | null = null;
   let verifyNote: { text: string; tone: string } | null = null;
   let ally: typeof allies.$inferSelect | null = null;
@@ -92,7 +111,7 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
     input.src = "Aliada: " + ally.name;
   }
 
-  if (input.cat !== "Accesorios" && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
+  if (!noWarrantyOk({ cat: input.cat, track }) && input.warr < 1) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
   if (mobile && input.serial2) {
     // En retomas el IMEI 2 se acepta tal como se escribe.
     if (input.src === "Trade-in") input.serial2 = input.serial2.replace(/\D/g, "");
@@ -129,17 +148,16 @@ export async function prepareItem(db: Db, a: Actor, raw: unknown, opts: { offici
     const res = digits.length === 15 ? await verifyImei(db, digits, undefined, input.cat).catch(() => null) : null;
     verifyNote = res?.verdict === "clean" ? { text: "Formato, modelo y duplicado correctos", tone: "ok" } : { text: digits ? "IMEI registrado a mano (sin verificación completa)" : "Retoma sin IMEI registrado", tone: "warn" };
   }
-  return { input, track, check, verifyNote, isPhone, ally };
+  return { input, track, check, verifyNote, isPhone, ally, sku: def.sku, branch };
 }
 
 /** Guarda un producto ya validado con `prepareItem` (dentro de la transacción que se le pase). */
 export async function insertItem(tx: Db, a: Actor, p: PreparedItem, how: { title?: string; detail?: string } = {}) {
-  const { input, track, check, verifyNote, isPhone, ally } = p;
-  const branch = await branchName(tx);
+  const { input, track, check, verifyNote, isPhone, ally, branch } = p;
   const n = await nextCounter(tx, "item");
   const id = "I-" + String(n).padStart(4, "0");
   const row = {
-    id, sku: CAT_SKU[input.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
+    id, sku: p.sku + "-" + String(n).padStart(4, "0"), cat: input.cat, name: input.name, spec: input.spec,
     color: input.color, cond: input.cond, serial: input.serial, serial2: input.serial2, qty: track === "qty" ? input.qty : 1, cost: input.cost, price: input.price,
     warr: input.warr, branch, status: "En vitrina", acq: Date.now(), src: input.src, batt: input.batt, notes: input.notes, repairs: 0,
     sim: input.sim, min: input.min, track, imeiCheck: check, hold: null, ally: ally?.id ?? "", approval: pendingAlta(a),
@@ -189,7 +207,7 @@ export async function updateItem(db: Db, a: Actor, id: string, raw: unknown) {
     if (patch.cond != null && patch.cond !== it.cond) ch.push(`Condición ${it.cond} → ${patch.cond}`);
     ch.push(...diffText(it as never, patch as never, { name: "Nombre", spec: "Detalle", color: "Color", serial2: "IMEI 2", batt: "Batería", warr: "Garantía (meses)", notes: "Notas", min: "Stock mínimo", sim: "Línea" }));
     if (patch.serial2 != null) patch.serial2 = await checkImei2(tx, patch.serial2, it.serial, it.id);
-    if (patch.warr != null && patch.warr < 1 && it.cat !== "Accesorios") throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
+    if (patch.warr != null && patch.warr < 1 && !noWarrantyOk(it)) throw new AppError("La garantía debe ser de al menos 1 mes (solo los accesorios pueden ir sin garantía)", "invalid");
     const next = { ...patch };
     if (!isQty(it)) delete next.qty;
     await tx.update(items).set(next).where(eq(items.id, id));
@@ -325,4 +343,19 @@ export async function saveInspection(db: Db, a: Actor, id: string, raw: unknown)
   const ins = { ...v, by: a.name, t: Date.now() };
   await db.update(items).set({ inspection: ins }).where(eq(items.id, id));
   await addEvent(db, id, a, "Inspección registrada", inspectionSummary(ins), Object.values(ins.checks).includes("falla") || ins.icloud === "bloqueado" ? "warn" : "ok");
+}
+
+/** Traslada un producto de una sede a otra y deja constancia en su historial. */
+export async function moveItemBranch(db: Db, a: Actor, id: string, rawBranch: unknown) {
+  need(a, "inv_edit");
+  const branch = z.string().trim().min(1, "Elige la sede").parse(rawBranch);
+  if (!(await getBranches(db)).includes(branch)) throw new AppError("Esa sede no existe", "invalid");
+  return db.transaction(async (tx) => {
+    const [it] = await tx.select().from(items).where(eq(items.id, id)).for("update");
+    if (!it) throw new AppError("Producto no encontrado", "notfound");
+    if (it.branch === branch) throw new AppError(`Ya está en ${branch}`, "conflict");
+    await tx.update(items).set({ branch }).where(eq(items.id, id));
+    await addEvent(tx, id, a, "Traslado de sede", `${it.branch || "—"} → ${branch}`, "info");
+    await logFeed(tx, a, "owner", "📦", `<b>${esc(uname(it))}</b> trasladado de ${esc(it.branch || "—")} a ${esc(branch)} · ${esc(a.name)}`);
+  });
 }

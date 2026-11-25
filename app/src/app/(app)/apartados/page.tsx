@@ -11,8 +11,12 @@ import { requireMe } from "@/server/session";
 import { waLink } from "@/lib/whatsapp";
 import { HoldActions } from "./hold-actions";
 
-export default async function Apartados() {
+export default async function Apartados({ searchParams }: PageProps<"/apartados">) {
   await requireMe("credit");
+  const sp = await searchParams;
+  const f = (Array.isArray(sp.f) ? sp.f[0] : sp.f) ?? "";
+  const orden = (Array.isArray(sp.o) ? sp.o[0] : sp.o) ?? "vence";
+  const cliente = (Array.isArray(sp.cliente) ? sp.cliente[0] : sp.cliente) ?? "";
   const db = await getDb();
   const [its, cl, hist, [cfg]] = await Promise.all([
     db.select().from(items).where(isNotNull(items.hold)),
@@ -22,12 +26,25 @@ export default async function Apartados() {
   ]);
   const methods = enabledMethods(cfg);
   const cn = new Map(cl.map((c) => [c.id, c]));
-  const rows = its.filter((i) => i.hold).sort((a, b) => a.hold!.expires - b.hold!.expires);
+  const all = its.filter((i) => i.hold);
+  const B: [string, string, (i: (typeof all)[number]) => boolean][] = [["vencidos", "Vencidos", (i) => holdLeft(i.hold!) < 0], ["pronto", "Vencen en 2 días o menos", (i) => holdLeft(i.hold!) >= 0 && holdLeft(i.hold!) <= 2], ["semana", "Vencen en la semana", (i) => holdLeft(i.hold!) >= 0 && holdLeft(i.hold!) <= 7], ["casi", "Casi pagados (80 %+)", (i) => i.price > 0 && i.hold!.abono / i.price >= 0.8]];
+  const cur = B.find((b) => b[0] === f);
+  const rows = all.filter((i) => (!cur || cur[2](i)) && (!cliente || i.hold!.client === cliente)).sort((a, b) => (orden === "saldo" ? holdBal(b.price, b.hold!) - holdBal(a.price, a.hold!) : orden === "cliente" ? (cn.get(a.hold!.client)?.name ?? "").localeCompare(cn.get(b.hold!.client)?.name ?? "") : a.hold!.expires - b.hold!.expires));
+  const qs = (p: Record<string, string>) => { const m = new URLSearchParams(); for (const [k, v] of Object.entries({ f, o: orden, cliente, ...p })) if (v && !(k === "o" && v === "vence")) m.set(k, v); const t = m.toString(); return t ? `/apartados?${t}` : "/apartados"; };
   void eq;
+  const total = rows.reduce((a, i) => a + holdBal(i.price, i.hold!), 0);
   return (
     <>
       <PageHeader title="Apartados" subtitle="Equipos separados con abono. Se cierran como venta o se liberan." actions={<Link className="btn primary" href="/venta?mode=apartado">🔒 Nuevo apartado</Link>} />
-      {rows.length === 0 ? <div className="card"><Empty>No hay apartados activos.</Empty></div> : (
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <Link href={qs({ f: "" })} className={`btn sm ${!cur ? "primary" : ""}`}>Todos · {all.length}</Link>
+        {B.map(([k, l, fn]) => <Link key={k} href={qs({ f: k })} className={`btn sm ${f === k ? "primary" : ""}`}>{l} · {all.filter(fn).length}</Link>)}
+        <span className="note ml-2">Orden:</span>
+        {([["vence", "Vencimiento"], ["saldo", "Mayor saldo"], ["cliente", "Cliente"]] as const).map(([k, l]) => <Link key={k} href={qs({ o: k })} className={`btn sm ${orden === k ? "primary" : ""}`}>{l}</Link>)}
+        {cliente && <Link href={qs({ cliente: "" })} className="chip info">Cliente: <b>{cn.get(cliente)?.name ?? cliente}</b> ✕</Link>}
+        <span className="note ml-auto">Saldo por cobrar: <b>{fmt(total)}</b></span>
+      </div>
+      {rows.length === 0 ? <div className="card"><Empty>No hay apartados con este filtro.</Empty></div> : (
         <div className="grid gap-3 lg:grid-cols-2">
           {rows.map((it) => {
             const h = it.hold!;
@@ -37,7 +54,7 @@ export default async function Apartados() {
             return (
               <div key={it.id} className="card p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div><Link href={`/inventario/${it.id}`} className="font-semibold hover:underline">{uname(it)}</Link><div className="note">{h.no} · {c?.name ?? "—"}{c?.phone ? ` · ${c.phone}` : ""}</div></div>
+                  <div><Link href={`/inventario/${it.id}`} className="font-semibold hover:underline">{uname(it)}</Link><div className="note">{h.no} · {c ? <Link href={`/clientes/${h.client}`} className="hover:underline">{c.name}</Link> : "—"}{c?.phone ? ` · ${c.phone}` : ""}{c && <> · <Link href={qs({ cliente: h.client })} className="hover:underline">sus apartados</Link></>}</div></div>
                   <Chip tone={left < 0 ? "bad" : left <= 2 ? "warn" : "info"}>{left < 0 ? `Vencido hace ${-left} d` : left === 0 ? "Vence hoy" : `Vence en ${left} d`}</Chip>
                 </div>
                 <div>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { act } from "@/server/act";
 import { verifyImei } from "@/server/imei";
 import { approve, approveAll, reject } from "@/server/approvals";
-import { createItem, deleteItem, priceUnpriced, releaseAllReview, reverifyItem, saveInspection, updateItem } from "@/server/inventory";
+import { createItem, deleteItem, moveItemBranch, priceUnpriced, releaseAllReview, reverifyItem, saveInspection, updateItem } from "@/server/inventory";
 import { createOrder } from "@/server/ops";
 import { existingSerials, importInventory, undoInventoryImport } from "@/server/import-inventory";
 import type { ImeiResult } from "@/lib/imei";
@@ -65,4 +65,8 @@ export async function approveAllAction() {
 
 export async function saveInspectionAction(id: string, data: unknown) {
   return act((db, a) => saveInspection(db, a, id, data), ["/inventario"]);
+}
+
+export async function moveItemBranchAction(id: string, branch: string) {
+  return act(async (db, a) => { await moveItemBranch(db, a, id, branch); }, ["/inventario", "/"]);
 }

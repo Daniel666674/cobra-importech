@@ -1,11 +1,11 @@
 import { count, eq } from "drizzle-orm";
-import { items } from "@/db/schema";
+import { items, settings } from "@/db/schema";
 import { ReleaseReview } from "./release-review";
 import { PriceUnpriced } from "./price-unpriced";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { CondChip, Empty, PageHeader, StatusChip } from "@/components/ui";
-import { CATALOG, CATS, CONDS, STATUSES } from "@/lib/catalog";
+import { CATALOG, CONDS, STATUSES, catDefs } from "@/lib/catalog";
 import { daysIn, itemState, isQty, stockQty } from "@/lib/items";
 import { fdatey, fmt } from "@/lib/format";
 import { hasPerm } from "@/server/auth";
@@ -23,16 +23,17 @@ export default async function Inventario({ searchParams }: PageProps<"/inventari
   const model = one("model");
   const sort = one("sort");
   const db = await getDb();
-  const [base, [{ n: review }]] = await Promise.all([listItems(db, f), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión"))]);
+  const [base, [{ n: review }], [cfg]] = await Promise.all([listItems(db, f), db.select({ n: count() }).from(items).where(eq(items.status, "En revisión")), db.select().from(settings).limit(1)]);
+  const CATS = catDefs(cfg.categories).map((c) => c.name);
   // Orden de modelos = orden del catálogo (los que no estén en él van al final, por nombre).
   const rank = new Map(CATALOG.map((c, i) => [c.name, i]));
   const byModel = (a: { name: string }, b: { name: string }) => (rank.get(a.name) ?? 1e6) - (rank.get(b.name) ?? 1e6) || a.name.localeCompare(b.name);
   const models = [...new Set(base.map((it) => it.name))].sort((a, b) => byModel({ name: a }, { name: b }));
   const xf = parseItemFilters(sp);
-  const sedes = [...new Set(base.map((it) => it.branch).filter(Boolean))].sort();
+  const sedes = [...new Set([cfg.branch, ...cfg.branches, ...base.map((it) => it.branch).filter(Boolean)])];
   const rows = (model ? base.filter((it) => it.name === model) : [...base]).filter((it) => matchItem(it, xf));
   if (sort === "modelo") rows.sort(byModel);
-  else if (sort === "categoria") rows.sort((a, b) => CATS.indexOf(a.cat as (typeof CATS)[number]) - CATS.indexOf(b.cat as (typeof CATS)[number]) || byModel(a, b));
+  else if (sort === "categoria") rows.sort((a, b) => CATS.indexOf(a.cat) - CATS.indexOf(b.cat) || byModel(a, b));
   const canCost = hasPerm(me, "cost_view");
   const unpriced = rows.filter((it) => it.price === 0 && it.cost > 0 && it.status !== "Vendido").length;
   const units = rows.reduce((a, it) => a + stockQty(it), 0);

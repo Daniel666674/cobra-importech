@@ -102,6 +102,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
           }} />
         </div>
       )}
+      <div id="reclamo" />
       <SaleActions sale={{ id: s.id, no: s.no, lines: s.lines.map((l) => ({ name: l.name, qty: l.qty, ret: l.ret })) }} canRefund={hasPerm(me, "refund")} canDelete={hasPerm(me, "settings")} />
     </>
   );

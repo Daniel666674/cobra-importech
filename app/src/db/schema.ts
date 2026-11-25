@@ -125,6 +125,10 @@ export const settings = pgTable("settings", {
   tradeDeds: jsonb("trade_deds").$type<{ key: string; label: string; pct: number }[]>().notNull().default([]),
   /** Mensaje de WhatsApp para enviar el comprobante: {nombre}, {negocio}, {comprobante}, {total}. */
   waReceipt: text("wa_receipt").notNull().default(""),
+  /** Categorías propias y orden/visibilidad de las de fábrica (vacío = las de fábrica). */
+  categories: jsonb("categories").$type<{ name: string; kind: string; sku: string; active: boolean }[]>().notNull().default([]),
+  /** Sedes del negocio (vacío = solo la sede principal de `branch`). */
+  branches: jsonb("branches").$type<string[]>().notNull().default([]),
   /** Recargo % por forma de pago. */
   surcharges: jsonb("surcharges").$type<Record<string, number>>().notNull().default({ Addi: 12, Vanti: 6, "Tarjeta crédito": 7 }),
 });
@@ -217,6 +221,8 @@ export const sales = pgTable("sales", {
   no: text("no").notNull(),
   t: ms("t").notNull(),
   client: text("client"),
+  /** Sede donde se vendió (la del equipo vendido o la principal). */
+  branch: text("branch").notNull().default(""),
   by: text("by").notNull(),
   method: text("method").notNull().default(""),
   mode: text("mode").notNull().default("contado"),

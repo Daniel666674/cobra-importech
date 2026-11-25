@@ -1,3 +1,4 @@
+import { activeCatNames, catDefs } from "@/lib/catalog";
 import { getDb } from "@/db";
 import { settings } from "@/db/schema";
 import { PageHeader } from "@/components/ui";
@@ -10,7 +11,7 @@ export default async function Retomas() {
   return (
     <>
       <PageHeader title="Retomas (trade-in)" subtitle="Cotiza el equipo del cliente, verifícalo y recíbelo al inventario" />
-      <RetomaClient warr={cfg.warr} quoteCfg={{ rates: cfg.tradeRates, deds: cfg.tradeDeds }} />
+      <RetomaClient cats={activeCatNames(catDefs(cfg.categories))} warr={cfg.warr} quoteCfg={{ rates: cfg.tradeRates, deds: cfg.tradeDeds }} />
     </>
   );
 }

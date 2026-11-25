@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { getDb } from "@/db";
-import { clients, items, users } from "@/db/schema";
+import { clients, items, settings, users } from "@/db/schema";
 import { Chip, Empty, PageHeader } from "@/components/ui";
 import { ScanSearch } from "@/components/scan-search";
 import { fdt, fmt } from "@/lib/format";
-import { CATS, METHODS } from "@/lib/catalog";
+import { METHODS, catDefs } from "@/lib/catalog";
 import { ESTADOS, activeFilterCount, filtersToQuery, matchSale, parseSaleFilters, presetRange, type SaleFilters } from "@/lib/sale-filters";
 import { saleCost, saleNet, saleVoid } from "@/lib/sales";
 import { hasPerm } from "@/server/auth";
@@ -21,7 +21,9 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
   const f = parseSaleFilters(sp);
   const orden = (Array.isArray(sp.orden) ? sp.orden[0] : sp.orden) ?? "numero";
   const db = await getDb();
-  const [all, cl, us, its] = await Promise.all([listSales(db), db.select().from(clients), db.select().from(users), db.select({ id: items.id, cat: items.cat }).from(items)]);
+  const [all, cl, us, its, [cfg]] = await Promise.all([listSales(db), db.select().from(clients), db.select().from(users), db.select({ id: items.id, cat: items.cat }).from(items), db.select().from(settings).limit(1)]);
+  const sedes = [...new Set([cfg.branch, ...cfg.branches, ...all.map((s) => s.branch).filter(Boolean)])];
+  const catNames = catDefs(cfg.categories).map((c) => c.name);
   const cn = new Map(cl.map((c) => [c.id, c.name]));
   const clientText = new Map(cl.map((c) => [c.id, `${c.name} ${c.doc} ${c.phone}`]));
   const un = new Map(us.map((u) => [u.id, u.name]));
@@ -49,6 +51,7 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
   if (f.metodo) chips.push(["Pago", f.metodo, { metodo: "" }]);
   if (f.cat) chips.push(["Categoría", f.cat, { cat: "" }]);
   if (f.estado) chips.push(["Estado", ESTADOS.find((e) => e[0] === f.estado)?.[1] ?? f.estado, { estado: "" }]);
+  if (f.sede) chips.push(["Sede", f.sede, { sede: "" }]);
   if (f.cliente) chips.push(["Cliente", cn.get(f.cliente) ?? f.cliente, { cliente: "" }]);
   const csvQuery = filtersToQuery(f);
   return (
@@ -66,7 +69,8 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
           <label className="text-[12px]"><span className="lb">Hasta</span><input type="date" name="hasta" defaultValue={f.hasta} max={today} /></label>
           <label className="text-[12px]"><span className="lb">Vendedor</span><select name="vendedor" defaultValue={f.vendedor}><option value="">Todos</option>{us.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
           <label className="text-[12px]"><span className="lb">Forma de pago</span><select name="metodo" defaultValue={f.metodo}><option value="">Todas</option>{[...METHODS, "Retoma", "Abono previo"].map((m) => <option key={m}>{m}</option>)}</select></label>
-          <label className="text-[12px]"><span className="lb">Categoría</span><select name="cat" defaultValue={f.cat}><option value="">Todas</option>{[...CATS, "Otros"].map((c) => <option key={c}>{c}</option>)}</select></label>
+          <label className="text-[12px]"><span className="lb">Categoría</span><select name="cat" defaultValue={f.cat}><option value="">Todas</option>{[...catNames, "Otros"].map((c) => <option key={c}>{c}</option>)}</select></label>
+          {sedes.length > 1 && <label className="text-[12px]"><span className="lb">Sede</span><select name="sede" defaultValue={f.sede}><option value="">Todas</option>{sedes.map((b) => <option key={b}>{b}</option>)}</select></label>}
           <label className="text-[12px]"><span className="lb">Estado</span><select name="estado" defaultValue={f.estado}><option value="">Todos</option>{ESTADOS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           {f.cliente && <input type="hidden" name="cliente" value={f.cliente} />}
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-6"><button className="btn primary">Aplicar filtros</button>{activeFilterCount(f) > 0 && <Link className="btn" href="/ventas">Quitar todos</Link>}</div>
@@ -84,7 +88,7 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
         {orden === "numero" && todayCount > 0 && <span className="note">Si una venta de hoy no aparece arriba, mira «Más recientes primero» o «Solo hoy».</span>}
       </div>
       <form className="card mb-4 p-3" action="/ventas">
-        {Object.entries({ desde: f.desde, hasta: f.hasta, vendedor: f.vendedor, metodo: f.metodo, cat: f.cat, estado: f.estado, cliente: f.cliente, ...(orden !== "numero" ? { orden } : {}) }).filter(([, v]) => v).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+        {Object.entries({ desde: f.desde, hasta: f.hasta, vendedor: f.vendedor, metodo: f.metodo, cat: f.cat, estado: f.estado, cliente: f.cliente, sede: f.sede, ...(orden !== "numero" ? { orden } : {}) }).filter(([, v]) => v).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         <ScanSearch defaultValue={f.q} placeholder="Buscar por número, cliente, cédula, teléfono, producto o IMEI" ariaLabel="Buscar" />
       </form>
       <div className="card overflow-x-auto">

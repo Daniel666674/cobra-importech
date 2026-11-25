@@ -1,3 +1,4 @@
+import { activeCatNames, catDefs } from "@/lib/catalog";
 import { enabledMethods } from "@/lib/catalog";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -28,6 +29,7 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
         can={{ discount: hasPerm(me, "discount"), cost: hasPerm(me, "cost_view"), credit: hasPerm(me, "credit"), tradein: hasPerm(me, "tradein") }}
         warr={cfg.warr}
         quoteCfg={{ rates: cfg.tradeRates, deds: cfg.tradeDeds }}
+        cats={activeCatNames(catDefs(cfg.categories))}
         allies={al}
         start={{ item: one("item"), mode: one("mode") === "apartado" ? "apartado" : "contado", hold: holdId }}
       />
