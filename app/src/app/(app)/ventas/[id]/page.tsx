@@ -1,11 +1,12 @@
 import { waLink } from "@/lib/whatsapp";
 import Link from "next/link";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, ilike, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db";
-import { allies, clients, itemEvents, items, settings, sales, users } from "@/db/schema";
+import { allies, clients, feed, itemEvents, items, settings, sales, users } from "@/db/schema";
 import { fdatey, fdt, fmt } from "@/lib/format";
 import { PrintButton } from "@/components/print-button";
+import { FeedText } from "@/components/ui";
 import { SaleReceipt } from "@/components/receipt";
 import { hasPerm } from "@/server/auth";
 import { requireMe } from "@/server/session";
@@ -32,6 +33,8 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
   const evs = canTrace ? await db.select().from(itemEvents).where(inArray(itemEvents.itemId, ids)).orderBy(asc(itemEvents.t), asc(itemEvents.id)) : [];
   const allyName = new Map((await db.select({ id: allies.id, name: allies.name }).from(allies)).map((x) => [x.id, x.name]));
   const canCost = hasPerm(me, "cost_view");
+  // Todo lo que se hizo con esta venta (creación, ediciones, pagos, devoluciones, envío por correo…).
+  const trail = hasPerm(me, "reports") ? await db.select().from(feed).where(ilike(feed.x, `%${s.no.replace(/[%_]/g, "")}%`)).orderBy(desc(feed.t)).limit(40) : [];
   return (
     <>
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -81,6 +84,13 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
               );
             })}
           </div>
+        </div>
+      )}
+      {trail.length > 0 && (
+        <div className="no-print mx-auto mt-4 max-w-[820px] rounded-lg border border-line p-3 text-[13px]">
+          <b className="text-[14px]">📜 Historial de movimientos de esta venta</b>
+          <ul className="mt-2 space-y-1.5">{trail.map((f) => <li key={f.id} className="flex gap-2"><span>{f.ic}</span><span className="flex-1"><FeedText text={f.x} /><span className="note block">{fdt(f.t)} · {f.by}</span></span></li>)}</ul>
+          <Link href="/actividad" className="note mt-2 inline-block underline">Ver todo el registro de actividad →</Link>
         </div>
       )}
       {hasPerm(me, "settings") && (

@@ -26,10 +26,12 @@ export async function saveClient(db: Db, a: Actor, id: string | null, raw: unkno
   const v = clientInput.parse(raw);
   if (id) {
     await db.update(clients).set(v).where(eq(clients.id, id));
+    await logFeed(db, a, "owner", "👥", `Cliente <b>${esc(v.name)}</b> actualizado · ${esc(a.name)}`);
     return id;
   }
   const nid = "c" + (await nextCounter(db, "client"));
   await db.insert(clients).values({ id: nid, ...v });
+  await logFeed(db, a, "owner", "👥", `Cliente nuevo: <b>${esc(v.name)}</b>${v.doc ? " · " + esc(v.doc) : ""} · ${esc(a.name)}`);
   return nid;
 }
 
@@ -207,6 +209,7 @@ export async function removeExtra(db: Db, a: Actor, id: string, index: unknown) 
     const [o] = await tx.select().from(orders).where(eq(orders.id, id)).for("update");
     if (!o || o.outcome) throw new AppError("Orden no encontrada", "notfound");
     await tx.update(orders).set({ extras: o.extras.filter((_, k) => k !== i) }).where(eq(orders.id, id));
+    await logFeed(tx, a, "owner", "🔧", `Se quitó un extra de la orden <b>${esc(id)}</b> (${esc(String((o.extras[i] as { name?: string } | undefined)?.name ?? "extra"))}) · ${esc(a.name)}`);
   });
 }
 
