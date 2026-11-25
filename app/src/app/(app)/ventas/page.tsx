@@ -1,3 +1,4 @@
+import { bogotaToday } from "@/server/caja";
 import { ScanSearch } from "@/components/scan-search";
 import Link from "next/link";
 import { getDb } from "@/db";
@@ -19,13 +20,22 @@ export default async function Ventas({ searchParams }: PageProps<"/ventas">) {
   const cn = new Map(cl.map((c) => [c.id, c.name]));
   const cd = new Map(cl.map((c) => [c.id, `${c.doc} ${c.phone}`]));
   const un = new Map(us.map((u) => [u.id, u.name]));
-  const rows = all.filter((s) => !q || `${s.no} ${cn.get(s.client ?? "") ?? ""} ${cd.get(s.client ?? "") ?? ""} ${s.lines.map((l) => l.name + l.serial + (l.supplier ?? "")).join(" ")}`.toLowerCase().includes(q));
+  const orden = (Array.isArray(sp.orden) ? sp.orden[0] : sp.orden) ?? "numero";
+  const today = bogotaToday();
+  const dayOf = (t: number) => bogotaToday(t);
+  const todayCount = all.filter((s) => dayOf(s.t) === today).length;
+  const base = orden === "hoy" ? all.filter((s) => dayOf(s.t) === today) : orden === "fecha" ? [...all].sort((a, b) => b.t - a.t) : all;
+  const rows = base.filter((s) => !q || `${s.no} ${cn.get(s.client ?? "") ?? ""} ${cd.get(s.client ?? "") ?? ""} ${s.lines.map((l) => l.name + l.serial + (l.supplier ?? "")).join(" ")}`.toLowerCase().includes(q));
   const limit = Math.max(PAGE, Number(Array.isArray(sp.n) ? sp.n[0] : sp.n) || PAGE);
   const shown = rows.slice(0, limit);
-  const more = new URLSearchParams({ ...(q ? { q } : {}), n: String(limit + PAGE) });
+  const more = new URLSearchParams({ ...(q ? { q } : {}), orden, n: String(limit + PAGE) });
   return (
     <>
       <PageHeader title="Ventas" subtitle={`${rows.length} comprobantes`} actions={<Link className="btn primary" href="/venta">🧾 Nueva venta</Link>} />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {([["numero", "Por número de comprobante"], ["fecha", "Más recientes primero"], ["hoy", `Solo hoy (${todayCount})`]] as const).map(([k, l]) => <Link key={k} href={`/ventas?orden=${k}${q ? `&q=${encodeURIComponent(q)}` : ""}`} className={`btn sm ${orden === k ? "primary" : ""}`}>{l}</Link>)}
+        {orden === "numero" && todayCount > 0 && <span className="note">Si una venta de hoy no aparece arriba, mira «Más recientes primero» o «Solo hoy».</span>}
+      </div>
       <form className="card mb-4 p-3" action="/ventas"><ScanSearch defaultValue={q} placeholder="Buscar por número, cliente, cédula, teléfono, producto o IMEI" ariaLabel="Buscar" /></form>
       <div className="card overflow-x-auto">
         {rows.length === 0 ? <Empty>Sin ventas.</Empty> : (
