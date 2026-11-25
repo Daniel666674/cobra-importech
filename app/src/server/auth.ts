@@ -56,6 +56,8 @@ export async function checkLogin(userId: string, pin: string, now = Date.now(), 
   if (!claimed.length) return { ok: false, error: "Intenta de nuevo" };
   if (await bcrypt.compare(pin, u.pinHash)) {
     await db.update(users).set({ failed: 0, lockedUntil: 0 }).where(eq(users.id, userId));
+    if (u.failed > 0) await logFeed(db, null, "acceso", "🔑", `<b>${esc(u.name)}</b> entró después de ${u.failed} intento${u.failed !== 1 ? "s" : ""} fallido${u.failed !== 1 ? "s" : ""}`);
+    else await logFeed(db, null, "acceso", "🔑", `<b>${esc(u.name)}</b> inició sesión`);
     return { ok: true, token: await signSession(userId, u.sessionV, remember) };
   }
   if (lock !== u.lockedUntil) {

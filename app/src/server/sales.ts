@@ -52,7 +52,7 @@ export const saleInput = z.object({
 });
 export type SaleInput = z.infer<typeof saleInput>;
 
-export async function ensureClient(db: Db, client: string | null, nc: z.infer<typeof clientNew> | null) {
+export async function ensureClient(db: Db, client: string | null, nc: z.infer<typeof clientNew> | null, a: Actor | null = null) {
   if (client) {
     const [c] = await db.select().from(clients).where(eq(clients.id, client));
     if (!c) throw new AppError("Cliente no encontrado", "notfound");
@@ -62,6 +62,7 @@ export async function ensureClient(db: Db, client: string | null, nc: z.infer<ty
   const id = "c" + (await nextCounter(db, "client"));
   const row = { id, name: nc.name, phone: nc.phone, email: nc.email, doc: nc.doc, address: nc.address, notes: "" };
   await db.insert(clients).values(row);
+  await logFeed(db, a, "owner", "👥", `Cliente nuevo creado al vender: <b>${esc(row.name)}</b>${row.doc ? " · " + esc(row.doc) : ""}${a ? " · " + esc(a.name) : ""}`);
   return row;
 }
 
@@ -133,7 +134,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const pending = Math.max(0, cashDue - sum);
     if (cashDue === 0 && pays.length) throw new AppError(tradeTotal ? "La retoma cubre todo: no hay nada más por cobrar" : "Con el apartado pagado completo no hay nada por cobrar", "invalid");
 
-    const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient);
+    const client = await ensureClient(tx, input.client ?? hold?.client ?? null, input.newClient, a);
     const now = Date.now();
     if (input.date && input.date > now + 18 * 3600_000) throw new AppError("La fecha de la venta no puede ser futura", "invalid");
     const when = input.date ? Math.min(input.date, now) : now;

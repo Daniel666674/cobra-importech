@@ -140,6 +140,7 @@ export async function saveMethods(db: Db, a: Actor, raw: unknown) {
   const set: Partial<typeof settings.$inferInsert> = { methods: v.length === METHODS.length ? [] : v };
   if (!Array.isArray(r)) set.surcharges = Object.fromEntries(Object.entries(r.surcharges).filter(([k, x]) => (METHODS as readonly string[]).includes(k) && x > 0));
   await db.update(settings).set(set).where(eq(settings.id, 1));
+  await logFeed(db, a, "owner", "⚙️", `Formas de pago y recargos actualizados: ${v.length === METHODS.length ? "todas activas" : v.map(esc).join(", ")}${set.surcharges ? " · recargos " + Object.entries(set.surcharges).map(([k, x]) => `${esc(k)} ${x}%`).join(", ") : ""} · ${esc(a.name)}`);
 }
 
 const MAX_LOGO = 400_000;
@@ -148,11 +149,12 @@ export async function saveLogo(db: Db, a: Actor, dataUrl: string) {
   if (dataUrl && !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(dataUrl)) throw new AppError("El logo debe ser PNG, JPG o WebP", "invalid");
   if (dataUrl.length > MAX_LOGO) throw new AppError("El logo es muy pesado (máx. ~300 KB)", "invalid");
   await db.update(settings).set({ logo: dataUrl }).where(eq(settings.id, 1));
+  await logFeed(db, a, "owner", "⚙️", `${dataUrl ? "Logo del negocio actualizado" : "Logo del negocio quitado"} · ${esc(a.name)}`);
 }
 
 export async function recentFeed(db: Db, limit = 40, type?: string) {
   const q = db.select().from(feed);
-  return (type ? q.where(eq(feed.type, type)) : q).orderBy(desc(feed.t), desc(feed.id)).limit(limit);
+  return (type ? q.where(eq(feed.type, type)) : q.where(ne(feed.type, "acceso"))).orderBy(desc(feed.t), desc(feed.id)).limit(limit);
 }
 export async function countUsers(db: Db) {
   const [{ n }] = await db.select({ n: count() }).from(users);

@@ -28,8 +28,10 @@ const NAV: (NavItem & { perm?: string })[] = [
   { href: "/tecnicos", label: "Técnicos", icon: "🧑‍🔧", perm: "purchase" },
   { href: "/cartera", label: "Cartera", icon: "💼", perm: "purchase" },
   { href: "/reportes", label: "Reportes", icon: "📊", perm: "reports" },
+  { href: "/actividad", label: "Actividad", icon: "📜", perm: "reports" },
   { href: "/usuarios", label: "Usuarios y permisos", icon: "🔐", perm: "users" },
   { href: "/config", label: "Configuración", icon: "⚙️", perm: "settings" },
+  { href: "/salud", label: "Salud del sistema", icon: "🩺", perm: "settings" },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

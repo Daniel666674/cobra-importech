@@ -31,11 +31,12 @@ export async function techDetail(db: Db, id: string) {
 export async function saveTech(db: Db, a: Actor, id: string | null, raw: unknown) {
   need(a, "purchase");
   const v = z.object({ name: z.string().trim().min(2, "Escribe el nombre del técnico").max(60), phone: z.string().trim().max(30).default(""), active: z.boolean().default(true) }).parse(raw);
-  if (id) { await db.update(technicians).set(v).where(eq(technicians.id, id)); return id; }
+  if (id) { await db.update(technicians).set(v).where(eq(technicians.id, id)); await logFeed(db, a, "owner", "🧑‍🔧", `Técnico <b>${esc(v.name)}</b> actualizado${v.active ? "" : " (inactivo)"} · ${esc(a.name)}`); return id; }
   const all = await db.select().from(technicians);
   if (all.some((x) => x.name.trim().toLowerCase() === v.name.toLowerCase())) throw new AppError("Ya existe un técnico con ese nombre", "conflict");
   const nid = "TC" + (all.reduce((m, x) => Math.max(m, +x.id.replace(/\D/g, "") || 0), 0) + 1);
   await db.insert(technicians).values({ id: nid, ...v, t: Date.now() });
+  await logFeed(db, a, "owner", "🧑‍🔧", `Técnico nuevo: <b>${esc(v.name)}</b> · ${esc(a.name)}`);
   return nid;
 }
 

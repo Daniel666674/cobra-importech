@@ -85,7 +85,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
         {feed.length > 0 && (
           <div className="card p-4">
-            <h2 className="font-semibold mb-3">Actividad reciente</h2>
+            <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Actividad reciente</h2>{hasPerm(me, "reports") && <Link href="/actividad" className="btn sm">Ver todo →</Link>}</div>
             <ul className="space-y-2">
               {feed.map((f) => (
                 <li key={f.id} className="flex gap-2 text-[13px]"><span>{f.ic}</span><span className="flex-1"><FeedText text={f.x} /><span className="note block">{fdt(f.t)} · {f.by}</span></span></li>
