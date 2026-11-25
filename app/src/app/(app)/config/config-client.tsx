@@ -5,6 +5,8 @@ import type { settings } from "@/db/schema";
 import { importTacAction, saveBanksAction, saveLogoAction, saveMethodsAction, saveNumberingAction, saveSettingsAction, saveWarrantyAction, undoImportAction } from "@/app/actions/admin";
 import { SaleReceipt } from "@/components/receipt";
 import { fdatey, fmt } from "@/lib/format";
+import { dedTable, rateTable } from "@/lib/tradein";
+import { saveTradeinConfigAction } from "@/app/actions/admin";
 import { DeleteSales } from "./delete-sales";
 import { ImportSales } from "./import-sales";
 
@@ -13,14 +15,14 @@ type Cfg = Omit<Full, "logo"> & { logo?: undefined };
 type Source = { source: string; n: number; total: number; from: number; to: number };
 type Msg = { ok: boolean; t: string } | null;
 
-const TABS = [
-  ["negocio", "🏪 Negocio"],
-  ["comprobante", "🧾 Comprobante"],
-  ["garantias", "🛡️ Garantías"],
-  ["caja", "💳 Ventas y caja"],
-  ["importar", "📥 Importar ventas"],
-  ["respaldo", "💾 Respaldo y datos"],
-] as const;
+const GROUPS: { name: string; tabs: readonly (readonly [string, string, string])[] }[] = [
+  { name: "General", tabs: [["inicio", "🚀 Puesta en marcha", "checklist inicio progreso"], ["negocio", "🏪 Negocio", "logo nit razón social dirección contacto color marca"]] },
+  { name: "Ventas", tabs: [["comprobante", "🧾 Comprobante", "numeración factura título firmas plantilla correo"], ["caja", "💳 Ventas y caja", "formas de pago bancos recargos descuentos margen trm apartado"], ["garantias", "🛡️ Garantías", "garantía meses condiciones términos"], ["retomas", "🔄 Retomas", "trade-in porcentaje condición defectos cotizador"]] },
+  { name: "Comunicación", tabs: [["mensajes", "💬 Mensajes y correo", "whatsapp correo gmail mensaje plantilla notificaciones"]] },
+  { name: "Equipo y control", tabs: [["equipo", "🔐 Equipo y seguridad", "usuarios roles permisos actividad salud registro"]] },
+  { name: "Datos", tabs: [["importar", "📥 Importar ventas", "importar excel historial"], ["respaldo", "💾 Respaldo y datos", "respaldo exportar borrar imei tac"]] },
+];
+const TABS = GROUPS.flatMap((g) => g.tabs) as readonly (readonly [string, string, string])[];
 
 /** Reduce la imagen a un máximo de 256 px y la guarda como PNG (cabe en la base de datos y se imprime bien). */
 async function processLogo(file: File): Promise<string> {
@@ -43,7 +45,9 @@ const SAMPLE_SALE = {
 };
 const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", address: "Calle 10 # 5-20, Medellín", email: "maria@correo.com", notes: "" };
 
-export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount, mailReady }: {
+export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount, mailReady, checklist, team }: {
+  checklist: { key: string; label: string; hint: string; tab: string; done: boolean }[];
+  team: { users: number; active: number; roles: number };
   mailReady: boolean; initialTab: string; cfg: Cfg; logo: string;
   numbering: { prefix: string; last: number };
   warranty: { warr: Record<string, number>; terms: string[]; custom: boolean };
@@ -53,7 +57,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   salesCount: number;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<string>(TABS.some(([k]) => k === initialTab) ? initialTab : "negocio");
+  const [tab, setTab] = useState<string>(TABS.some(([k]) => k === initialTab) ? initialTab : "inicio");
   const [v, setV] = useState(cfg);
   const [num, setNum] = useState({ prefix: numbering.prefix, next: String(numbering.last + 1) });
   const [warr, setWarr] = useState(warranty.warr);
@@ -62,6 +66,9 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   const [newBank, setNewBank] = useState("");
   const [on, setOn] = useState(methods.on);
   const [fees, setFees] = useState<Record<string, string>>(Object.fromEntries(methods.all.map((m) => [m, String(methods.surcharges[m] ?? "")])));
+  const [search, setSearch] = useState("");
+  const [rates, setRates] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(rateTable({ rates: cfg.tradeRates })).map(([k, x]) => [k, String(Math.round(x * 100))])));
+  const [deds, setDeds] = useState(() => dedTable({ deds: cfg.tradeDeds }).map((d) => ({ ...d, pct: String(d.pct) })));
   const [msg, setMsg] = useState<Msg>(null);
   const [busy, start] = useTransition();
   const run = (fn: () => Promise<{ ok: true } | { ok: false; error: string }>, okText: string) => start(async () => {
@@ -86,10 +93,22 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   const preview: Full = { ...v, logo, warrTerms: terms, invPrefix: num.prefix } as Full;
 
   return (
-    <div className="space-y-5">
-      <nav className="no-print flex flex-wrap gap-1.5 border-b border-line pb-2" aria-label="Secciones de configuración">
-        {TABS.map(([k, l]) => <button key={k} className={`btn sm ${tab === k ? "primary" : ""}`} aria-current={tab === k ? "page" : undefined} onClick={() => go(k)}>{l}</button>)}
-      </nav>
+    <div className="grid gap-5 lg:grid-cols-[230px_1fr]">
+      <aside className="no-print lg:sticky lg:top-4 lg:self-start" aria-label="Secciones de configuración">
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar ajuste…" aria-label="Buscar ajuste" className="mb-3" />
+        <nav className="flex gap-1.5 overflow-x-auto pb-1 lg:block lg:space-y-3 lg:overflow-visible">
+          {GROUPS.map((g) => {
+            const list = g.tabs.filter(([, l, kw]) => !search.trim() || `${l} ${kw}`.toLowerCase().includes(search.toLowerCase().trim()));
+            if (!list.length) return null;
+            return (
+              <div key={g.name} className="flex gap-1.5 lg:block">
+                <div className="note mb-1 hidden px-2 text-[11px] font-semibold uppercase tracking-wider lg:block">{g.name}</div>
+                {list.map(([k, l]) => <button key={k} className={`btn sm shrink-0 whitespace-nowrap lg:mb-1 lg:flex lg:w-full lg:justify-start ${tab === k ? "primary" : ""}`} aria-current={tab === k ? "page" : undefined} onClick={() => go(k)}>{l}</button>)}
+              </div>);
+          })}
+        </nav>
+      </aside>
+      <div className="min-w-0 space-y-5">
       {msg && <p role="status" className={`chip ${msg.ok ? "ok" : "bad"} !rounded-md !whitespace-normal`}>{msg.t}</p>}
 
       {tab === "negocio" && <>
@@ -228,6 +247,46 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
         {saveBtn}
       </>}
 
+      {tab === "inicio" && (() => {
+        const done = checklist.filter((c) => c.done).length;
+        const pct = Math.round((done / Math.max(1, checklist.length)) * 100);
+        return <div className="space-y-4">
+          <div className="card p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Puesta en marcha</h2><p className="note">{done} de {checklist.length} pasos listos. Completa lo que falte para dejar el negocio configurado.</p></div><b className="text-2xl tabular-nums">{pct}%</b></div>
+            <div className="mt-3 h-2 rounded-full bg-gray-bg"><div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} /></div></div>
+          <ul className="grid gap-2 sm:grid-cols-2">{checklist.map((c) => <li key={c.key}><button onClick={() => go(c.tab)} className={`card flex w-full items-start gap-3 p-3 text-left hover:border-accent ${c.done ? "" : "border-amber-t/50"}`}><span className="text-lg">{c.done ? "✅" : "⬜"}</span><span><b className="block text-[13.5px]">{c.label}</b><span className="note">{c.hint}</span></span></button></li>)}</ul>
+        </div>;
+      })()}
+
+      {tab === "retomas" && <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+        <div className="card p-4"><h2 className="mb-1 font-semibold">Porcentaje de la oferta por condición</h2><p className="note mb-3">Oferta sugerida = valor de referencia × porcentaje − descuentos por defectos. La persona siempre puede cambiar la oferta final.</p>
+          <div className="space-y-2">{Object.keys(rates).map((c) => <div key={c} className="flex items-center gap-3"><label className="w-40 text-[13px]" htmlFor={"rt-" + c}>{c}</label><input id={"rt-" + c} type="number" min={1} max={100} className="!w-24" value={rates[c]} onChange={(e) => setRates({ ...rates, [c]: e.target.value })} /><span className="note">% del valor de referencia</span></div>)}</div></div>
+        <div className="card p-4"><h2 className="mb-1 font-semibold">Defectos y su descuento</h2><p className="note mb-3">Aparecen como casillas al cotizar. La batería por debajo del 80 % se aplica sola.</p>
+          <div className="space-y-2">{deds.map((d, i) => <div key={d.key} className="flex items-center gap-2"><input value={d.label} onChange={(e) => setDeds(deds.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} aria-label="Defecto" /><input type="number" min={0} max={60} className="!w-20" value={d.pct} onChange={(e) => setDeds(deds.map((x, j) => (j === i ? { ...x, pct: e.target.value } : x)))} aria-label="Descuento %" /><span className="note">%</span>{d.key !== "battery" && <button className="btn sm" onClick={() => setDeds(deds.filter((_, j) => j !== i))} aria-label="Quitar">✕</button>}</div>)}</div>
+          <button className="btn sm mt-3" onClick={() => setDeds([...deds, { key: "d" + Date.now().toString(36), label: "", pct: "5" }])}>+ Agregar defecto</button></div>
+        <div className="flex flex-wrap items-center gap-2 xl:col-span-2"><button className="btn primary" disabled={busy} onClick={() => run(() => saveTradeinConfigAction({ rates: Object.fromEntries(Object.entries(rates).map(([k, x]) => [k, +x])), deds: deds.map((d) => ({ ...d, pct: +d.pct })) }), "Cotizador de retomas guardado")}>Guardar cotizador</button>
+          <button className="btn" disabled={busy} onClick={() => { if (confirm("¿Volver a los porcentajes y defectos de fábrica?")) run(async () => { const r = await saveTradeinConfigAction({ rates: {}, deds: [], reset: true }); if (r.ok) { setRates(Object.fromEntries(Object.entries(rateTable()).map(([k, x]) => [k, String(Math.round(x * 100))]))); setDeds(dedTable().map((d) => ({ ...d, pct: String(d.pct) }))); } return r; }, "Cotizador restablecido"); }}>Restablecer valores de fábrica</button></div>
+      </div>}
+
+      {tab === "mensajes" && <div className="space-y-4">
+        <div className="card p-4"><h2 className="mb-1 font-semibold">Correo automático del comprobante</h2>
+          <p className="note mb-3">{mailReady ? "✅ El servicio de correo está conectado." : "⚠️ Falta conectar el correo: agrega GMAIL_USER y GMAIL_APP_PASSWORD (o RESEND_API_KEY y MAIL_FROM) en las variables de entorno de Vercel y vuelve a desplegar."}</p>
+          <label className="flex items-start gap-2 text-[13px]"><input type="checkbox" className="!w-auto mt-1" checked={v.autoSend} onChange={(e) => setV({ ...v, autoSend: e.target.checked })} /><span><b>Enviar el comprobante en PDF al correo del cliente</b> apenas se registre la venta (si el cliente tiene correo).</span></label></div>
+        <div className="card p-4"><h2 className="mb-1 font-semibold">Mensaje de WhatsApp del comprobante</h2>
+          <p className="note mb-2">Se escribe solo al pulsar «WhatsApp» en una venta. Variables: <code>{"{nombre}"}</code> <code>{"{negocio}"}</code> <code>{"{comprobante}"}</code> <code>{"{total}"}</code>.</p>
+          <textarea rows={4} value={v.waReceipt} placeholder="Hola {nombre}, gracias por tu compra en {negocio}. Te envío tu comprobante {comprobante} en PDF." onChange={(e) => setV({ ...v, waReceipt: e.target.value })} />
+          <p className="note mt-2"><b>Vista previa:</b> {(v.waReceipt || "Hola {nombre}, gracias por tu compra en {negocio}. Te envío tu comprobante {comprobante} en PDF.").replace(/\{nombre\}/g, "María").replace(/\{negocio\}/g, v.name || "Tu tienda").replace(/\{comprobante\}/g, "FV-1001").replace(/\{total\}/g, "$4.655.000")}</p></div>
+        {saveBtn}
+      </div>}
+
+      {tab === "equipo" && <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <a href="/usuarios" className="card block p-4 hover:border-accent"><div className="note">Usuarios</div><b className="text-2xl">{team.active}</b><div className="note">activos de {team.users} · roles: {team.roles}</div><div className="mt-1 text-[13px] font-semibold">Usuarios y permisos →</div></a>
+          <a href="/actividad" className="card block p-4 hover:border-accent"><div className="note">Registro de actividad</div><b className="text-lg">Quién hizo qué y cuándo</b><div className="mt-1 text-[13px] font-semibold">Abrir registro →</div></a>
+          <a href="/salud" className="card block p-4 hover:border-accent"><div className="note">Salud del sistema</div><b className="text-lg">Revisión de consistencia</b><div className="mt-1 text-[13px] font-semibold">Revisar ahora →</div></a>
+        </div>
+        <div className="card p-4"><h2 className="mb-2 font-semibold">Seguridad</h2><ul className="space-y-1.5 text-[13.5px]"><li>🔑 Cada persona entra con su usuario y contraseña; tras varios intentos fallidos la cuenta se bloquea un tiempo.</li><li>🔐 Los permisos se asignan por rol (ver costos, dar descuentos, eliminar, aprobar…).</li><li>📜 Cada venta, retoma, pago, edición y acceso queda anotado con nombre y hora.</li><li>🩺 La revisión de consistencia avisa en Inicio si algo no cuadra entre módulos.</li></ul></div>
+      </div>}
+
       {tab === "importar" && <>
         <ImportSales warr={warr} onDone={() => router.refresh()} />
         {sources.length > 0 && (
@@ -262,6 +321,7 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
           <label className="btn cursor-pointer">Importar CSV de TAC<input type="file" accept=".csv,text/csv,text/plain" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; start(async () => { const r = await importTacAction(await f.text()); setMsg(r.ok ? { ok: true, t: `${r.data} modelos importados` } : { ok: false, t: r.error }); }); }} /></label>
         </div>
       </>}
+      </div>
     </div>
   );
 }

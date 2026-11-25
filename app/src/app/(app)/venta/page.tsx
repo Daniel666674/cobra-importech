@@ -27,6 +27,7 @@ export default async function Venta({ searchParams }: PageProps<"/venta">) {
         cfg={{ maxDisc: cfg.maxDisc, apartadoMinPct: cfg.apartadoMinPct, holdDays: cfg.holdDays, methods: enabledMethods(cfg), surcharges: cfg.surcharges ?? {}, banks: cfg.banks }}
         can={{ discount: hasPerm(me, "discount"), cost: hasPerm(me, "cost_view"), credit: hasPerm(me, "credit"), tradein: hasPerm(me, "tradein") }}
         warr={cfg.warr}
+        quoteCfg={{ rates: cfg.tradeRates, deds: cfg.tradeDeds }}
         allies={al}
         start={{ item: one("item"), mode: one("mode") === "apartado" ? "apartado" : "contado", hold: holdId }}
       />

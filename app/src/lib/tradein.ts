@@ -10,12 +10,17 @@ export const DEDUCTIONS = [
 ] as const;
 export type DeductionKey = (typeof DEDUCTIONS)[number]["key"];
 
-export function tradeQuote(input: { ref: number; cond: string; deductions: DeductionKey[]; batt?: number | null }) {
-  const keys = new Set<DeductionKey>(input.deductions);
+export type QuoteCfg = { rates?: Record<string, number>; deds?: { key: string; label: string; pct: number }[] };
+/** Porcentajes y descuentos vigentes: los configurados por el negocio, o los de fábrica. */
+export const rateTable = (c?: QuoteCfg): Record<string, number> => ({ ...TRADEIN_RATE, ...Object.fromEntries(Object.entries(c?.rates ?? {}).map(([k, v]) => [k, v / 100])) });
+export const dedTable = (c?: QuoteCfg): { key: string; label: string; pct: number }[] => (c?.deds?.length ? c.deds : DEDUCTIONS.map((d) => ({ ...d })));
+
+export function tradeQuote(input: { ref: number; cond: string; deductions: string[]; batt?: number | null; cfg?: QuoteCfg }) {
+  const keys = new Set<string>(input.deductions);
   if (input.batt != null && input.batt < 80) keys.add("battery");
-  const rate = TRADEIN_RATE[input.cond] ?? 0.5;
-  const dedPct = DEDUCTIONS.filter((d) => keys.has(d.key)).reduce((a, d) => a + d.pct, 0);
+  const rate = rateTable(input.cfg)[input.cond] ?? 0.5;
+  const dedPct = dedTable(input.cfg).filter((d) => keys.has(d.key)).reduce((a, d) => a + d.pct, 0);
   const base = Math.round(input.ref * rate);
   const offer = Math.max(0, Math.round((base * (1 - dedPct / 100)) / 10000) * 10000);
-  return { rate, dedPct, base, offer, applied: [...keys] };
+  return { rate, dedPct, base, offer, applied: [...keys] as string[] };
 }

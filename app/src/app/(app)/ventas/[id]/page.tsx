@@ -40,7 +40,7 @@ export default async function SalePage({ params, searchParams }: PageProps<"/ven
       <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href="/ventas" className="note hover:underline">← Ventas</Link>
         <div className="flex gap-2">
-          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={waLink(client.phone, `Hola ${client.name.split(" ")[0]}, gracias por tu compra en ${cfg.name}. Te envío tu comprobante ${s.no} en PDF.`)}>💬 WhatsApp</a>}
+          {client?.phone && <a className="btn" target="_blank" rel="noopener" href={waLink(client.phone, (cfg.waReceipt || "Hola {nombre}, gracias por tu compra en {negocio}. Te envío tu comprobante {comprobante} en PDF.").replace(/\{nombre\}/g, client.name.split(" ")[0]).replace(/\{negocio\}/g, cfg.name).replace(/\{comprobante\}/g, s.no).replace(/\{total\}/g, fmt(s.total)))}>💬 WhatsApp</a>}
           <PrintButton />
         </div>
       </div>

@@ -6,7 +6,7 @@ import { OfficialPanel, type OfficialValue } from "@/components/official-panel";
 import { CATALOG, COLOR_OPTIONS, SPEC_OPTIONS, isMobile, type Cat } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { officialGate, type ImeiResult } from "@/lib/imei";
-import { DEDUCTIONS, TRADEIN_RATE, tradeQuote, type DeductionKey } from "@/lib/tradein";
+import { dedTable, rateTable, tradeQuote, type QuoteCfg } from "@/lib/tradein";
 import { MoneyInput } from "@/components/money-input";
 import { InspectionForm } from "@/components/inspection-form";
 import { blankInspection, DOC_TYPES, type InspectionInput } from "@/lib/inspection";
@@ -27,7 +27,8 @@ export type TradePayload = {
  * mode «compra»: la tienda compra el equipo (pide los datos de quien lo entrega).
  * mode «venta»: el equipo es parte de pago de una venta (el que entrega es el cliente de la venta).
  */
-export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error = "" }: {
+export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error = "", quoteCfg }: {
+  quoteCfg?: QuoteCfg;
   warr: Record<string, number>;
   mode: "compra" | "venta";
   onAccept: (p: TradePayload) => void;
@@ -40,7 +41,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const [off, setOff] = useState<OfficialValue>({});
   const [ok, setOk] = useState(false);
   const [v, setV] = useState({ name: "", spec: "", color: "", cond: "Pre-owned", batt: "", serial: "", serial2: "", ref: "", resale: "", offer: "", vendor: "", doc: "", phone: "", warr: "", sim: "" });
-  const [ded, setDed] = useState<DeductionKey[]>([]);
+  const [ded, setDed] = useState<string[]>([]);
   const [ins, setIns] = useState<InspectionInput>(blankInspection());
   const [insOpen, setInsOpen] = useState(false);
   const [sl, setSl] = useState({ docType: "CC", address: "", declared: false, idCopy: false });
@@ -48,7 +49,8 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
 
-  const Q = tradeQuote({ ref: +v.ref || 0, cond: v.cond, deductions: ded, batt: v.batt === "" ? null : +v.batt });
+  const DEDS = dedTable(quoteCfg);
+  const Q = tradeQuote({ ref: +v.ref || 0, cond: v.cond, deductions: ded, batt: v.batt === "" ? null : +v.batt, cfg: quoteCfg });
   const offer = offerTouched ? +v.offer || 0 : Q.offer;
   const resale = +v.resale || +v.ref || 0;
   const phone = isMobile(cat);
@@ -73,7 +75,7 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
   const missing = "";
 
   const accept = () => {
-    const defects = DEDUCTIONS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
+    const defects = DEDS.filter((d) => Q.applied.includes(d.key)).map((d) => d.label);
     const notes = [buying ? `Retoma de ${v.vendor} (C.C. ${v.doc}${v.phone ? ", cel. " + v.phone : ""})` : "", ...defects].filter(Boolean).join(" · ");
     const serial = phone ? (res?.imei ?? imei.replace(/\D/g, "")) : v.serial;
     onAccept({
@@ -111,12 +113,12 @@ export function TradeinForm({ warr, mode, onAccept, busy: extBusy = false, error
                 <div><label className="lb" htmlFor="r-name">Modelo (escríbelo o elige)</label><input id="r-name" list="r-name-list" value={v.name} placeholder="Ej. iPhone 14 Pro Max" onChange={(e) => setV({ ...v, name: e.target.value })} /><datalist id="r-name-list">{CATALOG.filter((c) => c.cat === cat).map((c) => c.name).map((o) => <option key={o} value={o} />)}</datalist></div>
                 <div><label className="lb" htmlFor="r-spec">Capacidad</label><input id="r-spec" list="r-spec-list" value={v.spec} placeholder="" onChange={(e) => setV({ ...v, spec: e.target.value })} /><datalist id="r-spec-list">{(SPEC_OPTIONS[cat as Cat] ?? []).map((o) => <option key={o} value={o} />)}</datalist></div>
                 <div><label className="lb" htmlFor="r-color">Color</label><input id="r-color" list="r-color-list" value={v.color} placeholder="" onChange={(e) => setV({ ...v, color: e.target.value })} /><datalist id="r-color-list">{(COLOR_OPTIONS[cat as Cat] ?? []).map((o) => <option key={o} value={o} />)}</datalist></div>
-                <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(TRADEIN_RATE).map((c) => <option key={c}>{c}</option>)}</select></div>
+                <div><label className="lb" htmlFor="r-cond">Condición</label><select id="r-cond" value={v.cond} onChange={(e) => setV({ ...v, cond: e.target.value })}>{Object.keys(rateTable(quoteCfg)).map((c) => <option key={c}>{c}</option>)}</select></div>
                 {f("batt", "Salud de batería (%) (opcional)", { type: "number", min: 0, max: 100 })}
                 {phone && f("serial2", "IMEI 2 (opcional)", { inputMode: "numeric", maxLength: 15 }, "imei2")}
                 {phone && <div><label className="lb" htmlFor="r-sim">SIM o eSIM</label><select id="r-sim" value={v.sim} onChange={(e) => setV({ ...v, sim: e.target.value })}><option value="">Sin indicar</option><option>SIM</option><option>eSIM</option></select></div>}
               </div>
-              <fieldset className="mt-3"><legend className="lb">Defectos</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{DEDUCTIONS.map((d) => <label key={d.key} className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" className="!w-auto" checked={Q.applied.includes(d.key)} disabled={d.key === "battery" && v.batt !== "" && +v.batt < 80} onChange={(e) => setDed(e.target.checked ? [...ded, d.key] : ded.filter((x) => x !== d.key))} />{d.label} (−{d.pct}%)</label>)}</div></fieldset>
+              <fieldset className="mt-3"><legend className="lb">Defectos</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{DEDS.map((d) => <label key={d.key} className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" className="!w-auto" checked={Q.applied.includes(d.key)} disabled={d.key === "battery" && v.batt !== "" && +v.batt < 80} onChange={(e) => setDed(e.target.checked ? [...ded, d.key] : ded.filter((x) => x !== d.key))} />{d.label} (−{d.pct}%)</label>)}</div></fieldset>
             </div>
             <div className="card p-4">
               <button type="button" className="flex w-full items-center justify-between font-semibold" aria-expanded={insOpen} onClick={() => setInsOpen(!insOpen)}><span>🔍 Inspección del equipo (opcional)</span><span>{insOpen ? "−" : "+"}</span></button>

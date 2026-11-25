@@ -1,7 +1,7 @@
 "use server";
 import { act } from "@/server/act";
 import { importTacCsv } from "@/server/inventory";
-import { createUser, saveBanks, saveLogo, saveMethods, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
+import { createUser, saveBanks, saveLogo, saveMethods, saveTradeinConfig, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
 import { importSales, undoImport } from "@/server/import";
 
 export async function createUserAction(data: unknown) {
@@ -27,6 +27,9 @@ export async function saveNumberingAction(data: unknown) {
 }
 export async function saveWarrantyAction(data: unknown) {
   return act((db, a) => saveWarranty(db, a, data), ["/"]);
+}
+export async function saveTradeinConfigAction(data: unknown) {
+  return act((db, a) => saveTradeinConfig(db, a, data), ["/retomas", "/venta"]);
 }
 export async function saveMethodsAction(data: unknown) {
   return act((db, a) => saveMethods(db, a, data), ["/"]);

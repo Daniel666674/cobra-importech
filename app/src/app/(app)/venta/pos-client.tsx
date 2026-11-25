@@ -1,4 +1,5 @@
 "use client";
+import type { QuoteCfg } from "@/lib/tradein";
 import { ScanButton, codeFor } from "@/components/scan-button";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -28,12 +29,13 @@ type Props = {
   cfg: { maxDisc: number; apartadoMinPct: number; holdDays: number; methods: string[]; surcharges: Record<string, number>; banks: string[] };
   can: { discount: boolean; cost: boolean; credit: boolean; tradein: boolean };
   warr: Record<string, number>;
+  quoteCfg?: QuoteCfg;
   /** Tiendas aliadas activas: proveedor de un producto fuera de inventario. */
   allies: { id: string; name: string }[];
   start: { item: string; mode: "contado" | "apartado"; hold: string };
 };
 
-export function PosClient({ items, clients, cfg, can, start, warr, allies }: Props) {
+export function PosClient({ items, clients, cfg, can, start, warr, allies, quoteCfg }: Props) {
   const router = useRouter();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const finishing = start.hold ? byId.get(start.hold) ?? null : null;
@@ -401,7 +403,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies }: Pro
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Recibir equipo como parte de pago">
           <div className="mx-auto max-w-[1100px] rounded-xl bg-bg p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold">Recibir equipo como parte de pago</h2><button type="button" className="btn sm" onClick={() => setTradeOpen(false)}>Cerrar</button></div>
-            <TradeinForm warr={warr} mode="venta" onAccept={(p) => {
+            <TradeinForm quoteCfg={quoteCfg} warr={warr} mode="venta" onAccept={(p) => {
               if (trades.some((t) => t.item.serial && t.item.serial === p.item.serial)) return;
               setTrades([...trades, p]); setTradeOpen(false); setPays(pays.map((x) => ({ ...x, amount: "" })));
             }} />
