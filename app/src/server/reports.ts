@@ -1,3 +1,4 @@
+import { bogotaToday, dayRange } from "@/server/caja";
 import { eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import { claims, items, orders, sales, settings } from "@/db/schema";
@@ -12,13 +13,13 @@ export async function dashboard(db: Db, now = Date.now()) {
   const [[st], its, ss, cl] = await Promise.all([db.select().from(settings).limit(1), db.select().from(items), db.select().from(sales), db.select().from(claims)]);
   const stock = its.filter(inStock);
   const valid = ss.filter((s) => !saleVoid(s));
-  const startDay = new Date(new Date(now).toLocaleString("en-US", { timeZone: "America/Bogota" })).setHours(0, 0, 0, 0);
-  const todayMs = now - (new Date(now).getTime() - startDay) % DAY; // aproximado, solo para el KPI del día
+  // «Hoy» = el día calendario de Bogotá (UTC−5, sin horario de verano): de 00:00 a 24:00 hora local.
+  const todayMs = dayRange(bogotaToday(now)).from;
   const inRange = (t: number, days: number) => now - t <= days * DAY;
   const sum = (arr: typeof valid, f: (s: (typeof valid)[number]) => number) => arr.reduce((a, s) => a + f(s), 0);
   const month = valid.filter((s) => inRange(s.t, 30));
   const prev = valid.filter((s) => inRange(s.t, 60) && !inRange(s.t, 30));
-  const today = valid.filter((s) => s.t >= todayMs);
+  const today = valid.filter((s) => s.t >= todayMs && s.t < todayMs + DAY);
   const value = (kind: "price" | "cost") => stock.reduce((a, it) => a + (kind === "price" ? it.price : it.cost + (it.repairs || 0) / Math.max(1, stockQty(it))) * stockQty(it), 0);
 
   const alerts: Alert[] = [];
@@ -41,8 +42,8 @@ export async function dashboard(db: Db, now = Date.now()) {
   for (const s of month) for (const l of s.lines) byProduct.set(l.name, (byProduct.get(l.name) ?? 0) + lineNet(l));
   const top = [...byProduct.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   const days = Array.from({ length: 14 }, (_, i) => {
-    const from = now - (13 - i) * DAY;
-    return { t: from, total: valid.filter((s) => daysAgo(s.t, now) === 13 - i).reduce((a, s) => a + saleNet(s), 0) };
+    const from = todayMs - (13 - i) * DAY;
+    return { t: from, total: valid.filter((s) => s.t >= from && s.t < from + DAY).reduce((a, s) => a + saleNet(s), 0) };
   });
   return {
     kpi: {
