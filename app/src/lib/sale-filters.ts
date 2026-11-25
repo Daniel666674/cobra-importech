@@ -8,14 +8,14 @@ export const ymdStart = (ymd: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/
 export const addDays = (ymd: string, n: number) => { const t = ymdStart(ymd); return t == null ? ymd : ymdBogota(t + n * DAY + 6 * 3600_000); };
 
 export type SaleFilters = {
-  desde: string; hasta: string; vendedor: string; metodo: string; cat: string; estado: string; cliente: string; q: string;
+  desde: string; hasta: string; vendedor: string; metodo: string; cat: string; estado: string; cliente: string; sede: string; q: string;
 };
 export const ESTADOS = [["pagada", "Pagadas"], ["pendiente", "Con saldo pendiente"], ["devuelta", "Devueltas"], ["historica", "Históricas"]] as const;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymd = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
 
 export function parseSaleFilters(sp: Record<string, string | string[] | undefined>): SaleFilters {
-  return { desde: ymd(one(sp.desde)), hasta: ymd(one(sp.hasta)), vendedor: one(sp.vendedor), metodo: one(sp.metodo), cat: one(sp.cat), estado: one(sp.estado), cliente: one(sp.cliente), q: one(sp.q).toLowerCase().trim() };
+  return { desde: ymd(one(sp.desde)), hasta: ymd(one(sp.hasta)), vendedor: one(sp.vendedor), metodo: one(sp.metodo), cat: one(sp.cat), estado: one(sp.estado), cliente: one(sp.cliente), sede: one(sp.sede), q: one(sp.q).toLowerCase().trim() };
 }
 
 export function filtersToQuery(f: Partial<SaleFilters>, extra: Record<string, string> = {}) {
@@ -42,7 +42,7 @@ export function presetRange(key: string, now = Date.now()): { desde: string; has
   }
 }
 
-type SaleLike = { t: number; by: string; method: string; payments: { method: string }[]; lines: SaleLine[]; disc: number; client: string | null; pending: number; mode: string; no: string; notes: string };
+type SaleLike = { branch?: string; t: number; by: string; method: string; payments: { method: string }[]; lines: SaleLine[]; disc: number; client: string | null; pending: number; mode: string; no: string; notes: string };
 export type FilterCtx = { itemCat: Map<string, string>; clientText: Map<string, string> };
 
 export const lineCat = (l: SaleLine, ctx: FilterCtx) => ctx.itemCat.get(l.item) ?? "Otros";
@@ -53,6 +53,7 @@ export function matchSale(s: SaleLike, f: SaleFilters, ctx: FilterCtx): boolean 
   if (to != null && s.t >= to + DAY) return false;
   if (f.vendedor && s.by !== f.vendedor) return false;
   if (f.cliente && s.client !== f.cliente) return false;
+  if (f.sede && (s.branch ?? "") !== f.sede) return false;
   if (f.metodo && !(s.method === f.metodo || s.payments.some((p) => p.method === f.metodo))) return false;
   if (f.cat && !s.lines.some((l) => lineCat(l, ctx) === f.cat)) return false;
   if (f.estado) {
@@ -66,5 +67,5 @@ export function matchSale(s: SaleLike, f: SaleFilters, ctx: FilterCtx): boolean 
   return true;
 }
 
-export const activeFilterCount = (f: SaleFilters) => [f.desde || f.hasta, f.vendedor, f.metodo, f.cat, f.estado, f.cliente].filter(Boolean).length;
+export const activeFilterCount = (f: SaleFilters) => [f.desde || f.hasta, f.vendedor, f.metodo, f.cat, f.estado, f.cliente, f.sede].filter(Boolean).length;
 export const totalOf = (ss: SaleLike[]) => ss.filter((s) => !saleVoid(s)).reduce((a, s) => a + saleNet(s), 0);

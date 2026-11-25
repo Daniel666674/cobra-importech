@@ -14,6 +14,7 @@ import { requireMe } from "@/server/session";
 import { CHECKS } from "@/lib/inspection";
 import { InspectionEditor } from "./inspection-editor";
 import { ItemActions } from "./item-actions";
+import { MoveBranch } from "./move-branch";
 import { ApprovalButtons } from "@/components/approval-buttons";
 
 const TONE: Record<string, string> = { ok: "bg-green-t", warn: "bg-amber-t", bad: "bg-red-t", "": "bg-t3" };
@@ -28,6 +29,7 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
   const [cfg] = await db.select().from(settings).limit(1);
   const canCost = hasPerm(me, "cost_view");
   const hold = it.hold;
+  const branches = [...new Set([cfg.branch, ...cfg.branches, it.branch].filter(Boolean))];
   return (
     <>
       <p className="mb-2 no-print"><Link href="/inventario" className="note hover:underline">← Inventario</Link></p>
@@ -114,6 +116,7 @@ export default async function ItemPage({ params }: PageProps<"/inventario/[id]">
               <Link href={`/retomas/acta/${it.id}`} target="_blank" className="btn sm mt-3">🖨️ Ver e imprimir el acta</Link>
             </div>
           )}
+          {hasPerm(me, "inv_edit") && it.status !== "Vendido" && <MoveBranch id={it.id} current={it.branch} branches={branches} />}
           <div className="card p-4">
             <h2 className="font-semibold mb-3">Historial</h2>
             <ol className="relative ml-2 space-y-4 border-l border-line pl-5">

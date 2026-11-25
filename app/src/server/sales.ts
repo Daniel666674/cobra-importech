@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { allies, allyMoves, claims, clients, counters, holdHistory, items, sales, settings, type Hold, type Payment, type SaleLine } from "@/db/schema";
-import { CATS, CONDS, METHODS, feeFor, surchargeOf } from "@/lib/catalog";
+import { CONDS, METHODS, noWarrantyOk, feeFor, surchargeOf } from "@/lib/catalog";
 import { DAY, fmt } from "@/lib/format";
 import { holdBal, holdMin } from "@/lib/hold";
 import { isAvail, isQty, uname } from "@/lib/items";
@@ -25,7 +25,7 @@ export const saleInput = z.object({
   /** Productos fuera de inventario (p. ej. un equipo que no estaba en stock): se facturan sin tocar el inventario. */
   custom: z.array(z.object({
     /** Categoría del producto fuera de inventario (la batería solo se exige a los iPhone). */
-    cat: z.enum([...CATS, ""]).default(""),
+    cat: z.string().trim().max(40).default(""),
     name: z.string().trim().min(2, "Escribe el nombre del producto").max(200), spec: z.string().trim().max(80).default(""), color: z.string().trim().max(60).default(""),
     cond: z.enum(CONDS).default("Nuevo"), serial: z.string().trim().max(40).default(""), serial2: z.string().trim().max(40).default(""),
     batt: z.preprocess((v) => (v === "" || v == null ? null : typeof v === "string" ? v.replace(/[%\s]/g, "") : v), z.coerce.number({ error: "La batería debe ser un número entre 0 y 100" }).int().min(0, "La batería va de 0 a 100").max(100, "La batería va de 0 a 100").nullable()).default(null), qty: z.coerce.number().int().min(1).max(1000).default(1),
@@ -152,7 +152,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const months = (cond: string, ...v: (number | undefined)[]) => v.find((x) => x != null && x > 0) ?? (cfg.warr[cond] > 0 ? cfg.warr[cond] : 1);
     const saleLines: SaleLine[] = lines.map(({ it, qty, warr: w }) => ({
       item: it.id, name: uname(it), color: it.color, cond: it.cond, serial: it.serial, ...(it.serial2 ? { serial2: it.serial2 } : {}), ...(it.batt != null ? { batt: it.batt } : {}), qty, price: it.price,
-      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: it.cat === "Accesorios" ? (w ?? it.warr) : months(it.cond, w, it.warr), ret: 0, ...(it.ally ? { ally: it.ally } : {}), ...(it.sim ? { sim: it.sim } : {}),
+      cost: it.cost + (isQty(it) ? 0 : it.repairs || 0), warr: noWarrantyOk(it) ? (w ?? it.warr) : months(it.cond, w, it.warr), ret: 0, ...(it.ally ? { ally: it.ally } : {}), ...(it.sim ? { sim: it.sim } : {}),
     }));
     // Tienda proveedora escrita a mano: se busca por nombre y, si no existe, se crea sola como tienda aliada (consignación).
     const known = new Map((await tx.select().from(allies)).map((x) => [x.name.trim().toLowerCase(), x]));
@@ -199,7 +199,7 @@ export async function createSale(db: Db, a: Actor, raw: unknown) {
     const allPays: Payment[] = [...received.map((r) => ({ method: "Retoma", amount: r.amount })), ...charged];
     const surcharge = surchargePaidInside ? over : charged.reduce((x, p) => x + (p.fee ?? 0), 0);
     const row = {
-      id, no, t: when, client: client?.id ?? null, by: a.id,
+      id, no, t: when, client: client?.id ?? null, branch: lines[0]?.it.branch || cfg.branch || "", by: a.id,
       method: allPays.length > 1 ? "Mixto" : allPays[0]?.method ?? "Abono previo", mode: "contado", payments: allPays, lines: saleLines, tradeins: received, surcharge,
       disc: T.pct, total: 0, prepaid: T.prepaid, pending, notes: input.notes, discReason: input.discReason,
       cash: pays.length === 1 && pays[0].method === "Efectivo" && input.cash >= pays[0].amount && input.cash > 0 ? { given: input.cash, change: input.cash - pays[0].amount } : null,

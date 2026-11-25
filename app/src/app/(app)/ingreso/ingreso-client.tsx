@@ -13,9 +13,10 @@ const ICON: Record<Cat, string> = { iPhone: "📱", Samsung: "📱", Android: "�
 const STEP: Record<string, string> = { ok: "✓", warn: "!", fail: "✕", skip: "–" };
 const STEP_TONE: Record<string, string> = { ok: "text-green-t", warn: "text-amber-t", fail: "text-red-t", skip: "text-t3" };
 
-export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: { warr: Record<string, number>; canCost: boolean; allies?: { id: string; name: string }[]; initialAlly?: string }) {
+export function IngresoClient({ cats, branches, mainBranch, warr, canCost, allies = [], initialAlly = "" }: { cats: string[]; branches: string[]; mainBranch: string; warr: Record<string, number>; canCost: boolean; allies?: { id: string; name: string }[]; initialAlly?: string }) {
   const router = useRouter();
-  const [cat, setCat] = useState<Cat>("iPhone");
+  const [cat, setCat] = useState<string>(cats.includes("iPhone") ? "iPhone" : cats[0] ?? "Accesorios");
+  const [sede, setSede] = useState(mainBranch);
   const [imei, setImei] = useState("");
   const [res, setRes] = useState<(ImeiResult & { imei: string }) | null>(null);
   const [off, setOff] = useState<OfficialValue>({});
@@ -26,7 +27,7 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
   const [scanOpen, setScanOpen] = useState(false);
   const [pending, setPending] = useState<ScanRead | null>(null);
 
-  const pickCat = (c: Cat) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm({ ...emptyItem(c, c === "Accesorios" ? 0 : warr.Nuevo), ally: form.ally }); };
+  const pickCat = (c: string) => { setCat(c); setRes(null); setOff({}); setErr(""); setForm({ ...emptyItem(c as Cat, c === "Accesorios" ? 0 : warr.Nuevo), ally: form.ally }); };
 
   function verify() {
     const clean = imei.replace(/\D/g, "");
@@ -58,7 +59,7 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
   function save() {
     setErr("");
     start(async () => {
-      const payload = toPayload(cat, form, cat === "iPhone" ? { serial: res?.imei ?? form.serial } : {});
+      const payload = { ...toPayload(cat as Cat, form, cat === "iPhone" ? { serial: res?.imei ?? form.serial } : {}), branch: sede };
       const r = await createItemAction(payload, cat === "iPhone" ? off : undefined, ok);
       if (!r.ok) { setErr(r.error); return; }
       router.push(`/inventario/${r.data}`);
@@ -68,12 +69,13 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
   return (
     <div className="card">
       <div className="flex flex-wrap gap-2 border-b border-line p-3">
-        {CATS.map((c) => (
+        {cats.map((c) => (
           <button key={c} type="button" onClick={() => pickCat(c)} aria-pressed={cat === c}
-            className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold ${cat === c ? "bg-accent text-white" : "bg-gray-bg text-t2"}`}>{ICON[c]} {c}</button>
+            className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold ${cat === c ? "bg-accent text-white" : "bg-gray-bg text-t2"}`}>{ICON[c as Cat] ?? "📦"} {c}</button>
         ))}
       </div>
       <div className="p-4">
+        {branches.length > 1 && <div className="mb-4 flex max-w-xs items-center gap-2"><label className="lb !mb-0 shrink-0" htmlFor="i-sede">Sede</label><select id="i-sede" value={sede} onChange={(e) => setSede(e.target.value)}>{branches.map((b) => <option key={b}>{b}</option>)}</select></div>}
         {cat === "iPhone" ? (
           <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
             <div>
@@ -134,7 +136,7 @@ export function IngresoClient({ warr, canCost, allies = [], initialAlly = "" }: 
         ) : (
           <div className="max-w-3xl space-y-4">
             <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-bg/60 p-3"><span className="text-[13px]">📷 <b>Llena el formulario con la cámara</b> · caja nueva o pantalla de un equipo usado</span><button type="button" className="btn primary" onClick={() => setScanOpen(true)}>Escanear</button></div>
-            <ItemForm cat={cat} values={form} onChange={setForm} warrByCond={warr} showCost={canCost} allies={allies} />
+            <ItemForm cat={cat as Cat} values={form} onChange={setForm} warrByCond={warr} showCost={canCost} allies={allies} />
             <button type="button" className="btn primary" onClick={save} disabled={busy}>Guardar en inventario</button>
           </div>
         )}

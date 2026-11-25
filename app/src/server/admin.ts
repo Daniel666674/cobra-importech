@@ -1,8 +1,8 @@
 import { and, count, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
-import { counters, feed, roles, sales, settings, users } from "@/db/schema";
-import { CONDS, METHODS } from "@/lib/catalog";
+import { counters, feed, items, roles, sales, settings, users } from "@/db/schema";
+import { CONDS, DEFAULT_CATDEFS, METHODS, catDefs } from "@/lib/catalog";
 import { ALL_PERMS } from "@/lib/perms";
 import { AppError, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { randomInt } from "node:crypto";
@@ -191,4 +191,72 @@ export async function saveTradeinConfig(db: Db, a: Actor, raw: unknown) {
   await db.update(settings).set(next).where(eq(settings.id, 1));
   const rd = Object.entries(next.tradeRates).filter(([k, x]) => (before?.tradeRates ?? {})[k] !== x).map(([k, x]) => `${esc(k)} ${x}%`);
   await logFeed(db, a, "owner", "🔄", `${v.reset ? "Cotizador de retomas restablecido a los valores de fábrica" : `Cotizador de retomas actualizado${rd.length ? ": " + rd.join(", ") : ""}${JSON.stringify(before?.tradeDeds ?? []) !== JSON.stringify(next.tradeDeds) ? " · defectos modificados" : ""}`} · ${esc(a.name)}`);
+}
+
+const catInput = z.object({
+  cats: z.array(z.object({
+    name: z.string().trim().min(2, "Cada categoría necesita un nombre (mínimo 2 letras)").max(30, "El nombre de la categoría es muy largo"),
+    kind: z.enum(["unit", "qty"]),
+    sku: z.string().trim().toUpperCase().regex(/^[A-Z]{2,4}$/, "El código del SKU son 2 a 4 letras (ej. CAM)"),
+    active: z.boolean().default(true),
+  })).min(1).max(40),
+});
+/** Orden, visibilidad y categorías propias. Las de fábrica solo se pueden ocultar; las propias solo se borran si no tienen productos. */
+export async function saveCategories(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const { cats } = catInput.parse(raw);
+  const names = new Set<string>(), skus = new Set<string>();
+  for (const c of cats) {
+    const k = c.name.toLowerCase();
+    if (names.has(k)) throw new AppError(`La categoría «${c.name}» está repetida`, "invalid");
+    names.add(k);
+    const builtin = DEFAULT_CATDEFS.find((d) => d.name === c.name);
+    const sku = builtin ? builtin.sku : c.sku;
+    if (skus.has(sku)) throw new AppError(`El código ${sku} lo usan dos categorías`, "invalid");
+    skus.add(sku);
+  }
+  for (const d of DEFAULT_CATDEFS) if (!cats.some((c) => c.name === d.name)) throw new AppError(`«${d.name}» es una categoría de fábrica: no se puede quitar, solo ocultar`, "invalid");
+  if (!cats.some((c) => c.active)) throw new AppError("Deja al menos una categoría activa", "invalid");
+  const [before] = await db.select({ c: settings.categories }).from(settings).where(eq(settings.id, 1));
+  const prev = catDefs(before?.c);
+  const used = await db.select({ cat: items.cat, n: count() }).from(items).groupBy(items.cat);
+  for (const p of prev.filter((x) => !x.builtin)) if (!cats.some((c) => c.name === p.name) && (used.find((u) => u.cat === p.name)?.n ?? 0) > 0) throw new AppError(`«${p.name}» tiene productos: no se puede borrar, solo ocultar`, "invalid");
+  const stored = cats.map((c) => ({ name: c.name, kind: c.kind, sku: DEFAULT_CATDEFS.find((d) => d.name === c.name)?.sku ?? c.sku, active: c.active }));
+  await db.update(settings).set({ categories: stored }).where(eq(settings.id, 1));
+  const now = catDefs(stored);
+  const added = now.filter((n) => !prev.some((p) => p.name === n.name)).map((n) => n.name), removed = prev.filter((p) => !now.some((n) => n.name === p.name)).map((p) => p.name);
+  const toggled = now.filter((n) => prev.find((p) => p.name === n.name && p.active !== n.active)).map((n) => `${n.name} ${n.active ? "activada" : "oculta"}`);
+  await logFeed(db, a, "owner", "📦", `Categorías actualizadas por ${esc(a.name)}${added.length ? " · nuevas: " + added.map(esc).join(", ") : ""}${removed.length ? " · borradas: " + removed.map(esc).join(", ") : ""}${toggled.length ? " · " + toggled.map(esc).join(", ") : ""}`);
+}
+
+const branchInput = z.object({
+  main: z.string().trim().min(2, "Elige la sede principal").max(40),
+  list: z.array(z.object({ name: z.string().trim().min(2, "Cada sede necesita un nombre (mínimo 2 letras)").max(40), from: z.string().trim().max(40).optional() })).min(1, "Deja al menos una sede").max(20),
+});
+/** Sedes del negocio (la lista completa): agregar, renombrar (se actualizan sus productos y ventas), elegir la principal y quitar las vacías. */
+export async function saveBranches(db: Db, a: Actor, raw: unknown) {
+  need(a, "settings");
+  const v = branchInput.parse(raw);
+  const names = v.list.map((x) => x.name);
+  if (new Set(names.map((n) => n.toLowerCase())).size !== names.length) throw new AppError("Hay dos sedes con el mismo nombre", "invalid");
+  if (!names.includes(v.main)) throw new AppError("La sede principal debe estar en la lista", "invalid");
+  return db.transaction(async (tx) => {
+    const [cur] = await tx.select().from(settings).where(eq(settings.id, 1)).for("update");
+    const before = [...new Set([cur?.branch ?? "Tienda principal", ...(cur?.branches ?? [])])];
+    const renames: [string, string][] = v.list.filter((x) => x.from && x.from !== x.name && before.includes(x.from)).map((x) => [x.from!, x.name]);
+    for (const [from, to] of renames) {
+      await tx.update(items).set({ branch: to }).where(eq(items.branch, from));
+      await tx.update(sales).set({ branch: to }).where(eq(sales.branch, from));
+    }
+    const origin = new Set(v.list.map((x) => x.from).filter(Boolean) as string[]);
+    for (const b of before) {
+      if (origin.has(b) || names.includes(b)) continue;
+      const [{ n }] = await tx.select({ n: count() }).from(items).where(eq(items.branch, b));
+      if (n > 0) throw new AppError(`La sede «${b}» tiene ${n} producto${n !== 1 ? "s" : ""}: trasládalos a otra sede antes de quitarla`, "invalid");
+    }
+    await tx.update(settings).set({ branch: v.main, branches: names.filter((n) => n !== v.main) }).where(eq(settings.id, 1));
+    const added = names.filter((n) => !before.includes(n) && !renames.some(([, t]) => t === n));
+    const removed = before.filter((b) => !origin.has(b) && !names.includes(b));
+    await logFeed(tx, a, "owner", "📦", `Sedes actualizadas por ${esc(a.name)}: principal <b>${esc(v.main)}</b>${added.length ? " · nuevas: " + added.map(esc).join(", ") : ""}${renames.length ? " · renombradas: " + renames.map(([f, t]) => `${esc(f)} → ${esc(t)}`).join(", ") : ""}${removed.length ? " · quitadas: " + removed.map(esc).join(", ") : ""}`);
+  });
 }

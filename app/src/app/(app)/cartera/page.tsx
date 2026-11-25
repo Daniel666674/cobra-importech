@@ -26,21 +26,29 @@ export default async function Cartera({ searchParams }: PageProps<"/cartera">) {
   );
   if (tab === "pagos") return <Pagos list={list} f={{ desde: one("desde"), hasta: one("hasta"), tienda: one("tienda"), forma: one("forma") }} tabs={tabs} db={db} />;
   const sum = (f: (x: (typeof list)[number]) => number) => list.reduce((s, x) => s + f(x), 0);
+  const fl = one("f");
+  const FIL: [string, string, (x: (typeof list)[number]) => boolean][] = [["saldo", "Con saldo", (x) => x.balance > 0], ["vencido", "Con vencido", (x) => x.age.overdue > 0], ["anticipo", "Con anticipo", (x) => x.advance > 0], ["consignacion", "Consignación", (x) => x.mode === "consignacion"], ["compra", "Compra", (x) => x.mode === "compra"], ["inactivas", "Inactivas", (x) => !x.active]];
+  const cur = FIL.find((x) => x[0] === fl);
+  const rows = cur ? list.filter(cur[2]) : list;
   return (
     <>
       <PageHeader title="Cartera" subtitle="Cuentas con las tiendas aliadas: saldos, vencimientos, abonos y anticipos" />
       {tabs}
       <div className="mb-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <div className="card p-3"><span className="note block">Total por pagar</span><b className="text-xl tabular-nums">{fmt(sum((x) => x.balance))}</b></div>
-        <div className="card p-3"><span className="note block">Vencido</span><b className={`text-xl tabular-nums ${sum((x) => x.age.overdue) ? "text-red-t" : ""}`}>{fmt(sum((x) => x.age.overdue))}</b></div>
-        <div className="card p-3"><span className="note block">Anticipos (saldo a favor)</span><b className="text-xl tabular-nums text-green-t">{fmt(sum((x) => x.advance))}</b></div>
-        <div className="card p-3"><span className="note block">Pagado este mes</span><b className="text-xl tabular-nums">{fmt(sum((x) => x.paidMonth))}</b></div>
+        <Link href="/cartera?f=saldo" className="card block p-3 hover:border-accent"><span className="note block">Total por pagar</span><b className="text-xl tabular-nums">{fmt(sum((x) => x.balance))}</b></Link>
+        <Link href="/cartera?f=vencido" className="card block p-3 hover:border-accent"><span className="note block">Vencido</span><b className={`text-xl tabular-nums ${sum((x) => x.age.overdue) ? "text-red-t" : ""}`}>{fmt(sum((x) => x.age.overdue))}</b></Link>
+        <Link href="/cartera?f=anticipo" className="card block p-3 hover:border-accent"><span className="note block">Anticipos (saldo a favor)</span><b className="text-xl tabular-nums text-green-t">{fmt(sum((x) => x.advance))}</b></Link>
+        <Link href={`/cartera?tab=pagos&desde=${new Date(Date.now() - 5 * 3600_000).toISOString().slice(0, 8)}01`} className="card block p-3 hover:border-accent"><span className="note block">Pagado este mes</span><b className="text-xl tabular-nums">{fmt(sum((x) => x.paidMonth))}</b></Link>
+      </div>
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <Link href="/cartera" className={`btn sm ${!cur ? "primary" : ""}`}>Todas · {list.length}</Link>
+        {FIL.map(([k, l, fn]) => <Link key={k} href={`/cartera?f=${k}`} className={`btn sm ${fl === k ? "primary" : ""}`}>{l} · {list.filter(fn).length}</Link>)}
       </div>
       <div className="card mb-4 overflow-x-auto">
         {list.length === 0 ? <Empty>Aún no hay tiendas aliadas. Crea la primera abajo.</Empty> : (
           <table className="t">
             <thead><tr><th>Tienda</th><th>Fecha de pago</th><th className="num">0–30 días</th><th className="num">31–60</th><th className="num">61–90</th><th className="num">+90</th><th className="num">Saldo</th><th className="num">Anticipo</th><th>Último pago</th></tr></thead>
-            <tbody>{list.map((x) => (
+            <tbody>{rows.map((x) => (
               <tr key={x.id}>
                 <td><Link className="font-semibold hover:underline" href={`/cartera/${x.id}`}>{x.name}</Link>{!x.active && <Chip>Inactiva</Chip>}<div className="note">{x.mode === "compra" ? "Compra" : "Consignación"}{x.phone ? ` · ${x.phone}` : ""}</div></td>
                 <td>{x.due ? <><span className="block">{fdatey(x.due)}</span>{x.balance > 0 && <DueChip t={x.due} />}</> : <span className="note">{x.terms ? `${x.terms} días` : "—"}</span>}</td>

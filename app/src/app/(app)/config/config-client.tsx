@@ -6,6 +6,8 @@ import { importTacAction, saveBanksAction, saveLogoAction, saveMethodsAction, sa
 import { SaleReceipt } from "@/components/receipt";
 import { fdatey, fmt } from "@/lib/format";
 import { dedTable, rateTable } from "@/lib/tradein";
+import type { CatDef } from "@/lib/catalog";
+import { saveBranchesAction, saveCategoriesAction } from "@/app/actions/admin";
 import { saveTradeinConfigAction } from "@/app/actions/admin";
 import { DeleteSales } from "./delete-sales";
 import { ImportSales } from "./import-sales";
@@ -18,6 +20,7 @@ type Msg = { ok: boolean; t: string } | null;
 const GROUPS: { name: string; tabs: readonly (readonly [string, string, string])[] }[] = [
   { name: "General", tabs: [["inicio", "🚀 Puesta en marcha", "checklist inicio progreso"], ["negocio", "🏪 Negocio", "logo nit razón social dirección contacto color marca"]] },
   { name: "Ventas", tabs: [["comprobante", "🧾 Comprobante", "numeración factura título firmas plantilla correo"], ["caja", "💳 Ventas y caja", "formas de pago bancos recargos descuentos margen trm apartado"], ["garantias", "🛡️ Garantías", "garantía meses condiciones términos"], ["retomas", "🔄 Retomas", "trade-in porcentaje condición defectos cotizador"]] },
+  { name: "Catálogo", tabs: [["catalogo", "📦 Categorías y sedes", "categorías sedes sucursales tiendas productos tipos sku traslado"]] },
   { name: "Comunicación", tabs: [["mensajes", "💬 Mensajes y correo", "whatsapp correo gmail mensaje plantilla notificaciones"]] },
   { name: "Equipo y control", tabs: [["equipo", "🔐 Equipo y seguridad", "usuarios roles permisos actividad salud registro"]] },
   { name: "Datos", tabs: [["importar", "📥 Importar ventas", "importar excel historial"], ["respaldo", "💾 Respaldo y datos", "respaldo exportar borrar imei tac"]] },
@@ -36,7 +39,7 @@ async function processLogo(file: File): Promise<string> {
 
 const now = Date.now();
 const SAMPLE_SALE = {
-  id: "S-0000", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, pending: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
+  id: "S-0000", branch: "", no: "", t: now, client: "x", by: "x", method: "Mixto", mode: "contado", prepaid: 0, pending: 0, notes: "", discReason: "Cliente frecuente", source: "", extKey: "",
   payments: [{ method: "Transferencia", amount: 4_000_000 }, { method: "Efectivo", amount: 655_000 }], cash: null, holdPays: null, disc: 2, total: 4_655_000, tradeins: [], surcharge: 0,
   lines: [
     { item: "", name: "iPhone 15 Pro 256 GB", color: "Titanio natural", cond: "Nuevo", serial: "356789123456789", qty: 1, price: 4_550_000, cost: 0, warr: 12, ret: 0 },
@@ -45,7 +48,8 @@ const SAMPLE_SALE = {
 };
 const SAMPLE_CLIENT = { id: "x", name: "María Fernanda Gómez", doc: "1.020.345.678", phone: "3001234567", address: "Calle 10 # 5-20, Medellín", email: "maria@correo.com", notes: "" };
 
-export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount, mailReady, checklist, team }: {
+export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, methods, banks, sources, salesCount, mailReady, checklist, team, catalog }: {
+  catalog: { defs: CatDef[]; used: Record<string, number>; main: string; branches: string[]; branchUsed: Record<string, number> };
   checklist: { key: string; label: string; hint: string; tab: string; done: boolean }[];
   team: { users: number; active: number; roles: number };
   mailReady: boolean; initialTab: string; cfg: Cfg; logo: string;
@@ -67,6 +71,10 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
   const [on, setOn] = useState(methods.on);
   const [fees, setFees] = useState<Record<string, string>>(Object.fromEntries(methods.all.map((m) => [m, String(methods.surcharges[m] ?? "")])));
   const [search, setSearch] = useState("");
+  const [cats, setCats] = useState(() => catalog.defs.map((d) => ({ ...d })));
+  const [newCat, setNewCat] = useState({ name: "", kind: "unit" as "unit" | "qty", sku: "" });
+  const [sedes, setSedes] = useState(() => catalog.branches.map((b) => ({ name: b, from: b })));
+  const [mainSede, setMainSede] = useState(catalog.main);
   const [rates, setRates] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(rateTable({ rates: cfg.tradeRates })).map(([k, x]) => [k, String(Math.round(x * 100))])));
   const [deds, setDeds] = useState(() => dedTable({ deds: cfg.tradeDeds }).map((d) => ({ ...d, pct: String(d.pct) })));
   const [msg, setMsg] = useState<Msg>(null);
@@ -256,6 +264,41 @@ export function ConfigClient({ initialTab, cfg, logo, numbering, warranty, metho
           <ul className="grid gap-2 sm:grid-cols-2">{checklist.map((c) => <li key={c.key}><button onClick={() => go(c.tab)} className={`card flex w-full items-start gap-3 p-3 text-left hover:border-accent ${c.done ? "" : "border-amber-t/50"}`}><span className="text-lg">{c.done ? "✅" : "⬜"}</span><span><b className="block text-[13.5px]">{c.label}</b><span className="note">{c.hint}</span></span></button></li>)}</ul>
         </div>;
       })()}
+
+      {tab === "catalogo" && <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
+        <div className="card p-4">
+          <h2 className="mb-1 font-semibold">Categorías de producto</h2>
+          <p className="note mb-3">Las categorías de fábrica se pueden ocultar y reordenar; las propias se agregan aquí. «Por unidad» lleva IMEI/serie (cada equipo es único); «Por cantidad» maneja stock (accesorios).</p>
+          <div className="space-y-1.5">{cats.map((c, i) => (
+            <div key={c.name} className={`flex flex-wrap items-center gap-2 rounded-md border border-line p-2 ${c.active ? "" : "opacity-60"}`}>
+              <div className="flex flex-col"><button className="btn sm !px-1.5 !py-0" disabled={i === 0} onClick={() => setCats(cats.map((x, j) => (j === i - 1 ? cats[i] : j === i ? cats[i - 1] : x)))} aria-label="Subir">▲</button><button className="btn sm !px-1.5 !py-0" disabled={i === cats.length - 1} onClick={() => setCats(cats.map((x, j) => (j === i + 1 ? cats[i] : j === i ? cats[i + 1] : x)))} aria-label="Bajar">▼</button></div>
+              <b className="min-w-[110px] flex-1 text-[13.5px]">{c.name}</b>
+              <span className="note">{c.sku} · {c.kind === "qty" ? "por cantidad" : "por unidad"} · {catalog.used[c.name] ?? 0} productos</span>
+              <label className="flex items-center gap-1.5 text-[12.5px]"><input type="checkbox" className="!w-auto" checked={c.active} onChange={(e) => setCats(cats.map((x, j) => (j === i ? { ...x, active: e.target.checked } : x)))} /> Activa</label>
+              {!c.builtin && !(catalog.used[c.name] > 0) && <button className="btn sm" onClick={() => setCats(cats.filter((_, j) => j !== i))} aria-label="Quitar">✕</button>}
+            </div>))}</div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[2fr_1.3fr_1fr_auto]">
+            <input placeholder="Nueva categoría (ej. Cámaras)" value={newCat.name} onChange={(e) => setNewCat({ ...newCat, name: e.target.value })} aria-label="Nombre de la categoría" />
+            <select value={newCat.kind} onChange={(e) => setNewCat({ ...newCat, kind: e.target.value as "unit" | "qty" })} aria-label="Tipo"><option value="unit">Por unidad (IMEI/serie)</option><option value="qty">Por cantidad (stock)</option></select>
+            <input placeholder="SKU (CAM)" maxLength={4} value={newCat.sku} onChange={(e) => setNewCat({ ...newCat, sku: e.target.value.toUpperCase().replace(/[^A-Z]/g, "") })} aria-label="Código SKU" />
+            <button className="btn" onClick={() => { if (newCat.name.trim().length < 2) return setMsg({ ok: false, t: "Escribe el nombre de la categoría" }); setCats([...cats, { name: newCat.name.trim(), kind: newCat.kind, sku: newCat.sku || newCat.name.normalize("NFD").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase().padEnd(3, "X"), active: true, builtin: false, mobile: false }]); setNewCat({ name: "", kind: "unit", sku: "" }); }}>+ Agregar</button>
+          </div>
+          <button className="btn primary mt-3" disabled={busy} onClick={() => run(() => saveCategoriesAction({ cats: cats.map(({ name, kind, sku, active }) => ({ name, kind, sku, active })) }), "Categorías guardadas")}>Guardar categorías</button>
+        </div>
+        <div className="card p-4">
+          <h2 className="mb-1 font-semibold">Sedes</h2>
+          <p className="note mb-3">Cada producto vive en una sede y cada venta queda en la sede del equipo vendido. Puedes trasladar productos entre sedes desde su ficha. Al renombrar una sede se actualizan sus productos y ventas.</p>
+          <div className="space-y-1.5">{sedes.map((x, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input type="radio" name="main-sede" className="!w-auto" checked={mainSede === x.name} onChange={() => setMainSede(x.name)} aria-label="Sede principal" title="Sede principal (la de los productos nuevos)" />
+              <input value={x.name} onChange={(e) => { const old = x.name; setSedes(sedes.map((y, j) => (j === i ? { ...y, name: e.target.value } : y))); if (mainSede === old) setMainSede(e.target.value); }} aria-label="Nombre de la sede" />
+              <span className="note shrink-0">{x.from ? catalog.branchUsed[x.from] ?? 0 : 0} prod.</span>
+              {sedes.length > 1 && <button className="btn sm" onClick={() => { const rest = sedes.filter((_, j) => j !== i); setSedes(rest); if (mainSede === x.name) setMainSede(rest[0].name); }} aria-label="Quitar sede">✕</button>}
+            </div>))}</div>
+          <p className="note mt-1">● = sede principal (donde entran los productos nuevos por defecto).</p>
+          <div className="mt-3 flex flex-wrap gap-2"><button className="btn" onClick={() => setSedes([...sedes, { name: "", from: "" }])}>+ Agregar sede</button><button className="btn primary" disabled={busy} onClick={() => run(() => saveBranchesAction({ main: mainSede, list: sedes.map((x) => ({ name: x.name, from: x.from || undefined })) }), "Sedes guardadas")}>Guardar sedes</button></div>
+        </div>
+      </div>}
 
       {tab === "retomas" && <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
         <div className="card p-4"><h2 className="mb-1 font-semibold">Porcentaje de la oferta por condición</h2><p className="note mb-3">Oferta sugerida = valor de referencia × porcentaje − descuentos por defectos. La persona siempre puede cambiar la oferta final.</p>

@@ -1,3 +1,4 @@
+import { activeCatNames, catDefs } from "@/lib/catalog";
 import { getDb } from "@/db";
 import { eq } from "drizzle-orm";
 import { allies, settings } from "@/db/schema";
@@ -16,7 +17,7 @@ export default async function IngresoPage({ searchParams }: PageProps<"/ingreso"
   return (
     <>
       <PageHeader title="Ingresar producto" subtitle="Registra equipos y accesorios. Para iPhone, el IMEI se verifica antes de guardar." />
-      <IngresoClient warr={cfg.warr} canCost={hasPerm(me, "cost_view")} allies={al} initialAlly={initialAlly} />
+      <IngresoClient cats={activeCatNames(catDefs(cfg.categories))} branches={[...new Set([cfg.branch, ...cfg.branches])]} mainBranch={cfg.branch} warr={cfg.warr} canCost={hasPerm(me, "cost_view")} allies={al} initialAlly={initialAlly} />
     </>
   );
 }

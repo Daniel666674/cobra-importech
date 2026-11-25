@@ -2,14 +2,14 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db";
 import { cashMoves, claims, clients, items, orders, purchases, sales, techMoves, technicians } from "@/db/schema";
-import { CATS, CAT_SKU, CONDS, listPrice, type Cat } from "@/lib/catalog";
+import { CONDS, listPrice } from "@/lib/catalog";
 import { fmt } from "@/lib/format";
 import { landed } from "@/lib/landed";
 import { isQty, uname } from "@/lib/items";
 import { pendingAlta } from "./approvals";
 import { AppError, copField, addEvent, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { verifyImei } from "./imei";
-import { branchName } from "./inventory";
+import { branchName, getCatDefs } from "./inventory";
 import { ensureClient } from "./sales";
 
 /* ---------- Clientes ---------- */
@@ -248,7 +248,7 @@ export async function createPurchase(db: Db, a: Actor, raw: unknown) {
 }
 
 export const receiveInput = z.object({
-  cat: z.enum(CATS),
+  cat: z.string().trim().min(1).max(40),
   name: z.string().trim().min(1, "Escribe el producto"),
   spec: z.string().default(""),
   color: z.string().default(""),
@@ -269,17 +269,19 @@ export async function receivePurchase(db: Db, a: Actor, poId: string, raw: unkno
   if (!po) throw new AppError("Compra no encontrada", "notfound");
   const L = landed(po);
   const branch = await branchName(db);
+  const def = (await getCatDefs(db)).find((c) => c.name === v.cat && c.active);
+  if (!def) throw new AppError(`La categoría «${v.cat}» no existe o está desactivada`, "invalid");
   const cost = Math.round(L.unit);
   const price = v.price || listPrice(v.name, v.spec, v.cond) || Math.round((L.unit * 1.2) / 1000) * 1000;
   const warr = 12;
   const ok: string[] = [];
   const bad: [string, string][] = [];
   await db.transaction(async (tx) => {
-    const qtyTrack = v.cat === "AirPods" || v.cat === "Accesorios";
+    const qtyTrack = def.kind === "qty";
     if (qtyTrack) {
       const n = await nextCounter(tx, "item");
       const id = "I-" + String(n).padStart(4, "0");
-      await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: "", qty: v.qty, cost, price, warr, branch, status: "En vitrina", acq: Date.now(), src: "Importación " + poId, min: 3, track: "qty", batt: null, notes: "", repairs: 0, imeiCheck: null, hold: null, approval: pendingAlta(a) });
+      await tx.insert(items).values({ id, sku: def.sku + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: "", qty: v.qty, cost, price, warr, branch, status: "En vitrina", acq: Date.now(), src: "Importación " + poId, min: 3, track: "qty", batt: null, notes: "", repairs: 0, imeiCheck: null, hold: null, approval: pendingAlta(a) });
       await addEvent(tx, id, a, "Ingreso ×" + v.qty, poId, "ok");
       ok.push(id);
     } else {
@@ -299,7 +301,7 @@ export async function receivePurchase(db: Db, a: Actor, poId: string, raw: unkno
         const n = await nextCounter(tx, "item");
         const id = "I-" + String(n).padStart(4, "0");
         const review = v.cat === "iPhone";
-        await tx.insert(items).values({ id, sku: CAT_SKU[v.cat as Cat] + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: sr, qty: 1, cost, price, warr, branch, status: review ? "En revisión" : "En vitrina", acq: Date.now(), src: "Importación " + poId, batt: v.cond === "Nuevo" ? 100 : null, notes: "", repairs: 0, min: 0, track: "unit", imeiCheck: null, hold: null, approval: pendingAlta(a) });
+        await tx.insert(items).values({ id, sku: def.sku + "-" + String(n).padStart(4, "0"), cat: v.cat, name: v.name, spec: v.spec, color: v.color, cond: v.cond, serial: sr, qty: 1, cost, price, warr, branch, status: review ? "En revisión" : "En vitrina", acq: Date.now(), src: "Importación " + poId, batt: v.cond === "Nuevo" ? 100 : null, notes: "", repairs: 0, min: 0, track: "unit", imeiCheck: null, hold: null, approval: pendingAlta(a) });
         await addEvent(tx, id, a, "Ingreso por compra", `${poId} · costo real ${fmt(cost)}`);
         if (review) await addEvent(tx, id, a, "Pendiente de verificación oficial", "No se puede vender hasta registrar CRC y Apple", "warn");
         else await addEvent(tx, id, a, "En vitrina", branch);

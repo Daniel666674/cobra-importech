@@ -86,11 +86,12 @@ export async function reportData(db: Db, days: number, now = Date.now()) {
 }
 
 /* ───────────── Reportes avanzados (con filtros y comparación de período) ───────────── */
-export type ReportFilters = { desde: string; hasta: string; vendedor: string; metodo: string; cat: string };
+export type ReportFilters = { desde: string; hasta: string; vendedor: string; metodo: string; cat: string; sede?: string };
 type Agg = { total: number; margin: number; units: number; n: number };
 const blank = (): Agg => ({ total: 0, margin: 0, units: 0, n: 0 });
 
 function aggregate(ss: (typeof sales.$inferSelect)[], f: ReportFilters, itemCat: Map<string, string>) {
+  const bySede = new Map<string, Agg>();
   const byCat = new Map<string, Agg>(), byProduct = new Map<string, Agg & { item: string }>(), bySeller = new Map<string, Agg>(), byClient = new Map<string, Agg>();
   const byMethod = new Map<string, { amount: number; n: number }>();
   const byDay = new Map<string, { total: number; n: number }>();
@@ -100,6 +101,7 @@ function aggregate(ss: (typeof sales.$inferSelect)[], f: ReportFilters, itemCat:
   for (const s of ss) {
     if (saleVoid(s)) continue;
     if (f.vendedor && s.by !== f.vendedor) continue;
+    if (f.sede && s.branch !== f.sede) continue;
     if (f.metodo && !(s.method === f.metodo || s.payments.some((p) => p.method === f.metodo))) continue;
     let sTotal = 0, sMargin = 0, sUnits = 0, hit = false;
     const touched = new Set<string>();
@@ -117,6 +119,7 @@ function aggregate(ss: (typeof sales.$inferSelect)[], f: ReportFilters, itemCat:
     }
     if (!hit) continue;
     count++; total += sTotal; margin += sMargin; units += sUnits; surcharge += s.surcharge ?? 0; pending += s.pending;
+    const sd = bySede.get(s.branch || "—") ?? blank(); sd.total += sTotal; sd.margin += sMargin; sd.units += sUnits; sd.n++; bySede.set(s.branch || "—", sd);
     const sl = bySeller.get(s.by) ?? blank(); sl.total += sTotal; sl.margin += sMargin; sl.units += sUnits; sl.n++; bySeller.set(s.by, sl);
     const ck = s.client ?? ""; const cl = byClient.get(ck) ?? blank(); cl.total += sTotal; cl.margin += sMargin; cl.units += sUnits; cl.n++; byClient.set(ck, cl);
     for (const p of s.payments) { const m = byMethod.get(p.method) ?? { amount: 0, n: 0 }; m.amount += p.amount; m.n++; byMethod.set(p.method, m); }
@@ -127,7 +130,7 @@ function aggregate(ss: (typeof sales.$inferSelect)[], f: ReportFilters, itemCat:
     const h = local.getUTCHours(); byHour[h].total += sTotal; byHour[h].n++;
   }
   const sortBy = <T extends { total: number }>(m: Map<string, T>) => [...m.entries()].sort((a, b) => b[1].total - a[1].total);
-  return { total, margin, units, count, discount, surcharge, pending, ticket: count ? total / count : 0, byCat: sortBy(byCat), byProduct: sortBy(byProduct), bySeller: sortBy(bySeller), byClient: sortBy(byClient), byMethod: [...byMethod.entries()].sort((a, b) => b[1].amount - a[1].amount), byDay, byWeekday, byHour };
+  return { total, margin, units, count, discount, surcharge, pending, ticket: count ? total / count : 0, byCat: sortBy(byCat), byProduct: sortBy(byProduct), bySeller: sortBy(bySeller), bySede: sortBy(bySede), byClient: sortBy(byClient), byMethod: [...byMethod.entries()].sort((a, b) => b[1].amount - a[1].amount), byDay, byWeekday, byHour };
 }
 
 export async function advancedReport(db: Db, f: ReportFilters, now = Date.now()) {

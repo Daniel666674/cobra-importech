@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { settings, users } from "@/db/schema";
 import { PageHeader } from "@/components/ui";
-import { CATS, METHODS } from "@/lib/catalog";
+import { METHODS, catDefs } from "@/lib/catalog";
 import { fmt, fmtM } from "@/lib/format";
 import { filtersToQuery, presetRange, type SaleFilters } from "@/lib/sale-filters";
 import { hasPerm } from "@/server/auth";
@@ -30,9 +30,11 @@ export default async function Reportes({ searchParams }: PageProps<"/reportes">)
   let desde = ymd(one(sp.desde)) || r30.desde, hasta = ymd(one(sp.hasta)) || r30.hasta;
   if (desde > hasta) [desde, hasta] = [hasta, desde];
   if (hasta > today) hasta = today;
-  const f = { desde, hasta, vendedor: one(sp.vendedor), metodo: one(sp.metodo), cat: one(sp.cat) };
+  const f = { desde, hasta, vendedor: one(sp.vendedor), metodo: one(sp.metodo), cat: one(sp.cat), sede: one(sp.sede) };
   const db = await getDb();
-  const [r, us] = await Promise.all([advancedReport(db, f), db.select().from(users)]);
+  const [r, us, [cfg]] = await Promise.all([advancedReport(db, f), db.select().from(users), db.select().from(settings).limit(1)]);
+  const sedes = [...new Set([cfg.branch, ...cfg.branches])];
+  const catNames = catDefs(cfg.categories).map((c) => c.name);
   const cost = hasPerm(me, "cost_view");
   const { cur, prev } = r;
   const vq = (patch: Partial<SaleFilters> = {}) => `/ventas?${filtersToQuery({ ...f, ...patch } as Partial<SaleFilters>)}`;
@@ -44,7 +46,7 @@ export default async function Reportes({ searchParams }: PageProps<"/reportes">)
   const h0 = Math.min(7, ...(used.length ? used : [7])), h1 = Math.max(21, ...(used.length ? used : [21]));
   const hours = cur.byHour.map((h, i) => ({ ...h, i })).filter((h) => h.i >= h0 && h.i <= h1);
   const maxHr = Math.max(1, ...hours.map((h) => h.total));
-  const active = [f.vendedor && `Vendedor: ${(r.userName.get(f.vendedor) ?? f.vendedor).split(" ")[0]}`, f.metodo && `Pago: ${f.metodo}`, f.cat && `Categoría: ${f.cat}`].filter(Boolean);
+  const active = [f.vendedor && `Vendedor: ${(r.userName.get(f.vendedor) ?? f.vendedor).split(" ")[0]}`, f.metodo && `Pago: ${f.metodo}`, f.cat && `Categoría: ${f.cat}`, f.sede && `Sede: ${f.sede}`].filter(Boolean);
   const kpis: { l: string; v: string; d: React.ReactNode; href: string }[] = [
     { l: "Ventas", v: fmt(cur.total), d: <Delta cur={cur.total} prev={prev.total} />, href: vq() },
     { l: "Comprobantes", v: String(cur.count), d: <Delta cur={cur.count} prev={prev.count} />, href: vq() },
@@ -69,8 +71,9 @@ export default async function Reportes({ searchParams }: PageProps<"/reportes">)
           <label className="text-[12px]"><span className="lb">Hasta</span><input type="date" name="hasta" defaultValue={hasta} max={today} /></label>
           <label className="text-[12px]"><span className="lb">Vendedor</span><select name="vendedor" defaultValue={f.vendedor}><option value="">Todos</option>{us.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
           <label className="text-[12px]"><span className="lb">Forma de pago</span><select name="metodo" defaultValue={f.metodo}><option value="">Todas</option>{[...METHODS, "Retoma", "Abono previo"].map((m) => <option key={m}>{m}</option>)}</select></label>
-          <label className="text-[12px]"><span className="lb">Categoría</span><select name="cat" defaultValue={f.cat}><option value="">Todas</option>{[...CATS, "Otros"].map((c) => <option key={c}>{c}</option>)}</select></label>
-          <div className="flex items-end gap-2"><button className="btn primary">Aplicar</button>{active.length > 0 && <Link className="btn" href={rq({ vendedor: "", metodo: "", cat: "" })}>Quitar filtros</Link>}</div>
+          {sedes.length > 1 && <label className="text-[12px]"><span className="lb">Sede</span><select name="sede" defaultValue={f.sede}><option value="">Todas</option>{sedes.map((b) => <option key={b}>{b}</option>)}</select></label>}
+          <label className="text-[12px]"><span className="lb">Categoría</span><select name="cat" defaultValue={f.cat}><option value="">Todas</option>{[...catNames, "Otros"].map((c) => <option key={c}>{c}</option>)}</select></label>
+          <div className="flex items-end gap-2"><button className="btn primary">Aplicar</button>{active.length > 0 && <Link className="btn" href={rq({ vendedor: "", metodo: "", cat: "", sede: "" })}>Quitar filtros</Link>}</div>
         </form>
         {active.length > 0 && <div className="flex flex-wrap gap-1.5">{active.map((a) => <span key={String(a)} className="chip info">{a}</span>)}</div>}
       </div>
@@ -106,6 +109,7 @@ export default async function Reportes({ searchParams }: PageProps<"/reportes">)
             <li key={name}><Link href={vq({ q: name } as Partial<SaleFilters>)} className="flex justify-between gap-3 rounded px-1 py-1 text-[13px] hover:bg-gray-bg"><span><span className="note">{i + 1}.</span> {name} <span className="note">· {p.units} uds.</span></span><span className="text-right"><b className="tabular-nums">{fmt(p.total)}</b>{cost && <span className="note block">margen {fmt(p.margin)}</span>}</span></Link></li>))}</ol>}</div>
       </div>
 
+      {cur.bySede.length > 1 && <div className="card mt-4 p-4"><h2 className="mb-3 font-semibold">Por sede</h2><ul className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">{cur.bySede.map(([b, v]) => <li key={b}><Link href={vq({ sede: b === "—" ? "" : b })} className="block rounded px-2 py-1.5 text-[13px] hover:bg-gray-bg"><div className="flex justify-between"><span>{b} <span className="note">· {v.n} ventas</span></span><b className="tabular-nums">{fmt(v.total)}</b></div>{cost && <div className="note">margen {fmt(v.margin)}</div>}</Link></li>)}</ul></div>}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="card p-4"><h2 className="mb-3 font-semibold">Por vendedor</h2>
           {cur.bySeller.length === 0 ? <p className="note">—</p> : <ul className="space-y-1">{cur.bySeller.map(([u, v]) => (

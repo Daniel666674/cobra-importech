@@ -1,7 +1,7 @@
 "use server";
 import { act } from "@/server/act";
 import { importTacCsv } from "@/server/inventory";
-import { createUser, saveBanks, saveLogo, saveMethods, saveTradeinConfig, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
+import { createUser, saveBanks, saveLogo, saveMethods, saveTradeinConfig, saveCategories, saveBranches, saveNumbering, saveRolePerms, saveSettings, saveWarranty, updateUser } from "@/server/admin";
 import { importSales, undoImport } from "@/server/import";
 
 export async function createUserAction(data: unknown) {
@@ -30,6 +30,12 @@ export async function saveWarrantyAction(data: unknown) {
 }
 export async function saveTradeinConfigAction(data: unknown) {
   return act((db, a) => saveTradeinConfig(db, a, data), ["/retomas", "/venta"]);
+}
+export async function saveCategoriesAction(data: unknown) {
+  return act((db, a) => saveCategories(db, a, data), ["/", "/inventario", "/ingreso", "/venta", "/retomas", "/compras"]);
+}
+export async function saveBranchesAction(data: unknown) {
+  return act((db, a) => saveBranches(db, a, data), ["/", "/inventario", "/ingreso", "/ventas", "/reportes"]);
 }
 export async function saveMethodsAction(data: unknown) {
   return act((db, a) => saveMethods(db, a, data), ["/"]);

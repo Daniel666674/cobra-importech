@@ -1,6 +1,7 @@
 import "server-only";
 import type { Db } from "@/db";
-import { allies, allyMoves, cashCloses, claims, items, orders, sales, users } from "@/db/schema";
+import { allies, allyMoves, cashCloses, claims, items, orders, sales, settings, users } from "@/db/schema";
+import { catDefs } from "@/lib/catalog";
 import { isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
 import { lineNet, saleNet, saleVoid } from "@/lib/sales";
@@ -14,6 +15,7 @@ export type HealthCheck = { key: string; level: "ok" | "warn" | "bad"; title: st
  * señala cualquier dato que no cuadre. Solo lee; no cambia nada.
  */
 export async function systemHealth(db: Db): Promise<{ checks: HealthCheck[]; bad: number; warn: number; at: number }> {
+  const [[cfg]] = await Promise.all([db.select().from(settings).limit(1)]);
   const [its, ss, orders_, claims_, allies_, moves, closes, us] = await Promise.all([
     db.select().from(items), db.select().from(sales), db.select().from(orders), db.select().from(claims),
     db.select().from(allies), db.select().from(allyMoves), db.select().from(cashCloses), db.select().from(users),
@@ -77,6 +79,12 @@ export async function systemHealth(db: Db): Promise<{ checks: HealthCheck[]; bad
   add("review-stale", "warn", "Equipos «En revisión» desde hace más de 7 días", "Siguen esperando la verificación oficial.", its.filter((i) => i.status === "En revisión" && Date.now() - i.acq > 7 * 86400_000).map((i) => ({ label: i.name, href: `/inventario/${i.id}` })));
   add("no-price", "warn", "Equipos en vitrina sin precio de venta", "No se podrán vender sin escribir el precio en caja.", its.filter((i) => i.status === "En vitrina" && i.price <= 0 && (isQty(i) ? i.qty > 0 : true) && !i.approval).map((i) => ({ label: i.name, href: `/inventario/${i.id}` })));
   add("below-cost", "warn", "Equipos en vitrina con precio por debajo del costo", "Se perdería plata al venderlos al precio actual.", its.filter((i) => i.status === "En vitrina" && i.price > 0 && i.price < i.cost && !isQty(i) || (isQty(i) && i.qty > 0 && i.price > 0 && i.price < i.cost)).map((i) => ({ label: `${i.name}: precio ${fmt(i.price)} < costo ${fmt(i.cost)}`, href: `/inventario/${i.id}` })));
+
+  // 5b. Catálogo y sedes
+  const known = new Set(catDefs(cfg?.categories).map((c) => c.name));
+  add("cat-unknown", "warn", "Productos de una categoría que ya no existe", "Revisa su categoría en la ficha o vuelve a crearla en Configuración.", its.filter((i) => !known.has(i.cat)).map((i) => ({ label: `${i.name} · ${i.cat}`, href: `/inventario/${i.id}` })));
+  const sedes = new Set([cfg?.branch ?? "", ...(cfg?.branches ?? [])]);
+  add("branch-unknown", "warn", "Productos en una sede que no está configurada", "Agrega la sede en Configuración → Categorías y sedes o traslada el producto.", its.filter((i) => i.status !== "Vendido" && i.branch && !sedes.has(i.branch)).map((i) => ({ label: `${i.name} · ${i.branch}`, href: `/inventario/${i.id}` })));
 
   // 6. Caja y accesos
   add("cash-diff", "warn", "Cierres de caja con diferencia", "El efectivo contado no coincidió con el esperado.", closes.filter((c) => c.counted !== c.expected).sort((a, b) => b.t - a.t).slice(0, 10).map((c) => ({ label: `${c.day} · diferencia ${fmt(c.counted - c.expected)}`, href: `/caja?dia=${c.day}` })));

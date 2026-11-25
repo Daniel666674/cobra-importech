@@ -8,6 +8,23 @@ export const isMobile = (cat: string) => MOBILE_CATS.includes(cat);
 export const CAT_SKU: Record<Cat, string> = {
   iPhone: "IPH", Samsung: "SAM", Android: "AND", iPad: "IPD", Mac: "MAC", "Apple Watch": "AWT", AirPods: "APD", Accesorios: "ACC",
 };
+/** Categorías de producto configurables por negocio: las de fábrica se pueden ocultar y se pueden agregar otras propias. */
+export type CatDef = { name: string; kind: "unit" | "qty"; sku: string; active: boolean; builtin: boolean; mobile: boolean };
+export const DEFAULT_CATDEFS: CatDef[] = CATS.map((name) => ({ name, kind: name === "AirPods" || name === "Accesorios" ? "qty" : "unit", sku: CAT_SKU[name], active: true, builtin: true, mobile: MOBILE_CATS.includes(name) }));
+export function catDefs(stored?: { name: string; kind?: string; sku?: string; active?: boolean }[] | null): CatDef[] {
+  const out: CatDef[] = [];
+  for (const s of stored ?? []) {
+    const d = DEFAULT_CATDEFS.find((x) => x.name === s.name);
+    if (d) out.push({ ...d, active: s.active !== false });
+    else if (s.name && !out.some((x) => x.name === s.name)) out.push({ name: s.name, kind: s.kind === "qty" ? "qty" : "unit", sku: (s.sku || s.name.normalize("NFD").replace(/[^A-Za-z]/g, "").slice(0, 3)).toUpperCase().padEnd(3, "X"), active: s.active !== false, builtin: false, mobile: false });
+  }
+  for (const d of DEFAULT_CATDEFS) if (!out.some((x) => x.name === d.name)) out.push({ ...d });
+  return out;
+}
+/** Productos que pueden ir sin garantía: accesorios y las categorías propias por cantidad. */
+export const noWarrantyOk = (it: { cat: string; track?: string }) => it.cat === "Accesorios" || (it.track === "qty" && it.cat !== "AirPods");
+export const activeCatNames = (defs: CatDef[]) => defs.filter((d) => d.active).map((d) => d.name);
+
 export const CONDS = ["Nuevo", "Exhibición", "Reacondicionado", "Pre-owned", "Usado"] as const;
 export const STATUSES = ["En vitrina", "Apartado", "En taller", "En revisión", "Vendido"] as const;
 export const METHODS = ["Efectivo", "Transferencia", "Tarjeta débito", "Tarjeta crédito", "Nequi", "Daviplata", "Addi", "Vanti", "Enlace Bold", "Datáfono Bold", "Datáfono Redeban"] as const;

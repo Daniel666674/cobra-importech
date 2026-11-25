@@ -6,12 +6,12 @@ import { createItemAction } from "@/app/actions/inventory";
 import { TradeinForm } from "@/components/tradein-form";
 
 /** Retoma suelta: la tienda compra el equipo y lo ingresa al inventario. */
-export function RetomaClient({ warr, quoteCfg }: { warr: Record<string, number>; quoteCfg?: QuoteCfg }) {
+export function RetomaClient({ warr, quoteCfg, cats }: { warr: Record<string, number>; quoteCfg?: QuoteCfg; cats: string[] }) {
   const router = useRouter();
   const [err, setErr] = useState("");
   const [busy, start] = useTransition();
   return (
-    <TradeinForm quoteCfg={quoteCfg} warr={warr} mode="compra" busy={busy} error={err} onAccept={(p) => start(async () => {
+    <TradeinForm cats={cats.filter((c) => c !== "Accesorios")} quoteCfg={quoteCfg} warr={warr} mode="compra" busy={busy} error={err} onAccept={(p) => start(async () => {
       setErr("");
       const r = await createItemAction(p.item, p.official, p.ownerApproved);
       if (!r.ok) return setErr(r.error);

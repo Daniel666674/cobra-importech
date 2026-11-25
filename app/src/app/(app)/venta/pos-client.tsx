@@ -30,12 +30,13 @@ type Props = {
   can: { discount: boolean; cost: boolean; credit: boolean; tradein: boolean };
   warr: Record<string, number>;
   quoteCfg?: QuoteCfg;
+  cats: string[];
   /** Tiendas aliadas activas: proveedor de un producto fuera de inventario. */
   allies: { id: string; name: string }[];
   start: { item: string; mode: "contado" | "apartado"; hold: string };
 };
 
-export function PosClient({ items, clients, cfg, can, start, warr, allies, quoteCfg }: Props) {
+export function PosClient({ items, clients, cfg, can, start, warr, allies, quoteCfg, cats }: Props) {
   const router = useRouter();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const finishing = start.hold ? byId.get(start.hold) ?? null : null;
@@ -171,7 +172,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies, quote
           <button type="button" className="btn whitespace-nowrap" onClick={() => { setScanMsg(""); setScanOpen(true); }}>📷 Escanear</button>
         </div>
         <div className="flex flex-wrap gap-2 border-b border-line px-4 py-3">
-          {["", ...CATS].map((c) => (
+          {["", ...cats].map((c) => (
             <button key={c || "todo"} type="button" onClick={() => setCat(c)} aria-pressed={cat === c}
               className={`rounded-full border px-4 py-1.5 text-[13px] font-semibold ${cat === c ? "border-transparent bg-brand text-white" : "border-line bg-card hover:border-accent"}`}>
               {c ? `${CAT_ICON[c] ?? ""} ${c}` : "Todo"}
@@ -244,7 +245,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies, quote
           {!finishing && !hold && (cf ? (
             <div className="mt-3 space-y-2 rounded-lg border border-dashed border-line p-3">
               <b className="block text-[13px]">Producto fuera de inventario</b>
-              <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", sim: "", qty: 1, warr: e.target.value === "Accesorios" ? "0" : String(warr[cf.cond] ?? 1) })}>{CATS.map((c) => <option key={c}>{c}</option>)}</select>
+              <select aria-label="Categoría" value={cf.cat} onChange={(e) => setCf({ ...cf, cat: e.target.value as Cat, name: "", spec: "", color: "", serial: "", serial2: "", batt: "", sim: "", qty: 1, warr: e.target.value === "Accesorios" ? "0" : String(warr[cf.cond] ?? 1) })}>{cats.map((c) => <option key={c}>{c}</option>)}</select>
               <ComboSelect ariaLabel="Modelo fuera de inventario" value={cf.name} options={CATALOG.filter((c) => c.cat === cf.cat).map((c) => c.name)} onChange={(x) => setCf({ ...cf, name: x })} placeholder={cf.cat === "Accesorios" ? "Producto…" : "Modelo…"} />
               <div className="grid grid-cols-2 gap-2">
                 <ComboSelect ariaLabel="Capacidad" value={cf.spec} options={SPEC_OPTIONS[cf.cat]} onChange={(x) => setCf({ ...cf, spec: x })} placeholder={isMobile(cf.cat) || cf.cat === "iPad" ? "Capacidad…" : "Detalle…"} />
@@ -403,7 +404,7 @@ export function PosClient({ items, clients, cfg, can, start, warr, allies, quote
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label="Recibir equipo como parte de pago">
           <div className="mx-auto max-w-[1100px] rounded-xl bg-bg p-4 shadow-xl">
             <div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold">Recibir equipo como parte de pago</h2><button type="button" className="btn sm" onClick={() => setTradeOpen(false)}>Cerrar</button></div>
-            <TradeinForm quoteCfg={quoteCfg} warr={warr} mode="venta" onAccept={(p) => {
+            <TradeinForm cats={cats.filter((c) => c !== "Accesorios")} quoteCfg={quoteCfg} warr={warr} mode="venta" onAccept={(p) => {
               if (trades.some((t) => t.item.serial && t.item.serial === p.item.serial)) return;
               setTrades([...trades, p]); setTradeOpen(false); setPays(pays.map((x) => ({ ...x, amount: "" })));
             }} />
