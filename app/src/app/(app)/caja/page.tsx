@@ -1,3 +1,4 @@
+import { addDays } from "@/lib/sale-filters";
 import Link from "next/link";
 import { getDb } from "@/db";
 import { Chip, Empty, PageHeader } from "@/components/ui";
@@ -25,7 +26,10 @@ export default async function Caja({ searchParams }: PageProps<"/caja">) {
       <form className="card mb-4 flex flex-wrap items-end gap-3 p-3" action="/caja">
         <div><label className="lb" htmlFor="dia">Día</label><input id="dia" type="date" name="dia" defaultValue={day} max={bogotaToday()} /></div>
         <button className="btn">Ver</button>
+        <Link className="btn" href={`/caja?dia=${addDays(day, -1)}`}>← Día anterior</Link>
+        {day < bogotaToday() && <Link className="btn" href={`/caja?dia=${addDays(day, 1)}`}>Día siguiente →</Link>}
         {day !== bogotaToday() && <Link className="btn" href="/caja">Hoy</Link>}
+        <Link className="btn" href={`/ventas?desde=${day}&hasta=${day}`}>Ver las ventas de este día →</Link>
       </form>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <div className="card p-4"><div className="note">Efectivo que debería haber</div><div className="text-2xl font-bold tabular-nums">{fmt(d.expected)}</div></div>
@@ -36,7 +40,7 @@ export default async function Caja({ searchParams }: PageProps<"/caja">) {
         <h2 className="px-4 pt-3 font-semibold">Por forma de pago</h2>
         {d.byMethod.length === 0 ? <Empty>No hay movimientos este día.</Empty> : (
           <table className="t"><thead><tr><th>Forma</th><th className="num">Entró</th><th className="num">Salió</th><th className="num">Neto</th></tr></thead>
-            <tbody>{d.byMethod.map((m) => <tr key={m.method}><td>{m.method}</td><td className="num">{fmt(m.in)}</td><td className="num">{m.out ? fmt(m.out) : "—"}</td><td className="num"><b>{fmt(m.in - m.out)}</b></td></tr>)}</tbody></table>
+            <tbody>{d.byMethod.map((m) => <tr key={m.method}><td><Link href={`/ventas?desde=${day}&hasta=${day}&metodo=${encodeURIComponent(m.method.split(" · ")[0])}`} className="hover:underline">{m.method}</Link></td><td className="num">{fmt(m.in)}</td><td className="num">{m.out ? fmt(m.out) : "—"}</td><td className="num"><b>{fmt(m.in - m.out)}</b></td></tr>)}</tbody></table>
         )}
         <p className="note px-4 pb-3 pt-1">Addi, Vanti y las tarjetas figuran aquí pero el dinero llega al banco días después. Las devoluciones de dinero a clientes se registran como retiro.</p>
       </div>
