@@ -4,7 +4,7 @@ import type { Db } from "@/db";
 import { counters, feed, roles, sales, settings, users } from "@/db/schema";
 import { CONDS, METHODS } from "@/lib/catalog";
 import { ALL_PERMS } from "@/lib/perms";
-import { AppError, esc, logFeed, need, nextCounter, type Actor } from "./core";
+import { AppError, diffText, esc, logFeed, need, nextCounter, type Actor } from "./core";
 import { randomInt } from "node:crypto";
 import { USERNAME_RE, tempPassword } from "@/lib/password";
 import { hashPin } from "./auth";
@@ -77,7 +77,8 @@ export async function saveRolePerms(db: Db, a: Actor, key: string, perms: string
   if (r.locked) throw new AppError("Este rol no se puede cambiar", "forbidden");
   const clean = perms.filter((p) => ALL_PERMS.includes(p as never) && (p !== "dev" || a.locked));
   await db.update(roles).set({ perms: clean }).where(eq(roles.key, key));
-  await logFeed(db, a, "owner", "🔐", `Permisos del rol <b>${esc(r.name)}</b> actualizados por ${esc(a.name)}`);
+  const on = clean.filter((p) => !r.perms.includes(p)), off = r.perms.filter((p) => !clean.includes(p));
+  await logFeed(db, a, "owner", "🔐", `Permisos del rol <b>${esc(r.name)}</b> actualizados por ${esc(a.name)}${on.length ? " · activó: " + on.map(esc).join(", ") : ""}${off.length ? " · quitó: " + off.map(esc).join(", ") : ""}`);
 }
 
 export const settingsInput = z.object({
@@ -102,8 +103,11 @@ export const settingsInput = z.object({
 export async function saveSettings(db: Db, a: Actor, raw: unknown) {
   need(a, "settings");
   const v = settingsInput.parse(raw);
+  const [before] = await db.select().from(settings).where(eq(settings.id, 1));
   await db.update(settings).set(v).where(eq(settings.id, 1));
-  await logFeed(db, a, "owner", "⚙️", `Configuración actualizada por ${esc(a.name)}`);
+  const labels: Record<string, string> = { name: "Nombre", legal: "Razón social", nit: "NIT", address: "Dirección", city: "Ciudad", phone: "Teléfono", whatsapp: "WhatsApp", email: "Correo", web: "Web", instagram: "Instagram", footer: "Pie", brand: "Color", maxDisc: "Descuento máx. (%)", minMargin: "Margen mín. (%)", trm: "TRM", agedDays: "Días para «antiguo»", holdDays: "Días de apartado", apartadoMinPct: "Abono mínimo (%)", ownerPhone: "Celular del dueño", taxNote: "Nota tributaria", legalNote: "Nota legal", invTitle: "Título del comprobante", showSignatures: "Firmas", autoSend: "Envío automático por correo" };
+  const d = before ? diffText(before as never, v as never, labels, (_k, x) => (typeof x === "boolean" ? (x ? "sí" : "no") : x === "" || x == null ? "—" : String(x))) : [];
+  await logFeed(db, a, "owner", "⚙️", `Configuración actualizada por ${esc(a.name)}${d.length ? ": " + d.join(" · ") : " (sin cambios)"}`);
 }
 /** Prefijo y siguiente número de comprobante. Nunca se puede retroceder (evita números repetidos). */
 export async function saveNumbering(db: Db, a: Actor, raw: unknown) {

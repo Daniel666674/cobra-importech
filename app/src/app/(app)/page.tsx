@@ -5,6 +5,7 @@ import { fmt, fmtM, fdt } from "@/lib/format";
 import { hasPerm } from "@/server/auth";
 import { requireMe } from "@/server/session";
 import { dashboard } from "@/server/reports";
+import { systemHealth } from "@/server/health";
 import { recentFeed } from "@/server/admin";
 import { settings } from "@/db/schema";
 import { waLink } from "@/lib/whatsapp";
@@ -17,6 +18,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const db = await getDb();
   const [d, feed, [cfg]] = await Promise.all([dashboard(db), hasPerm(me, "reports") ? recentFeed(db, 12) : Promise.resolve([]), db.select().from(settings).limit(1)]);
+  if (hasPerm(me, "settings")) {
+    const h = await systemHealth(db);
+    if (h.bad) d.alerts.unshift({ key: "health-bad", level: "bad", title: `${h.bad} inconsistencia${h.bad !== 1 ? "s" : ""} grave${h.bad !== 1 ? "s" : ""} en el sistema`, detail: "Hay datos que no cuadran entre inventario, ventas, caja o cartera. Revísalas.", href: "/salud" });
+    else if (h.warn) d.alerts.push({ key: "health-warn", level: "info", title: `${h.warn} punto${h.warn !== 1 ? "s" : ""} para revisar en la salud del sistema`, detail: "Nada grave, pero conviene mirarlo.", href: "/salud" });
+  }
   const summary = `Resumen ${cfg.name}\nVentas hoy: ${fmt(d.kpi.todayTotal)} · 30 días: ${fmtM(d.kpi.monthTotal)}\n` + (d.alerts.length ? d.alerts.map((a) => "• " + a.title).join("\n") : "Sin alertas.");
   const delta = d.kpi.prevTotal ? Math.round(((d.kpi.monthTotal - d.kpi.prevTotal) / d.kpi.prevTotal) * 100) : null;
   const max = Math.max(1, ...d.days.map((x) => x.total));

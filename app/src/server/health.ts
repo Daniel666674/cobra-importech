@@ -4,6 +4,7 @@ import { allies, allyMoves, cashCloses, claims, items, orders, sales, users } fr
 import { isQty } from "@/lib/items";
 import { fmt } from "@/lib/format";
 import { lineNet, saleNet, saleVoid } from "@/lib/sales";
+import { cajaDay } from "@/server/caja";
 
 export type HealthLink = { label: string; href: string };
 export type HealthCheck = { key: string; level: "ok" | "warn" | "bad"; title: string; detail: string; items: HealthLink[] };
@@ -79,6 +80,10 @@ export async function systemHealth(db: Db): Promise<{ checks: HealthCheck[]; bad
 
   // 6. Caja y accesos
   add("cash-diff", "warn", "Cierres de caja con diferencia", "El efectivo contado no coincidió con el esperado.", closes.filter((c) => c.counted !== c.expected).sort((a, b) => b.t - a.t).slice(0, 10).map((c) => ({ label: `${c.day} · diferencia ${fmt(c.counted - c.expected)}`, href: `/caja?dia=${c.day}` })));
+  const recent = [...new Map(closes.sort((a, b) => b.t - a.t).map((c) => [c.day, c])).values()].slice(0, 5);
+  const moved: HealthLink[] = [];
+  for (const c of recent) { const d = await cajaDay(db, c.day); if (d.expected !== c.expected) moved.push({ label: `${c.day} · al cerrar esperaba ${fmt(c.expected)}, hoy calcula ${fmt(d.expected)}`, href: `/caja?dia=${c.day}` }); }
+  add("cash-moved", "warn", "Cajas que cambiaron después de cerrarse", "Se editó, borró o registró algo en un día que ya estaba cerrado.", moved);
   const activeOwners = us.filter((u) => u.active && (u.role === "owner" || u.role === "dev"));
   add("no-owner", "bad", "No hay un propietario/a activo", "Nadie puede aprobar ni administrar el sistema.", activeOwners.length ? [] : [{ label: "Usuarios y permisos", href: "/usuarios" }]);
 

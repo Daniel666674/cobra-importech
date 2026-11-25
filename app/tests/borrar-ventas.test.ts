@@ -192,6 +192,12 @@ describe("editar una venta guardada y datos incompletos", () => {
     const [got] = await db.select().from(sales).where(eq(sales.id, s.id));
     expect(got).toMatchObject({ t: day, total: 1_200_000, pending: 500_000, method: "Transferencia", notes: "corregida" });
     expect(got.lines[0]).toMatchObject({ price: 1_200_000, cost: 800_000, warr: 3, serial: "359112345678901", batt: 88 });
+    // el registro de actividad dice qué cambió (antes → después)
+    const { feed } = await import("@/db/schema");
+    const log = (await db.select().from(feed)).map((f) => f.x).find((x) => x.includes(`<b>${s.no}</b> corregida`))!;
+    expect(log).toContain("precio:");
+    expect(log).toContain("→");
+    expect(log).toContain("pagos:");
     // la deuda con la tienda proveedora se rehace con el costo nuevo
     expect(await db.select().from(allyMoves).where(eq(allyMoves.ref, s.no))).toMatchObject([{ kind: "deuda", amount: 800_000 }]);
     await expect(editSale(db, seller, s.id, { lines: [{ price: 1, cost: 0 }], payments: [] })).rejects.toThrow(/permiso/);

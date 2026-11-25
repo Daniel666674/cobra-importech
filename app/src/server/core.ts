@@ -37,6 +37,19 @@ export async function logFeed(db: Db, a: Actor | null, type: string, ic: string,
   await db.insert(feed).values({ t: Date.now(), type, ic, x, by: a ? a.name : "Sistema" });
 }
 
+/** «Campo: antes → después» solo de lo que cambió (para el registro de actividad). */
+export function diffText(before: Record<string, unknown>, after: Record<string, unknown>, labels: Record<string, string>, show: (k: string, v: unknown) => string = (_k, v) => (v === "" || v == null ? "—" : String(v))): string[] {
+  const out: string[] = [];
+  for (const [k, label] of Object.entries(labels)) {
+    if (!(k in after) || after[k] === undefined) continue;
+    const a = before[k], b = after[k];
+    if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    const sh = (v: unknown) => { const t = show(k, v); return t.length > 60 ? t.slice(0, 57) + "…" : t; };
+    out.push(`${label}: ${esc(sh(a))} → ${esc(sh(b))}`);
+  }
+  return out;
+}
+
 export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 export { eq };
 
